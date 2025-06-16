@@ -1,18 +1,18 @@
 [package]
-name = "navmesh"
+name = "bevy_navmesh"
 version = "0.1.0"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
 exclude = ["./assets/"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/janhohenheim/navmesh"
-description = "A tiny plugin to fix the fact that Bevy does not respect the GLTF coordinate system"
-keywords = ["bevy", "gltf", "fix", "scene"]
+repository = "https://github.com/janhohenheim/bevy_navmesh"
+description = "TODO"
+keywords = ["bevy", "recast", "navmesh", "navigation", "ai"]
 categories = ["game-development"]
 readme = "readme.md"
 
 [dependencies]
-avian3d = "0.3.0"
+avian3d = "0.3.1"
 
 [dependencies.bevy]
 version = "0.16.0"

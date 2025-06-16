@@ -894,6 +894,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_navmesh"
+version = "0.1.0"
+dependencies = [
+ "avian3d",
+ "bevy",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2872,14 +2880,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "navmesh"
-version = "0.1.0"
-dependencies = [
- "avian3d",
- "bevy",
 ]
 
 [[package]]

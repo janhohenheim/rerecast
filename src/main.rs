@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use navmesh::prelude::*;
+use bevy_navmesh::prelude::*;
 
 fn main() -> AppExit {
     App::new()
