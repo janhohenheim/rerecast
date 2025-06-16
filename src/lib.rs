@@ -2,6 +2,9 @@
 #![doc = include_str!("../readme.md")]
 
 use bevy::prelude::*;
+mod column;
+mod heightfield;
+mod span;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {
