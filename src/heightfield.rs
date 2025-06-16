@@ -129,7 +129,7 @@ impl HeightfieldBuilder {
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
-            columns: Vec::with_capacity(column_count),
+            columns: vec![None; column_count],
             spans: Spans::with_min_capacity(column_count),
         }
     }
