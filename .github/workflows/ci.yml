@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  # Sparse cargo registry for faster updates
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: '--deny warnings'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: clippy
+      - name: Populate target directory from cache
+        uses: Swatinem/rust-cache@v2  
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}  
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run cargo clippy
+        run: cargo clippy --tests --examples
+
+  format:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --check --all
+
+  doc:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+      RUSTDOCFLAGS: '--deny warnings'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Populate target directory from cache
+        uses: Swatinem/rust-cache@v2  
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}  
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run cargo doc
+        run: cargo doc --no-deps --all-features
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Populate target directory from cache
+        uses: Swatinem/rust-cache@v2  
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}  
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run cargo test
+        run: cargo test --all-features --features bevy/x11 
+      - name: Run doc tests
+        run: LD_LIBRARY_PATH="$(rustc --print target-libdir)" cargo test --doc --features bevy/x11
