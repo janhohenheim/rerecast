@@ -8,6 +8,8 @@ slotmap::new_key_type! {
 #[derive(Deref, DerefMut)]
 pub(crate) struct Spans(SlotMap<SpanKey, Span>);
 
+struct SpanKeyReflect(slotmap::KeyData);
+
 impl Spans {
     const DEFAULT_CAPACITY: usize = 1024;
 
@@ -18,10 +20,10 @@ impl Spans {
 }
 
 pub(crate) struct SpanBuilder {
-    min: u16,
-    max: u16,
-    area: u8,
-    next: Option<SpanKey>,
+    pub(crate) min: u16,
+    pub(crate) max: u16,
+    pub(crate) area: u8,
+    pub(crate) next: Option<SpanKey>,
 }
 
 impl SpanBuilder {

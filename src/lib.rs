@@ -2,7 +2,8 @@
 #![doc = include_str!("../readme.md")]
 
 use bevy::prelude::*;
-mod column;
+
+use crate::heightfield::Heightfield;
 mod heightfield;
 mod span;
 
@@ -16,5 +17,10 @@ pub mod prelude {
 pub struct NavMeshPlugin;
 
 impl Plugin for NavMeshPlugin {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Heightfields>();
+    }
 }
+
+#[derive(Resource, Default)]
+struct Heightfields(Vec<Heightfield>);

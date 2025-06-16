@@ -1,10 +1,7 @@
-use bevy::render::primitives::Aabb;
+use bevy::math::bounding::Aabb3d;
 use thiserror::Error;
 
-use crate::{
-    column::Column,
-    span::{Span, SpanKey, Spans},
-};
+use crate::span::{Span, SpanKey, Spans};
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
 pub(crate) struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
@@ -12,7 +9,7 @@ pub(crate) struct Heightfield {
     /// The height of the heightfield along the y-axis in cell units
     height: u32,
     /// The AABB of the heightfield
-    aabb: Aabb,
+    aabb: Aabb3d,
     /// The size of each cell on the xz-plane
     cell_size: f32,
     /// The size of each cell along the y-axis
@@ -61,7 +58,7 @@ impl Heightfield {
             }
 
             // Merge flags.
-            if (new_span.max() as i32 - current_span.max() as i32).abs() as u32
+            if (new_span.max() as i32 - current_span.max() as i32).unsigned_abs()
                 <= insertion.flag_merge_threshold
             {
                 // Higher area ID numbers indicate higher resolution priority.
@@ -72,7 +69,7 @@ impl Heightfield {
             // Remove the current span since it's now merged with newSpan.
             // Keep going because there might be other overlapping spans that also need to be merged.
             let next_key = current_span.next();
-            // freeSpan???
+            self.spans.remove(current_span_key);
             if let Some(previous_span_key) = previous_span_key {
                 self.span_mut(previous_span_key).set_next(next_key);
             } else {
@@ -111,7 +108,7 @@ impl Heightfield {
 pub(crate) struct HeightfieldBuilder {
     width: u32,
     height: u32,
-    aabb: Aabb,
+    aabb: Aabb3d,
     cell_size: f32,
     cell_height: f32,
 }
@@ -150,7 +147,51 @@ pub(crate) struct SpanInsertion {
     /// The y-coordinate of the span
     pub(crate) y: u32,
     /// How close two spans' maximum extents need to be to merge area type IDs
-    flag_merge_threshold: u32,
+    pub(crate) flag_merge_threshold: u32,
     /// The span to insert
     pub(crate) span: Span,
+}
+
+#[cfg(test)]
+mod tests {
+    use bevy::math::Vec3A;
+
+    use crate::span::SpanBuilder;
+
+    use super::*;
+
+    fn height_field() -> Heightfield {
+        HeightfieldBuilder {
+            width: 10,
+            height: 10,
+            aabb: Aabb3d::new(Vec3A::ZERO, [5.0, 5.0, 5.0]),
+            cell_size: 1.0,
+            cell_height: 1.0,
+        }
+        .build()
+    }
+
+    #[test]
+    fn can_create_heightfield() {
+        let _heightfield = height_field();
+    }
+
+    #[test]
+    fn can_add_span() {
+        let mut heightfield = height_field();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 0,
+                y: 0,
+                flag_merge_threshold: 0,
+                span: SpanBuilder {
+                    min: 1,
+                    max: 3,
+                    area: 0,
+                    next: None,
+                }
+                .build(),
+            })
+            .unwrap();
+    }
 }

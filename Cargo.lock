@@ -320,6 +320,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "avian_navmesh"
+version = "0.1.0"
+dependencies = [
+ "avian3d",
+ "bevy",
+ "serde",
+ "slotmap",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -891,16 +902,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bb60c753b968a2de0fd279b76a3d19517695e771edb4c23575c7f92156315de"
 dependencies = [
  "glam",
-]
-
-[[package]]
-name = "bevy_navmesh"
-version = "0.1.0"
-dependencies = [
- "avian3d",
- "bevy",
- "slotmap",
- "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -5469,8 +5470,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "avian3d"
-version = "0.3.0"
-source = "git+https://github.com/Jondolf/avian?rev=4f31166ee5e0cc1116756952d754386333b75cb0#4f31166ee5e0cc1116756952d754386333b75cb0"

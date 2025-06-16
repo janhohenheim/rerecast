@@ -1,5 +1,5 @@
+use avian_navmesh::prelude::*;
 use bevy::prelude::*;
-use bevy_navmesh::prelude::*;
 
 fn main() -> AppExit {
     App::new()

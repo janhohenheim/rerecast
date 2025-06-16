@@ -1,11 +1,11 @@
 [package]
-name = "bevy_navmesh"
+name = "avian_navmesh"
 version = "0.1.0"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
 exclude = ["./assets/"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/janhohenheim/bevy_navmesh"
+repository = "https://github.com/janhohenheim/avian_navmesh"
 description = "TODO"
 keywords = ["bevy", "recast", "navmesh", "navigation", "ai"]
 categories = ["game-development"]
@@ -13,6 +13,7 @@ readme = "readme.md"
 
 [dependencies]
 avian3d = "0.3.1"
+serde = { version = "1.0.219", optional = true }
 slotmap = "1.0.7"
 thiserror = "2.0.12"
 
@@ -25,7 +26,7 @@ features = ["bevy_scene"]
 version = "0.16.0"
 
 [features]
-runtime-asserts = []
+serialize = ["dep:serde"]
 
 
 [lints.clippy]
@@ -38,4 +39,4 @@ type_complexity = "allow"
 nonstandard_macro_braces = "warn"
 
 [patch.crates-io]
-avian3d = { git = "https://github.com/Jondolf/avian", rev = "4f31166ee5e0cc1116756952d754386333b75cb0" }
+#avian3d = { git = "https://github.com/Jondolf/avian", rev = "4f31166ee5e0cc1116756952d754386333b75cb0" }
