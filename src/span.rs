@@ -65,28 +65,54 @@ impl Span {
     #[inline]
     pub(crate) fn min(&self) -> u16 {
         // Safety: we are only indexing known constant indices
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 0 + 13 + 7 = 20 / 8 = 3
+        // - `bit_count` must be <= 16.
+        //   - 13 <= 16
         unsafe { Self::read_bits(&self.data, 0, Self::MIN_BITS) }
     }
 
     #[inline]
     pub(crate) fn set_min(&mut self, min: u16) {
-        unsafe { Self::write_bits(&mut self.data, 0, Self::MIN_BITS, min as u16) };
+        // Safety: we are only indexing known constant indices
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 0 + 13 + 7 = 20 / 8 = 3
+        // - `bit_count` must be <= 16.
+        //   - 13 <= 16
+        // - `val` must fit into `bit_count` bits (higher bits truncated).
+        //   - 13 <= 16
+        unsafe { Self::write_bits(&mut self.data, 0, Self::MIN_BITS, min) };
     }
 
     #[inline]
     pub(crate) fn max(&self) -> u16 {
         // Safety: we are only indexing known constant indices
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 13 + 13 + 7 = 33 / 8 = 4
+        // - `bit_count` must be <= 16.
+        //   - 13 <= 16
         unsafe { Self::read_bits(&self.data, Self::MIN_BITS, Self::MAX_BITS) }
     }
 
     #[inline]
     pub(crate) fn set_max(&mut self, max: u16) {
-        unsafe { Self::write_bits(&mut self.data, Self::MIN_BITS, Self::MAX_BITS, max as u16) };
+        // Safety: we are only indexing known constant indices
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 13 + 13 + 7 = 33 / 8 = 4
+        // - `bit_count` must be <= 16.
+        //   - 13 <= 16
+        // - `val` must fit into `bit_count` bits (higher bits truncated).
+        //   - 13 <= 16
+        unsafe { Self::write_bits(&mut self.data, Self::MIN_BITS, Self::MAX_BITS, max) };
     }
 
     #[inline]
     pub(crate) fn area(&self) -> u8 {
         // Safety: we are only indexing known constant indices
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 13 + 13 + 6 + 7 = 49 / 8 = 6
+        // - `bit_count` must be <= 16.
+        //   - 6 <= 16
         unsafe {
             Self::read_bits(&self.data, Self::MIN_BITS + Self::MAX_BITS, Self::AREA_BITS) as u8
         }
@@ -94,6 +120,12 @@ impl Span {
 
     #[inline]
     pub(crate) fn set_area(&mut self, area: u8) {
+        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
+        //   - 13 + 13 + 6 + 7 = 49 / 8 = 6
+        // - `bit_count` must be <= 16.
+        //   - 6 <= 16
+        // - `val` must fit into `bit_count` bits (higher bits truncated).
+        //   - 6 <= 16
         unsafe {
             Self::write_bits(
                 &mut self.data,
