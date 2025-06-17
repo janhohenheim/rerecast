@@ -28,14 +28,12 @@ pub(crate) struct SpanBuilder {
 
 impl SpanBuilder {
     pub(crate) fn build(self) -> Span {
-        let mut span = Span {
-            data: [0; 32],
+        Span {
+            min: self.min,
+            max: self.max,
+            area: self.area,
             next: self.next,
-        };
-        span.set_min(self.min);
-        span.set_max(self.max);
-        span.set_area(self.area);
-        span
+        }
     }
 }
 
@@ -49,146 +47,51 @@ impl From<SpanBuilder> for Span {
 /// Build with [`SpanBuilder`]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct Span {
-    /// - 13 bits for min
-    /// - 13 bits for max
-    /// - 6 bits for area
-    data: [u8; 32],
+    /// Height of the floor.
+    ///
+    /// Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
+    min: u16,
+    /// Height of the ceiling.
+    ///
+    /// Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
+    max: u16,
+    /// Area type ID.
+    ///
+    /// Original uses 6 bits, but that results in the same alignment AFAIK, so we don't bother
+    area: u8,
     /// The key of the next-higher span in the column
     next: Option<SpanKey>,
 }
 
 impl Span {
-    const MIN_BITS: usize = 13;
-    const MAX_BITS: usize = 13;
-    const AREA_BITS: usize = 6;
-
     #[inline]
     pub(crate) fn min(&self) -> u16 {
-        // Safety: we are only indexing known constant indices
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 0 + 13 + 7 = 20 / 8 = 3
-        // - `bit_count` must be <= 16.
-        //   - 13 <= 16
-        unsafe { Self::read_bits(&self.data, 0, Self::MIN_BITS) }
+        self.min
     }
 
     #[inline]
     pub(crate) fn set_min(&mut self, min: u16) {
-        // Safety: we are only indexing known constant indices
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 0 + 13 + 7 = 20 / 8 = 3
-        // - `bit_count` must be <= 16.
-        //   - 13 <= 16
-        // - `val` must fit into `bit_count` bits (higher bits truncated).
-        //   - 13 <= 16
-        unsafe { Self::write_bits(&mut self.data, 0, Self::MIN_BITS, min) };
+        self.min = min;
     }
 
     #[inline]
     pub(crate) fn max(&self) -> u16 {
-        // Safety: we are only indexing known constant indices
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 13 + 13 + 7 = 33 / 8 = 4
-        // - `bit_count` must be <= 16.
-        //   - 13 <= 16
-        unsafe { Self::read_bits(&self.data, Self::MIN_BITS, Self::MAX_BITS) }
+        self.max
     }
 
     #[inline]
     pub(crate) fn set_max(&mut self, max: u16) {
-        // Safety: we are only indexing known constant indices
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 13 + 13 + 7 = 33 / 8 = 4
-        // - `bit_count` must be <= 16.
-        //   - 13 <= 16
-        // - `val` must fit into `bit_count` bits (higher bits truncated).
-        //   - 13 <= 16
-        unsafe { Self::write_bits(&mut self.data, Self::MIN_BITS, Self::MAX_BITS, max) };
+        self.max = max;
     }
 
     #[inline]
     pub(crate) fn area(&self) -> u8 {
-        // Safety: we are only indexing known constant indices
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 13 + 13 + 6 + 7 = 49 / 8 = 6
-        // - `bit_count` must be <= 16.
-        //   - 6 <= 16
-        unsafe {
-            Self::read_bits(&self.data, Self::MIN_BITS + Self::MAX_BITS, Self::AREA_BITS) as u8
-        }
+        self.area
     }
 
     #[inline]
     pub(crate) fn set_area(&mut self, area: u8) {
-        // - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-        //   - 13 + 13 + 6 + 7 = 49 / 8 = 6
-        // - `bit_count` must be <= 16.
-        //   - 6 <= 16
-        // - `val` must fit into `bit_count` bits (higher bits truncated).
-        //   - 6 <= 16
-        unsafe {
-            Self::write_bits(
-                &mut self.data,
-                Self::MIN_BITS + Self::MAX_BITS,
-                Self::AREA_BITS,
-                area as u16,
-            )
-        };
-    }
-
-    /// Reads `bit_count` bits from `data` starting at `bit_offset` and returns them as a `u16`.
-    ///
-    /// # Safety
-    /// - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-    /// - `bit_count` must be <= 16.
-    ///
-    /// The function reads up to 3 bytes starting from the byte containing `bit_offset`,
-    /// assembles them into a `u32`, then shifts and masks to extract the desired bits.
-    ///
-    /// No bounds checks or validation are performed for performance, so misuse can cause undefined behavior.
-    #[inline]
-    unsafe fn read_bits(data: &[u8], bit_offset: usize, bit_count: usize) -> u16 {
-        let byte_offset = bit_offset / 8;
-        let bit_in_byte = bit_offset % 8;
-
-        // Read 3 bytes starting at byte_offset into a u32 for bit manipulation
-        let val = (data[byte_offset] as u32)
-            | ((data[byte_offset + 1] as u32) << 8)
-            | ((data[byte_offset + 2] as u32) << 16);
-
-        // Shift right to discard unwanted lower bits, then mask to keep only bit_count bits
-        ((val >> bit_in_byte) & ((1 << bit_count) - 1)) as u16
-    }
-
-    /// Writes `bit_count` bits from `val` into `data` starting at `bit_offset`.
-    ///
-    /// # Safety
-    /// - Caller must ensure `data` has at least `(bit_offset + bit_count + 7) / 8` bytes.
-    /// - `bit_count` must be <= 16.
-    /// - `val` must fit into `bit_count` bits (higher bits truncated).
-    #[inline]
-    unsafe fn write_bits(data: &mut [u8], bit_offset: usize, bit_count: usize, val: u16) {
-        let byte_offset = bit_offset / 8;
-        let bit_in_byte = bit_offset % 8;
-
-        // Read 3 bytes into u32 to avoid partial overwrite issues
-        let mut current = (data[byte_offset] as u32)
-            | ((data[byte_offset + 1] as u32) << 8)
-            | ((data[byte_offset + 2] as u32) << 16);
-
-        // Create mask for the bits we're gonna overwrite
-        let mask = ((1u32 << bit_count) - 1) << bit_in_byte;
-
-        // Clear the target bits
-        current &= !mask;
-
-        // Set the bits from val (mask val to be safe)
-        current |= (val as u32 & ((1 << bit_count) - 1)) << bit_in_byte;
-
-        // Write back the bytes
-        data[byte_offset] = current as u8;
-        data[byte_offset + 1] = (current >> 8) as u8;
-        data[byte_offset + 2] = (current >> 16) as u8;
+        self.area = area;
     }
 
     #[inline]
