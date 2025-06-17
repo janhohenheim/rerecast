@@ -15,6 +15,10 @@ bevy = { workspace = true, default-features = true, features = [
     "bevy_remote",
     "configurable_error_handler",
 ] }
-avian_navmesh = { version = "0.1.0", path = "../navmesh" }
+avian_navmesh = { version = "0.1.0", path = "../navmesh", features = [
+    "editor_integration",
+    "serialize",
+] }
 serde_json = { workspace = true }
+anyhow = "1.0.0"
 ureq = { workspace = true, features = ["json"] }

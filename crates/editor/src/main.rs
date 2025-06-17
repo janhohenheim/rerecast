@@ -1,4 +1,5 @@
-use avian_navmesh::prelude::*;
+use anyhow::Context as _;
+use avian_navmesh::{editor_integration::FullSceneAssetPath, prelude::*};
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     input::common_conditions::input_just_pressed,
@@ -37,9 +38,9 @@ fn list_components() -> Result {
         params: Some(
             serde_json::to_value(BrpQueryParams {
                 data: BrpQuery {
-                    components: vec![],
+                    components: vec![FullSceneAssetPath::type_path().to_string()],
                     option: Vec::default(),
-                    has: Vec::default(),
+                    has: vec![],
                 },
                 strict: false,
                 filter: BrpQueryFilter::default(),
@@ -48,12 +49,29 @@ fn list_components() -> Result {
         ),
     };
 
-    let res = ureq::post(&url)
+    let response = ureq::post(&url)
         .send_json(req)?
         .body_mut()
         .read_json::<serde_json::Value>()?;
 
-    println!("{:#}", res);
+    let results = response
+        .get("result")
+        .context("Failed to get `result` from response")?
+        .as_array()
+        .context("Response `result` is not an array")?;
+    for result in results {
+        let Some(components) = result.get("components") else {
+            continue;
+        };
+        let Some(asset_path) = components.get(FullSceneAssetPath::type_path().to_string()) else {
+            continue;
+        };
+        let Ok(asset_path) = serde_json::from_value::<FullSceneAssetPath>(asset_path.clone())
+        else {
+            continue;
+        };
 
+        info!("{}", asset_path.0.display());
+    }
     Ok(())
 }

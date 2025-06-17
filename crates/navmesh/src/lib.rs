@@ -4,6 +4,8 @@
 use bevy::prelude::*;
 
 use crate::heightfield::Heightfield;
+#[cfg(feature = "editor_integration")]
+pub mod editor_integration;
 mod heightfield;
 mod span;
 
@@ -18,6 +20,8 @@ pub struct NavMeshPlugin;
 
 impl Plugin for NavMeshPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "editor_integration")]
+        app.add_plugins(editor_integration::plugin);
         app.init_resource::<Heightfields>();
     }
 }
