@@ -184,14 +184,31 @@ mod tests {
         .build()
     }
 
-    fn span() -> Span {
+    fn span_low() -> SpanBuilder {
         SpanBuilder {
             min: 2,
-            max: 5,
+            max: 4,
             area: 2,
             next: None,
         }
-        .build()
+    }
+
+    fn span_mid() -> SpanBuilder {
+        SpanBuilder {
+            min: 4,
+            max: 7,
+            area: 2,
+            next: None,
+        }
+    }
+
+    fn span_high() -> SpanBuilder {
+        SpanBuilder {
+            min: 7,
+            max: 10,
+            area: 2,
+            next: None,
+        }
     }
 
     #[test]
@@ -202,7 +219,7 @@ mod tests {
     #[test]
     fn can_add_span() {
         let mut heightfield = height_field();
-        let expected_span = span();
+        let expected_span = span_low().build();
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
@@ -213,5 +230,80 @@ mod tests {
             .unwrap();
         let span = heightfield.span_at(1, 3).unwrap();
         assert_eq!(span, expected_span);
+
+        let empty_span = heightfield.span_at(3, 1);
+        assert_eq!(empty_span, None);
+    }
+
+    #[test]
+    fn can_add_multiple_spans_next_to_each_other() {
+        let mut heightfield = height_field();
+        let expected_span_1 = span_low().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: expected_span_1.clone(),
+            })
+            .unwrap();
+
+        let expected_span_2 = span_mid().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 2,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: expected_span_2.clone(),
+            })
+            .unwrap();
+
+        let span = heightfield.span_at(1, 3).unwrap();
+        assert_eq!(span, expected_span_1);
+        let span = heightfield.span_at(2, 3).unwrap();
+        assert_eq!(span, expected_span_2);
+
+        let empty_span = heightfield.span_at(3, 1);
+        assert_eq!(empty_span, None);
+    }
+
+    #[test]
+    fn can_add_higher_span_in_same_column() {
+        let mut heightfield = height_field();
+        let span_low = span_low().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_low.clone(),
+            })
+            .unwrap();
+
+        let span_high = span_high().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_high.clone(),
+            })
+            .unwrap();
+
+        let span = heightfield.span_at(1, 3).unwrap();
+        assert_eq_without_next(&span, &span_low);
+        let next_span = span.next().unwrap();
+        let next_span = heightfield.span(next_span);
+        assert_eq_without_next(&next_span, &span_high);
+
+        let empty_span = heightfield.span_at(3, 1);
+        assert_eq!(empty_span, None);
+    }
+
+    #[track_caller]
+    fn assert_eq_without_next(span: &Span, expected_span: &Span) {
+        assert_eq!(span.min(), expected_span.min());
+        assert_eq!(span.max(), expected_span.max());
+        assert_eq!(span.area(), expected_span.area());
     }
 }
