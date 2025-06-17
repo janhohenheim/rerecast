@@ -24,7 +24,7 @@ pub(crate) struct Heightfield {
 impl Heightfield {
     /// https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Source/RecastRasterization.cpp#L105
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {
-        let column_index = insertion.x as u128 * insertion.y as u128 * self.width as u128;
+        let column_index = insertion.x as u128 + insertion.y as u128 * self.width as u128;
         if column_index >= self.columns.len() as u128 {
             return Err(SpanInsertionError::ColumnIndexOutOfBounds {
                 x: insertion.x,
@@ -95,7 +95,7 @@ impl Heightfield {
     }
 
     pub(crate) fn span_at(&self, x: u32, y: u32) -> Option<Span> {
-        let column_index = x as u128 * y as u128 * self.width as u128;
+        let column_index = x as u128 + y as u128 * self.width as u128;
         let Some(span_key) = self.columns.get(column_index as usize) else {
             // Invalid coordinates
             return None;
