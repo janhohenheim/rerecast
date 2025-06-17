@@ -11,5 +11,10 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy = { workspace = true, default-features = true }
+bevy = { workspace = true, default-features = true, features = [
+    "bevy_remote",
+    "configurable_error_handler",
+] }
 avian_navmesh = { version = "0.1.0", path = "../navmesh" }
+serde_json = { workspace = true }
+ureq = { workspace = true, features = ["json"] }
