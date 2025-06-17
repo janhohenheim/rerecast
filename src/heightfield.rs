@@ -300,10 +300,43 @@ mod tests {
         assert_eq!(empty_span, None);
     }
 
+    #[test]
+    fn can_add_lower_span_in_same_column() {
+        let mut heightfield = height_field();
+        let span_high = span_high().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_high.clone(),
+            })
+            .unwrap();
+
+        let span_low = span_low().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_low.clone(),
+            })
+            .unwrap();
+
+        let span = heightfield.span_at(1, 3).unwrap();
+        assert_eq_without_next(&span, &span_low);
+        let next_span = span.next().unwrap();
+        let next_span = heightfield.span(next_span);
+        assert_eq_without_next(&next_span, &span_high);
+
+        let empty_span = heightfield.span_at(3, 1);
+        assert_eq!(empty_span, None);
+    }
+
     #[track_caller]
     fn assert_eq_without_next(span: &Span, expected_span: &Span) {
-        assert_eq!(span.min(), expected_span.min());
-        assert_eq!(span.max(), expected_span.max());
-        assert_eq!(span.area(), expected_span.area());
+        assert_eq!(span.min(), expected_span.min(), "min is not equal");
+        assert_eq!(span.max(), expected_span.max(), "max is not equal");
+        assert_eq!(span.area(), expected_span.area(), "area is not equal");
     }
 }
