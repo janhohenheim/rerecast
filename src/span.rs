@@ -47,7 +47,7 @@ impl From<SpanBuilder> for Span {
 
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L294>
 /// Build with [`SpanBuilder`]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct Span {
     /// - 13 bits for min
     /// - 13 bits for max

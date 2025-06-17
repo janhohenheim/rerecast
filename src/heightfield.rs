@@ -94,6 +94,19 @@ impl Heightfield {
         Ok(())
     }
 
+    pub(crate) fn span_at(&self, x: u32, y: u32) -> Option<Span> {
+        let column_index = x as u128 * y as u128 * self.width as u128;
+        let Some(span_key) = self.columns.get(column_index as usize) else {
+            // Invalid coordinates
+            return None;
+        };
+        let Some(span_key) = span_key else {
+            // No span in this column
+            return None;
+        };
+        Some(self.span(*span_key))
+    }
+
     #[inline]
     fn span(&self, key: SpanKey) -> Span {
         self.spans[key].clone()
@@ -171,6 +184,16 @@ mod tests {
         .build()
     }
 
+    fn span() -> Span {
+        SpanBuilder {
+            min: 2,
+            max: 5,
+            area: 2,
+            next: None,
+        }
+        .build()
+    }
+
     #[test]
     fn can_create_heightfield() {
         let _heightfield = height_field();
@@ -179,19 +202,16 @@ mod tests {
     #[test]
     fn can_add_span() {
         let mut heightfield = height_field();
+        let expected_span = span();
         heightfield
             .add_span(SpanInsertion {
-                x: 0,
-                y: 0,
+                x: 1,
+                y: 3,
                 flag_merge_threshold: 0,
-                span: SpanBuilder {
-                    min: 1,
-                    max: 3,
-                    area: 0,
-                    next: None,
-                }
-                .build(),
+                span: expected_span.clone(),
             })
             .unwrap();
+        let span = heightfield.span_at(1, 3).unwrap();
+        assert_eq!(span, expected_span);
     }
 }
