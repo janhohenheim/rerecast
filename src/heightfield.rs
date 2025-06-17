@@ -40,11 +40,11 @@ impl Heightfield {
         while let Some(current_span_key) = current_span_key_iter {
             let current_span = self.span_mut(current_span_key);
             if current_span.min() > new_span.max() {
-                // Current span is completely after the new span, break.
+                // Current span is completely below the new span, break.
                 break;
             }
             if current_span.max() < new_span.min() {
-                // Current span is completely before the new span.  Keep going.
+                // Current span is completely above the new span.  Keep going.
                 previous_span_key.replace(current_span_key);
                 current_span_key_iter = current_span.next();
                 continue;
@@ -159,7 +159,7 @@ pub(crate) struct SpanInsertion {
     pub(crate) x: u32,
     /// The y-coordinate of the span
     pub(crate) y: u32,
-    /// How close two spans' maximum extents need to be to merge area type IDs
+    /// Maximum difference between the ceilings of two spans to merge area type IDs
     pub(crate) flag_merge_threshold: u32,
     /// The span to insert
     pub(crate) span: Span,
@@ -328,6 +328,44 @@ mod tests {
         let next_span = span.next().unwrap();
         let next_span = heightfield.span(next_span);
         assert_eq_without_next(&next_span, &span_high);
+
+        let empty_span = heightfield.span_at(3, 1);
+        assert_eq!(empty_span, None);
+    }
+
+    #[test]
+    fn can_merge_spans() {
+        let mut heightfield = height_field();
+        let span_low = span_low().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_low.clone(),
+            })
+            .unwrap();
+
+        let span_mid: Span = span_mid().build();
+        heightfield
+            .add_span(SpanInsertion {
+                x: 1,
+                y: 3,
+                flag_merge_threshold: 0,
+                span: span_mid.clone(),
+            })
+            .unwrap();
+
+        let merged_span = SpanBuilder {
+            min: span_low.min(),
+            max: span_mid.max(),
+            area: span_mid.area(),
+            next: None,
+        }
+        .build();
+
+        let span = heightfield.span_at(1, 3).unwrap();
+        assert_eq!(span, merged_span);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);
