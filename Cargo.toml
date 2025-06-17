@@ -1,35 +1,30 @@
-[package]
-name = "avian_navmesh"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+exclude = ["./assets/"]
+
+[workspace.package]
 version = "0.1.0"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
-exclude = ["./assets/"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/janhohenheim/avian_navmesh"
-description = "TODO"
 keywords = ["bevy", "recast", "navmesh", "navigation", "ai"]
 categories = ["game-development"]
 readme = "readme.md"
 
-[dependencies]
+[workspace.dependencies]
 avian3d = "0.3.1"
-serde = { version = "1.0.219", optional = true }
+serde = "1.0.219"
 slotmap = "1.0.7"
 thiserror = "2.0.12"
 
-[dependencies.bevy]
+[workspace.dependencies.bevy]
 version = "0.16.0"
 default-features = false
 features = ["bevy_scene"]
 
-[dev-dependencies.bevy]
-version = "0.16.0"
-
-[features]
-serialize = ["dep:serde"]
-
-
-[lints.clippy]
+[workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
 # request more than 7 arguments, which would undesirably trigger this lint.
 too_many_arguments = "allow"

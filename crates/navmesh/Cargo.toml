@@ -1,0 +1,20 @@
+[package]
+name = "avian_navmesh"
+description = "TODO"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+readme = { workspace = true }
+
+[dependencies]
+bevy = { workspace = true }
+serde = { workspace = true, optional = true }
+slotmap = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+serialize = ["dep:serde"]
