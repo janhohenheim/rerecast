@@ -16,8 +16,9 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
+wgpu-types = { workspace = true, features = ["serde"], optional = true }
 
 [features]
-editor_integration = ["dep:serde_json"]
+editor_integration = ["serialize", "dep:serde_json", "dep:wgpu-types"]
 default = ["editor_integration"]
 serialize = ["dep:serde"]

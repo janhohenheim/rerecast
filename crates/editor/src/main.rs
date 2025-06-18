@@ -1,5 +1,8 @@
 use anyhow::{Context as _, anyhow};
-use avian_navmesh::{editor_integration::BRP_GET_NAVMESH_INPUT_METHOD, prelude::*};
+use avian_navmesh::{
+    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, serialization::ProxyMesh},
+    prelude::*,
+};
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     input::common_conditions::input_just_pressed,
@@ -61,23 +64,18 @@ fn fetch_navmesh_input(
         .as_str()
         .context("Response `result` is not a string")?;
 
-    let type_registry = type_registry.read();
-    let mut deserializer = serde_json::de::Deserializer::from_str(&mesh_string);
-    let reflect_deserializer = ReflectDeserializer::new(&type_registry);
-    let deserialized = reflect_deserializer.deserialize(&mut deserializer)?;
-
-    let mesh = <Mesh as FromReflect>::from_reflect(deserialized.as_partial_reflect())
-        .context("Failed to deserialize mesh from reflect")?;
+    let mesh: ProxyMesh = serde_json::from_str(mesh_string)?;
 
     info!("{mesh:?}");
 
+    /*
     commands.spawn((
         Mesh3d(meshes.add(mesh)),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Color::WHITE,
             ..default()
         })),
-    ));
+    )); */
 
     Ok(())
 }

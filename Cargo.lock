@@ -455,6 +455,7 @@ dependencies = [
  "serde_json",
  "slotmap",
  "thiserror 2.0.12",
+ "wgpu-types",
 ]
 
 [[package]]

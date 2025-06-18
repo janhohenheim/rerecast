@@ -2,36 +2,25 @@
 
 use bevy::{
     prelude::*,
-    reflect::{TypeRegistry, serde::ReflectSerializer},
+    reflect::{TypeRegistry, impl_reflect_opaque, serde::ReflectSerializer},
     remote::{
         BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods, RemotePlugin,
         http::RemoteHttpPlugin,
     },
+    render::mesh::PrimitiveTopology,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub(super) fn plugin(app: &mut App) {
-    if let Some(error_message) = match (
-        contains_plugin::<RemotePlugin>(app),
-        contains_plugin::<RemoteHttpPlugin>(app),
-    ) {
-        (true, true) => None,
-        (true, false) => {
-            Some("`RemoteHttpPlugin` was not found. Please add it before `NavmeshPlugin`")
-        }
-        (false, true) => Some("`RemotePlugin` was not found. Please add it before `NavmeshPlugin`"),
-        (false, false) => Some(
-            "`RemotePlugin` and `RemoteHttpPlugin` were not found. Please add them before `NavmeshPlugin`",
-        ),
-    } {
-        warn!("Failed to set up navmesh editor integration: {error_message}");
-        return;
-    }
-    app.add_systems(Startup, setup_methods);
-}
+use crate::editor_integration::serialization::CloneProxy as _;
 
-fn contains_plugin<T: Plugin>(app: &App) -> bool {
-    !app.get_added_plugins::<T>().is_empty()
+pub mod serialization;
+
+pub(super) fn plugin(app: &mut App) {
+    app.add_systems(
+        Startup,
+        setup_methods.run_if(resource_exists::<RemoteMethods>),
+    );
 }
 
 fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
@@ -45,7 +34,6 @@ fn get_navmesh_input(
     In(params): In<Option<Value>>,
     meshes: Res<Assets<Mesh>>,
     mesh_handles: Query<&Mesh3d>,
-    type_registry: Res<AppTypeRegistry>,
 ) -> BrpResult {
     if let Some(params) = params {
         return Err(BrpError {
@@ -58,11 +46,8 @@ fn get_navmesh_input(
     }
     let first_mesh_handle = mesh_handles.iter().next().unwrap();
     let mesh = meshes.get(first_mesh_handle).unwrap();
-    info!("{mesh:?}");
-    let type_registry = type_registry.read();
-
-    let serializer = ReflectSerializer::new(mesh, &type_registry);
-    let serialized = serde_json::ser::to_string_pretty(&serializer).unwrap();
+    let proxy_mesh = mesh.clone_proxy();
+    let serialized = serde_json::ser::to_string(&proxy_mesh).unwrap();
     Ok(Value::String(serialized))
 }
 
