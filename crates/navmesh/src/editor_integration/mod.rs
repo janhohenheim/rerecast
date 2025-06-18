@@ -1,13 +1,16 @@
 //! The optional editor integration for authoring the navmesh.
 
+use anyhow::Context;
+use base64::{Engine as _, prelude::BASE64_STANDARD};
 use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
 use serde_json::Value;
 
-use crate::editor_integration::serialization::CloneProxy as _;
+use crate::editor_integration::input_data::CloneProxy as _;
 
+pub mod input_data;
 pub mod serialization;
 
 pub(super) fn plugin(app: &mut App) {
@@ -40,10 +43,8 @@ fn get_navmesh_input(
     }
     let first_mesh_handle = mesh_handles.iter().next().unwrap();
     let mesh = meshes.get(first_mesh_handle).unwrap();
-    let proxy_mesh = mesh.clone_proxy();
-    let serialized = serde_json::ser::to_string(&proxy_mesh).unwrap();
-    //info!(?serialized);
-    Ok(Value::String(serialized))
+    let serialized = serialization::serialize_mesh(mesh).unwrap();
+    Ok(serialized)
 }
 
 /// The BRP method that the navmesh editor uses to get the navmesh input.

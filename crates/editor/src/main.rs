@@ -1,6 +1,8 @@
 use anyhow::Context as _;
 use avian_navmesh::{
-    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, serialization::ProxyMesh},
+    editor_integration::{
+        BRP_GET_NAVMESH_INPUT_METHOD, input_data::ProxyMesh, serialization::deserialize_mesh,
+    },
     prelude::*,
 };
 use bevy::{
@@ -68,12 +70,8 @@ fn fetch_navmesh_input(
     let result = response
         .get("result")
         .context("Failed to get `result` from response")?;
-    let mesh_string = result
-        .as_str()
-        .context("Response `result` is not a string")?;
 
-    let proxy_mesh: ProxyMesh = serde_json::from_str(mesh_string)?;
-    let mesh: Mesh = proxy_mesh.into();
+    let mesh: Mesh = deserialize_mesh(result)?;
 
     commands.spawn((
         Mesh3d(meshes.add(mesh)),

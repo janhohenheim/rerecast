@@ -12,13 +12,24 @@ readme = { workspace = true }
 
 [dependencies]
 bevy = { workspace = true }
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Editor integration
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+bincode = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 wgpu-types = { workspace = true, features = ["serde"], optional = true }
 
 [features]
-editor_integration = ["serialize", "dep:serde_json", "dep:wgpu-types"]
+editor_integration = [
+    "serialize",
+    "dep:serde_json",
+    "dep:wgpu-types",
+    "dep:bincode",
+    "dep:base64",
+]
 default = ["editor_integration"]
 serialize = ["dep:serde"]
