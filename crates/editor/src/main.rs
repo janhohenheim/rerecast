@@ -1,14 +1,14 @@
-use anyhow::Context as _;
-use avian_navmesh::{editor_integration::FullSceneAssetPath, prelude::*};
+use anyhow::{Context as _, anyhow};
+use avian_navmesh::{editor_integration::BRP_GET_NAVMESH_INPUT_METHOD, prelude::*};
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     input::common_conditions::input_just_pressed,
+    math::VectorSpace,
     prelude::*,
-    remote::{
-        BrpRequest,
-        builtin_methods::{BRP_QUERY_METHOD, BrpQuery, BrpQueryFilter, BrpQueryParams},
-    },
+    reflect::serde::ReflectDeserializer,
+    remote::BrpRequest,
 };
+use serde::de::{Deserialize as _, DeserializeSeed as _};
 
 fn main() -> AppExit {
     GLOBAL_ERROR_HANDLER
@@ -18,60 +18,66 @@ fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(NavMeshPlugin::default())
+        .add_systems(Startup, setup)
         .add_systems(
             Update,
-            list_components.run_if(input_just_pressed(KeyCode::Space)),
+            fetch_navmesh_input.run_if(input_just_pressed(KeyCode::Space)),
         )
         .run()
 }
 
-/// The application entry point.
-fn list_components() -> Result {
+fn setup(mut commands: Commands) {
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-20.0, 50.0, -20.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+}
+
+fn fetch_navmesh_input(
+    type_registry: Res<AppTypeRegistry>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) -> Result {
     // Create the URL. We're going to need it to issue the HTTP request.
     let host_part = format!("{}:{}", "127.0.0.1", 15702);
     let url = format!("http://{host_part}/");
 
     let req = BrpRequest {
         jsonrpc: String::from("2.0"),
-        method: String::from(BRP_QUERY_METHOD),
+        method: String::from(BRP_GET_NAVMESH_INPUT_METHOD),
         id: Some(serde_json::to_value(1)?),
-        params: Some(
-            serde_json::to_value(BrpQueryParams {
-                data: BrpQuery {
-                    components: vec![FullSceneAssetPath::type_path().to_string()],
-                    option: Vec::default(),
-                    has: vec![],
-                },
-                strict: false,
-                filter: BrpQueryFilter::default(),
-            })
-            .expect("Unable to convert query parameters to a valid JSON value"),
-        ),
+        params: None,
     };
 
     let response = ureq::post(&url)
         .send_json(req)?
         .body_mut()
         .read_json::<serde_json::Value>()?;
-
-    let results = response
+    let result = response
         .get("result")
-        .context("Failed to get `result` from response")?
-        .as_array()
-        .context("Response `result` is not an array")?;
-    for result in results {
-        let Some(components) = result.get("components") else {
-            continue;
-        };
-        let Some(asset_path) = components.get(FullSceneAssetPath::type_path().to_string()) else {
-            continue;
-        };
-        let Ok(asset_path) = serde_json::from_value::<FullSceneAssetPath>(asset_path.clone())
-        else {
-            continue;
-        };
+        .context("Failed to get `result` from response")?;
+    let mesh_string = result
+        .as_str()
+        .context("Response `result` is not a string")?;
 
-        info!("{}", asset_path.0.display());
-    }
+    let type_registry = type_registry.read();
+    let mut deserializer = serde_json::de::Deserializer::from_str(&mesh_string);
+    let reflect_deserializer = ReflectDeserializer::new(&type_registry);
+    let deserialized = reflect_deserializer.deserialize(&mut deserializer)?;
+
+    let mesh = <Mesh as FromReflect>::from_reflect(deserialized.as_partial_reflect())
+        .context("Failed to deserialize mesh from reflect")?;
+
+    info!("{mesh:?}");
+
+    commands.spawn((
+        Mesh3d(meshes.add(mesh)),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::WHITE,
+            ..default()
+        })),
+    ));
+
     Ok(())
 }

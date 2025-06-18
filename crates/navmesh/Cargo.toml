@@ -13,11 +13,11 @@ readme = { workspace = true }
 [dependencies]
 bevy = { workspace = true }
 serde = { workspace = true, optional = true }
-bevy_full_asset_path = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 
 [features]
-editor_integration = ["dep:bevy_full_asset_path"]
+editor_integration = ["dep:serde_json"]
 default = ["editor_integration"]
 serialize = ["dep:serde"]

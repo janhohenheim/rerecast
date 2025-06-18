@@ -451,8 +451,8 @@ name = "avian_navmesh"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_full_asset_path",
  "serde",
+ "serde_json",
  "slotmap",
  "thiserror 2.0.12",
 ]
@@ -464,6 +464,7 @@ dependencies = [
  "anyhow",
  "avian_navmesh",
  "bevy",
+ "serde",
  "serde_json",
  "ureq",
 ]
@@ -857,16 +858,6 @@ checksum = "8148f4edee470a2ea5cad010184c492a4c94c36d7a7158ea28e134ea87f274ab"
 dependencies = [
  "bevy_macro_utils",
  "encase_derive_impl",
-]
-
-[[package]]
-name = "bevy_full_asset_path"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "977d17d9ef0126c780e84b9652cd1e2dcc11e4e9bcb65b1471cccf7fd70a1154"
-dependencies = [
- "bevy",
- "thiserror 2.0.12",
 ]
 
 [[package]]

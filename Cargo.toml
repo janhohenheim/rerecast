@@ -21,7 +21,6 @@ slotmap = "1.0.7"
 thiserror = "2.0.12"
 ureq = "3.0.12"
 bevy = { version = "0.16.0", default-features = false }
-bevy_full_asset_path = "0.1.0"
 
 [workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
