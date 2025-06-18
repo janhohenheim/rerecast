@@ -451,6 +451,7 @@ name = "avian_navmesh"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "avian3d",
  "base64 0.22.1",
  "bevy",
  "bincode",

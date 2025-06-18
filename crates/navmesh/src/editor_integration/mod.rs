@@ -1,8 +1,11 @@
 //! The optional editor integration for authoring the navmesh.
 
+use std::iter;
+
 use anyhow::Context;
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 use bevy::{
+    platform::collections::HashSet,
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
@@ -30,7 +33,9 @@ fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
 fn get_navmesh_input(
     In(params): In<Option<Value>>,
     meshes: Res<Assets<Mesh>>,
+    with_mesh: Query<Entity, With<Mesh3d>>,
     mesh_handles: Query<&Mesh3d>,
+    parents: Query<&ChildOf>,
 ) -> BrpResult {
     if let Some(params) = params {
         return Err(BrpError {
@@ -41,7 +46,19 @@ fn get_navmesh_input(
             data: None,
         });
     }
-    let first_mesh_handle = mesh_handles.iter().next().unwrap();
+    let mut already_visited = HashSet::new();
+    for entity in with_mesh.iter() {
+        for entity in iter::once(entity).chain(parents.iter_ancestors(entity)) {
+            if already_visited.contains(&entity) {
+                continue;
+            }
+            already_visited.insert(entity);
+            if let Some(mesh) = meshes.get(mesh_handles.get(entity).unwrap()) {
+                serialized.push(mesh);
+            }
+        }
+    }
+    let first_mesh_handle = with_mesh.iter().next().unwrap();
     let mesh = meshes.get(first_mesh_handle).unwrap();
     let serialized = serialization::serialize_mesh(mesh).unwrap();
     Ok(serialized)

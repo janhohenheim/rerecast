@@ -15,6 +15,7 @@ bevy = { workspace = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+avian3d = { workspace = true }
 
 # Editor integration
 serde = { workspace = true, optional = true }
