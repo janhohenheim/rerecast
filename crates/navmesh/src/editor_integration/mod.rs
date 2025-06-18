@@ -48,6 +48,7 @@ fn get_navmesh_input(
     let mesh = meshes.get(first_mesh_handle).unwrap();
     let proxy_mesh = mesh.clone_proxy();
     let serialized = serde_json::ser::to_string(&proxy_mesh).unwrap();
+    //info!(?serialized);
     Ok(Value::String(serialized))
 }
 

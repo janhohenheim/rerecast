@@ -2,8 +2,11 @@
 //! to and from the editor.
 
 use bevy::{
+    asset::RenderAssetUsages,
     prelude::*,
-    render::mesh::{Indices, MeshVertexAttribute, VertexAttributeValues, VertexFormat},
+    render::mesh::{
+        Indices, MeshVertexAttribute, MeshVertexAttributeId, VertexAttributeValues, VertexFormat,
+    },
 };
 use serde::{Deserialize, Serialize};
 use wgpu_types::PrimitiveTopology;
@@ -14,8 +17,10 @@ pub struct ProxyMesh {
     /// Topology of the primitives.
     pub primitive_topology: ProxyPrimitiveTopology,
     /// attributes in the form that [`Mesh::insert_attribute`] expects
-    attributes: Vec<(ProxyMeshVertexAttribute, ProxyVertexAttributeValues)>,
-    indices: Option<ProxyIndices>,
+    /// The key is the [`MeshVertexAttributeId`] of the attribute.
+    pub attributes: Vec<(ProxyMeshVertexAttributeId, ProxyVertexAttributeValues)>,
+    /// Indices of the mesh.
+    pub indices: Option<ProxyIndices>,
 }
 
 pub(crate) trait CloneProxy {
@@ -28,10 +33,48 @@ impl CloneProxy for Mesh {
             primitive_topology: self.primitive_topology().into(),
             attributes: self
                 .attributes()
-                .map(|(attribute, values)| (attribute.clone().into(), values.clone().into()))
+                .filter_map(|(attribute, values)| {
+                    let id = attribute.id.try_into().ok()?;
+                    Some((id, values.clone().into()))
+                })
                 .collect(),
             indices: self.indices().cloned().map(|indices| indices.into()),
         }
+    }
+}
+
+impl From<ProxyMesh> for Mesh {
+    fn from(proxy_mesh: ProxyMesh) -> Self {
+        let mut mesh = Mesh::new(
+            proxy_mesh.primitive_topology.into(),
+            RenderAssetUsages::all(),
+        );
+        let attributes = [
+            Mesh::ATTRIBUTE_POSITION,
+            Mesh::ATTRIBUTE_NORMAL,
+            Mesh::ATTRIBUTE_UV_0,
+            Mesh::ATTRIBUTE_UV_1,
+            Mesh::ATTRIBUTE_TANGENT,
+            Mesh::ATTRIBUTE_COLOR,
+            Mesh::ATTRIBUTE_JOINT_WEIGHT,
+            Mesh::ATTRIBUTE_JOINT_INDEX,
+        ];
+        for (attribute, values) in proxy_mesh.attributes {
+            // Safety: this is just a newtype wrapper around a u64, so we can safely transmute it
+            let attribute_id: MeshVertexAttributeId = unsafe { std::mem::transmute(attribute) };
+            let Some(attribute) = attributes
+                .iter()
+                .find(|attribute| attribute.id == attribute_id)
+            else {
+                panic!("Unknown attribute id: {attribute_id:?}");
+                continue;
+            };
+            mesh.insert_attribute(*attribute, values);
+        }
+        if let Some(indices) = proxy_mesh.indices {
+            mesh.insert_indices(indices.into());
+        }
+        mesh
     }
 }
 
@@ -54,6 +97,51 @@ impl CloneProxy for Mesh {
 #[reflect(Serialize, Deserialize)]
 pub struct ProxyMeshVertexAttributeId(pub u64);
 
+impl TryFrom<MeshVertexAttributeId> for ProxyMeshVertexAttributeId {
+    type Error = ();
+
+    fn try_from(id: MeshVertexAttributeId) -> Result<Self, Self::Error> {
+        // Copy-pasted the constants from bevy_mesh, don't think there's a better way to do this ATM ;-;
+        if id == Mesh::ATTRIBUTE_POSITION.id {
+            Ok(Self(0))
+        } else if id == Mesh::ATTRIBUTE_NORMAL.id {
+            Ok(Self(1))
+        } else if id == Mesh::ATTRIBUTE_UV_0.id {
+            Ok(Self(2))
+        } else if id == Mesh::ATTRIBUTE_UV_1.id {
+            Ok(Self(3))
+        } else if id == Mesh::ATTRIBUTE_TANGENT.id {
+            Ok(Self(4))
+        } else if id == Mesh::ATTRIBUTE_COLOR.id {
+            Ok(Self(5))
+        } else if id == Mesh::ATTRIBUTE_JOINT_WEIGHT.id {
+            Ok(Self(6))
+        } else if id == Mesh::ATTRIBUTE_JOINT_INDEX.id {
+            Ok(Self(7))
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl TryFrom<ProxyMeshVertexAttributeId> for MeshVertexAttributeId {
+    type Error = ();
+
+    fn try_from(id: ProxyMeshVertexAttributeId) -> Result<Self, Self::Error> {
+        match id {
+            ProxyMeshVertexAttributeId(0) => Ok(Mesh::ATTRIBUTE_POSITION.id),
+            ProxyMeshVertexAttributeId(1) => Ok(Mesh::ATTRIBUTE_NORMAL.id),
+            ProxyMeshVertexAttributeId(2) => Ok(Mesh::ATTRIBUTE_UV_0.id),
+            ProxyMeshVertexAttributeId(3) => Ok(Mesh::ATTRIBUTE_UV_1.id),
+            ProxyMeshVertexAttributeId(4) => Ok(Mesh::ATTRIBUTE_TANGENT.id),
+            ProxyMeshVertexAttributeId(5) => Ok(Mesh::ATTRIBUTE_COLOR.id),
+            ProxyMeshVertexAttributeId(6) => Ok(Mesh::ATTRIBUTE_JOINT_WEIGHT.id),
+            ProxyMeshVertexAttributeId(7) => Ok(Mesh::ATTRIBUTE_JOINT_INDEX.id),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Proxy of [`MeshVertexAttribute`](bevy::render::mesh::MeshVertexAttribute).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyMeshVertexAttribute {
@@ -69,15 +157,15 @@ pub struct ProxyMeshVertexAttribute {
     pub format: VertexFormat,
 }
 
-impl From<MeshVertexAttribute> for ProxyMeshVertexAttribute {
-    fn from(attribute: MeshVertexAttribute) -> Self {
-        // Safety: this is just a newtype wrapper around a u64, so we can safely transmute it
-        let id: u64 = unsafe { std::mem::transmute(attribute.id) };
-        Self {
+impl TryFrom<MeshVertexAttribute> for ProxyMeshVertexAttribute {
+    type Error = ();
+
+    fn try_from(attribute: MeshVertexAttribute) -> Result<Self, Self::Error> {
+        Ok(Self {
             name: attribute.name.to_string(),
-            id: ProxyMeshVertexAttributeId(id),
+            id: attribute.id.try_into()?,
             format: attribute.format,
-        }
+        })
     }
 }
 
@@ -152,6 +240,41 @@ impl From<VertexAttributeValues> for ProxyVertexAttributeValues {
     }
 }
 
+impl From<ProxyVertexAttributeValues> for VertexAttributeValues {
+    fn from(values: ProxyVertexAttributeValues) -> Self {
+        match values {
+            ProxyVertexAttributeValues::Float32(values) => Self::Float32(values),
+            ProxyVertexAttributeValues::Sint32(values) => Self::Sint32(values),
+            ProxyVertexAttributeValues::Uint32(values) => Self::Uint32(values),
+            ProxyVertexAttributeValues::Float32x2(values) => Self::Float32x2(values),
+            ProxyVertexAttributeValues::Sint32x2(values) => Self::Sint32x2(values),
+            ProxyVertexAttributeValues::Uint32x2(values) => Self::Uint32x2(values),
+            ProxyVertexAttributeValues::Float32x3(values) => Self::Float32x3(values),
+            ProxyVertexAttributeValues::Sint32x3(values) => Self::Sint32x3(values),
+            ProxyVertexAttributeValues::Uint32x3(values) => Self::Uint32x3(values),
+            ProxyVertexAttributeValues::Float32x4(values) => Self::Float32x4(values),
+            ProxyVertexAttributeValues::Sint32x4(values) => Self::Sint32x4(values),
+            ProxyVertexAttributeValues::Uint32x4(values) => Self::Uint32x4(values),
+            ProxyVertexAttributeValues::Sint16x2(values) => Self::Sint16x2(values),
+            ProxyVertexAttributeValues::Snorm16x2(values) => Self::Snorm16x2(values),
+            ProxyVertexAttributeValues::Uint16x2(values) => Self::Uint16x2(values),
+            ProxyVertexAttributeValues::Unorm16x2(values) => Self::Unorm16x2(values),
+            ProxyVertexAttributeValues::Sint16x4(values) => Self::Sint16x4(values),
+            ProxyVertexAttributeValues::Snorm16x4(values) => Self::Snorm16x4(values),
+            ProxyVertexAttributeValues::Uint16x4(values) => Self::Uint16x4(values),
+            ProxyVertexAttributeValues::Unorm16x4(values) => Self::Unorm16x4(values),
+            ProxyVertexAttributeValues::Sint8x2(values) => Self::Sint8x2(values),
+            ProxyVertexAttributeValues::Snorm8x2(values) => Self::Snorm8x2(values),
+            ProxyVertexAttributeValues::Uint8x2(values) => Self::Uint8x2(values),
+            ProxyVertexAttributeValues::Unorm8x2(values) => Self::Unorm8x2(values),
+            ProxyVertexAttributeValues::Sint8x4(values) => Self::Sint8x4(values),
+            ProxyVertexAttributeValues::Snorm8x4(values) => Self::Snorm8x4(values),
+            ProxyVertexAttributeValues::Uint8x4(values) => Self::Uint8x4(values),
+            ProxyVertexAttributeValues::Unorm8x4(values) => Self::Unorm8x4(values),
+        }
+    }
+}
+
 /// Proxy of [`Indices`](bevy::render::mesh::Indices).
 /// An array of indices into the [`VertexAttributeValues`](super::VertexAttributeValues) for a mesh.
 ///
@@ -168,6 +291,15 @@ impl From<Indices> for ProxyIndices {
         match indices {
             Indices::U16(indices) => Self::U16(indices),
             Indices::U32(indices) => Self::U32(indices),
+        }
+    }
+}
+
+impl From<ProxyIndices> for Indices {
+    fn from(indices: ProxyIndices) -> Self {
+        match indices {
+            ProxyIndices::U16(indices) => Self::U16(indices),
+            ProxyIndices::U32(indices) => Self::U32(indices),
         }
     }
 }
@@ -209,6 +341,18 @@ impl From<PrimitiveTopology> for ProxyPrimitiveTopology {
             PrimitiveTopology::LineStrip => Self::LineStrip,
             PrimitiveTopology::TriangleList => Self::TriangleList,
             PrimitiveTopology::TriangleStrip => Self::TriangleStrip,
+        }
+    }
+}
+
+impl From<ProxyPrimitiveTopology> for PrimitiveTopology {
+    fn from(topology: ProxyPrimitiveTopology) -> Self {
+        match topology {
+            ProxyPrimitiveTopology::PointList => PrimitiveTopology::PointList,
+            ProxyPrimitiveTopology::LineList => PrimitiveTopology::LineList,
+            ProxyPrimitiveTopology::LineStrip => PrimitiveTopology::LineStrip,
+            ProxyPrimitiveTopology::TriangleList => PrimitiveTopology::TriangleList,
+            ProxyPrimitiveTopology::TriangleStrip => PrimitiveTopology::TriangleStrip,
         }
     }
 }

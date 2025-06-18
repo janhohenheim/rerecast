@@ -29,10 +29,21 @@ fn main() -> AppExit {
         .run()
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(-20.0, 50.0, -20.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(19.769, 50.702, 20.619).looking_at(Vec3::new(0.0, 10.0, 0.0), Vec3::Y),
+        EnvironmentMapLight {
+            diffuse_map: asset_server.load("environment_maps/voortrekker_interior_1k_diffuse.ktx2"),
+            specular_map: asset_server
+                .load("environment_maps/voortrekker_interior_1k_specular.ktx2"),
+            intensity: 2000.0,
+            ..default()
+        },
+    ));
+    commands.spawn((
+        DirectionalLight::default(),
+        Transform::default().looking_to(Vec3::new(0.5, -1.0, 0.3), Vec3::Y),
     ));
 }
 
@@ -64,18 +75,16 @@ fn fetch_navmesh_input(
         .as_str()
         .context("Response `result` is not a string")?;
 
-    let mesh: ProxyMesh = serde_json::from_str(mesh_string)?;
+    let proxy_mesh: ProxyMesh = serde_json::from_str(mesh_string)?;
+    let mesh: Mesh = proxy_mesh.into();
 
-    info!("{mesh:?}");
-
-    /*
     commands.spawn((
         Mesh3d(meshes.add(mesh)),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Color::WHITE,
             ..default()
         })),
-    )); */
+    ));
 
     Ok(())
 }
