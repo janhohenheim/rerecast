@@ -1,7 +1,8 @@
 use anyhow::Context as _;
 use avian_navmesh::{
     editor_integration::{
-        BRP_GET_NAVMESH_INPUT_METHOD, input_data::ProxyMesh, serialization::deserialize_mesh,
+        BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, input_data::ProxyMesh,
+        serialization::deserialize,
     },
     prelude::*,
 };
@@ -51,6 +52,7 @@ fn fetch_navmesh_input(
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mesh_handles: Query<Entity, With<Mesh3d>>,
 ) -> Result {
     // Create the URL. We're going to need it to issue the HTTP request.
     let host_part = format!("{}:{}", "127.0.0.1", 15702);
@@ -70,16 +72,23 @@ fn fetch_navmesh_input(
     let result = response
         .get("result")
         .context("Failed to get `result` from response")?;
+    let response: NavmeshInputResponse = deserialize(result)?;
+    for entity in mesh_handles.iter() {
+        commands.entity(entity).despawn();
+    }
+    for (transform, mesh) in response.meshes {
+        let mesh: Mesh = mesh.into();
+        let mesh = meshes.add(mesh);
 
-    let mesh: Mesh = deserialize_mesh(result)?;
-
-    commands.spawn((
-        Mesh3d(meshes.add(mesh)),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            ..default()
-        })),
-    ));
+        commands.spawn((
+            transform.compute_transform(),
+            Mesh3d(mesh),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                ..default()
+            })),
+        ));
+    }
 
     Ok(())
 }
