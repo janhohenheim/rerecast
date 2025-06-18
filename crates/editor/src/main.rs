@@ -1,4 +1,4 @@
-use anyhow::{Context as _, anyhow};
+use anyhow::Context as _;
 use avian_navmesh::{
     editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, serialization::ProxyMesh},
     prelude::*,
@@ -6,12 +6,9 @@ use avian_navmesh::{
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     input::common_conditions::input_just_pressed,
-    math::VectorSpace,
     prelude::*,
-    reflect::serde::ReflectDeserializer,
     remote::BrpRequest,
 };
-use serde::de::{Deserialize as _, DeserializeSeed as _};
 
 fn main() -> AppExit {
     GLOBAL_ERROR_HANDLER

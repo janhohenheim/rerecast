@@ -2,14 +2,8 @@
 
 use bevy::{
     prelude::*,
-    reflect::{TypeRegistry, impl_reflect_opaque, serde::ReflectSerializer},
-    remote::{
-        BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods, RemotePlugin,
-        http::RemoteHttpPlugin,
-    },
-    render::mesh::PrimitiveTopology,
+    remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::editor_integration::serialization::CloneProxy as _;
