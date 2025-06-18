@@ -34,7 +34,13 @@ impl CloneProxy for Mesh {
             attributes: self
                 .attributes()
                 .filter_map(|(attribute, values)| {
-                    let id = attribute.id.try_into().ok()?;
+                    let Some(id) = attribute.id.try_into().ok() else {
+                        warn!(
+                            "Failed to serialize mesh: unknown attribute id: {:?}",
+                            attribute.id
+                        );
+                        return None;
+                    };
                     Some((id, values.clone().into()))
                 })
                 .collect(),
@@ -66,7 +72,7 @@ impl From<ProxyMesh> for Mesh {
                 .iter()
                 .find(|attribute| attribute.id == attribute_id)
             else {
-                panic!("Unknown attribute id: {attribute_id:?}");
+                warn!("Failed to deserialize mesh: unknown attribute id: {attribute_id:?}");
                 continue;
             };
             mesh.insert_attribute(*attribute, values);

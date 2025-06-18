@@ -1,6 +1,5 @@
 //! The optional editor integration for authoring the navmesh.
 
-use base64::{Engine as _, prelude::BASE64_STANDARD};
 use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
@@ -34,7 +33,6 @@ fn get_navmesh_input(
     In(params): In<Option<Value>>,
     meshes: Res<Assets<Mesh>>,
     mesh_handles: Query<(&GlobalTransform, &Mesh3d)>,
-    parents: Query<&ChildOf>,
 ) -> BrpResult {
     if let Some(params) = params {
         return Err(BrpError {
@@ -66,7 +64,9 @@ fn get_navmesh_input(
 /// The BRP method that the navmesh editor uses to get the navmesh input.
 pub const BRP_GET_NAVMESH_INPUT_METHOD: &str = "avian_navmesh/get_navmesh_input";
 
+/// The response to [`BRP_GET_NAVMESH_INPUT_METHOD`] requests.
 #[derive(Serialize, Deserialize)]
 pub struct NavmeshInputResponse {
+    /// All meshes of the current scene.
     pub meshes: Vec<(GlobalTransform, ProxyMesh)>,
 }
