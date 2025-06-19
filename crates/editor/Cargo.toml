@@ -23,4 +23,6 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = "1.0.0"
 ureq = { workspace = true, features = ["json"] }
-bevy_enhanced_input = { workspace = true }
+
+[lints]
+workspace = true

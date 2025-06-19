@@ -34,3 +34,6 @@ editor_integration = [
 ]
 default = ["editor_integration"]
 serialize = ["dep:serde"]
+
+[lints]
+workspace = true

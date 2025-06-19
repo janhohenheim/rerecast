@@ -28,8 +28,6 @@ wgpu-types = "24"
 base64 = "0.22.0"
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"
-bevy_proto_bsn = { git = "https://github.com/bevyengine/bevy_editor_prototypes" }
-bevy_enhanced_input = "0.12"
 
 [workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to

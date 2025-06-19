@@ -3,17 +3,12 @@ use bevy::{
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
-use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
         .add_plugins(NavMeshPlugin::default())
-        .add_plugins(EguiPlugin {
-            enable_multipass_for_primary_context: true,
-        })
-        .add_plugins(WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()
