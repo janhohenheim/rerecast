@@ -3,6 +3,7 @@ use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     prelude::*,
 };
+use bevy_enhanced_input::EnhancedInputPlugin;
 
 mod camera;
 mod get_navmesh_input;
@@ -14,6 +15,7 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(EnhancedInputPlugin)
         .add_plugins(NavMeshPlugin::default())
         .add_plugins((camera::plugin, get_navmesh_input::plugin))
         .run()
