@@ -1,4 +1,5 @@
 use avian_navmesh::prelude::*;
+use avian3d::prelude::*;
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     prelude::*,
@@ -14,6 +15,7 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PhysicsPlugins::default())
         .add_plugins(NavMeshPlugin::default())
         .add_plugins((camera::plugin, get_navmesh_input::plugin))
         .run()

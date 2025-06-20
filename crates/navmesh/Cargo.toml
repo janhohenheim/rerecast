@@ -25,6 +25,8 @@ base64 = { workspace = true, optional = true }
 wgpu-types = { workspace = true, features = ["serde"], optional = true }
 
 [features]
+default = ["editor_integration"]
+serialize = ["dep:serde", "avian3d/serialize"]
 editor_integration = [
     "serialize",
     "dep:serde_json",
@@ -32,8 +34,6 @@ editor_integration = [
     "dep:bincode",
     "dep:base64",
 ]
-default = ["editor_integration"]
-serialize = ["dep:serde"]
 
 [lints]
 workspace = true

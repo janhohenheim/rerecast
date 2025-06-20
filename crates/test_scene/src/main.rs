@@ -1,4 +1,5 @@
 use avian_navmesh::NavMeshPlugin;
+use avian3d::prelude::*;
 use bevy::{
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
@@ -7,6 +8,7 @@ use bevy::{
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
         .add_plugins(NavMeshPlugin::default())
         .add_systems(Startup, setup)
@@ -18,6 +20,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Name::new("Level"),
         SceneRoot(asset_server.load("models/dungeon.gltf#Scene0")),
+        RigidBody::Static,
+        ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));
     commands.spawn((
         DirectionalLight::default(),

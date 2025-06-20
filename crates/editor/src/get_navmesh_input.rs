@@ -2,6 +2,7 @@ use anyhow::Context as _;
 use avian_navmesh::editor_integration::{
     BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
 };
+use avian3d::prelude::*;
 use bevy::{input::common_conditions::input_just_pressed, prelude::*, remote::BrpRequest};
 
 pub(super) fn plugin(app: &mut App) {
@@ -51,6 +52,12 @@ fn fetch_navmesh_input(
                 ..default()
             })),
         ));
+    }
+    for rigid_bodies in response.rigid_bodies {
+        let mut entity_commands = commands.spawn((RigidBody::Static, Transform::default()));
+        for (transform, collider) in rigid_bodies {
+            entity_commands.with_child((transform.compute_transform(), collider));
+        }
     }
 
     Ok(())
