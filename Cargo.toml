@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "scenes/*"]
 resolver = "3"
 exclude = ["./assets/"]
 
@@ -28,6 +28,7 @@ wgpu-types = "24"
 base64 = "0.22.0"
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"
+bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }
 
 [workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to

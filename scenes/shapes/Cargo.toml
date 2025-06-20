@@ -1,0 +1,21 @@
+[package]
+name = "shapes_scene"
+description = "TODO"
+publish = false
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+readme = { workspace = true }
+
+[dependencies]
+bevy = { workspace = true, default-features = true, features = ["bevy_remote"] }
+serde = { workspace = true }
+avian3d = { workspace = true }
+avian_navmesh = { version = "0.1.0", path = "../../crates/navmesh" }
+
+[lints]
+workspace = true
