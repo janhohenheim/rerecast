@@ -4,12 +4,13 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-pub(crate) struct RasterizedCollider {
-    pub(crate) vertices: Vec<Vec3>,
-    pub(crate) indices: Vec<[u32; 3]>,
+#[derive(Debug, Clone, PartialEq)]
+pub struct RasterizedCollider {
+    pub vertices: Vec<Vec3>,
+    pub indices: Vec<[u32; 3]>,
 }
 
-pub(crate) trait Rasterize {
+pub trait Rasterize {
     fn rasterize(&self, subdivisions: u32) -> Option<RasterizedCollider>;
 }
 
@@ -77,16 +78,28 @@ fn compound_trimesh(compound: &Compound, subdivisions: u32) -> RasterizedCollide
         else {
             continue;
         };
-        let transform = Transform {
-            translation: Vec3::from(isometry.translation),
-            rotation: Quat::from(isometry.rotation),
-            scale: Vec3::ONE,
-        };
-        total_vertices.extend(vertices.iter().map(|v| transform.transform_point(*v)));
+
+        let translation = Vec3::from(isometry.translation);
+        let rotation = Quat::from(isometry.rotation);
+
+        total_vertices.extend(vertices.iter().map(|v| rotation * *v + translation));
         total_indices.extend(indices);
     }
     RasterizedCollider {
         vertices: total_vertices,
         indices: total_indices,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rasterizes_cuboid() {
+        let collider = Collider::cuboid(1.0, 2.0, 3.0);
+        let trimesh = collider.rasterize(1).unwrap();
+        assert_eq!(trimesh.vertices.len(), 8);
+        assert_eq!(trimesh.indices.len(), 12);
     }
 }

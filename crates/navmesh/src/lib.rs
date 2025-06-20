@@ -7,7 +7,7 @@ use crate::heightfield::Heightfield;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
 mod heightfield;
-mod rasterize_collider;
+pub mod rasterize_collider;
 mod span;
 
 /// Everything you need to get started with the NavMesh plugin.

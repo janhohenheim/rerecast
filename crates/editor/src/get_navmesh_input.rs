@@ -1,6 +1,9 @@
 use anyhow::Context as _;
-use avian_navmesh::editor_integration::{
-    BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
+use avian_navmesh::{
+    editor_integration::{
+        BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
+    },
+    rasterize_collider::Rasterize as _,
 };
 use avian3d::prelude::*;
 use bevy::{input::common_conditions::input_just_pressed, prelude::*, remote::BrpRequest};
@@ -56,6 +59,15 @@ fn fetch_navmesh_input(
     for rigid_bodies in response.rigid_bodies {
         let mut entity_commands = commands.spawn((RigidBody::Static, Transform::default()));
         for (transform, collider) in rigid_bodies {
+            let trimesh = collider.rasterize(10).unwrap();
+            if let Some(comp) = collider.shape().as_compound() {
+                for (isometry, shape) in comp.shapes() {
+                    //println!("Isometry: {:?}", isometry);
+                    //println!("Shape: {:?}", shape);
+                }
+            }
+            println!("Rasterized collider: ");
+            let collider = Collider::trimesh(trimesh.vertices, trimesh.indices);
             entity_commands.with_child((transform.compute_transform(), collider));
         }
     }
