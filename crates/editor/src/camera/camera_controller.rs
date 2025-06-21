@@ -147,7 +147,7 @@ fn run_camera_controller(
         controller.yaw = yaw;
         controller.pitch = pitch;
         controller.initialized = true;
-        info!("{}", *controller);
+        //info!("{}", *controller);
     }
     if !controller.enabled {
         return;

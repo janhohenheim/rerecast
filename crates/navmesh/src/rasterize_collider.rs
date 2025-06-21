@@ -5,12 +5,12 @@ use avian3d::{
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct RasterizedCollider {
-    pub vertices: Vec<Vec3>,
-    pub indices: Vec<[u32; 3]>,
+pub(crate) struct RasterizedCollider {
+    pub(crate) vertices: Vec<Vec3>,
+    pub(crate) indices: Vec<[u32; 3]>,
 }
 
-pub trait Rasterize {
+pub(crate) trait Rasterize {
     fn rasterize(&self, subdivisions: u32) -> Option<RasterizedCollider>;
 }
 
@@ -82,8 +82,15 @@ fn compound_trimesh(compound: &Compound, subdivisions: u32) -> RasterizedCollide
         let translation = Vec3::from(isometry.translation);
         let rotation = Quat::from(isometry.rotation);
 
+        let next_vertex_index = total_vertices.len();
         total_vertices.extend(vertices.iter().map(|v| rotation * *v + translation));
-        total_indices.extend(indices);
+        total_indices.extend(indices.iter().map(|i| {
+            [
+                i[0] + next_vertex_index as u32,
+                i[1] + next_vertex_index as u32,
+                i[2] + next_vertex_index as u32,
+            ]
+        }));
     }
     RasterizedCollider {
         vertices: total_vertices,
