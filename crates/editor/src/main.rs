@@ -7,6 +7,8 @@ use bevy::{
 
 mod camera;
 mod get_navmesh_input;
+mod theme;
+mod ui;
 
 fn main() -> AppExit {
     GLOBAL_ERROR_HANDLER
@@ -17,6 +19,6 @@ fn main() -> AppExit {
         .add_plugins(DefaultPlugins)
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins(NavMeshPlugin::default())
-        .add_plugins((camera::plugin, get_navmesh_input::plugin))
+        .add_plugins((camera::plugin, get_navmesh_input::plugin, ui::plugin, theme::plugin))
         .run()
 }

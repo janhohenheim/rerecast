@@ -6,13 +6,14 @@ use avian3d::prelude::*;
 use bevy::{input::common_conditions::input_just_pressed, prelude::*, remote::BrpRequest};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(
-        Update,
-        fetch_navmesh_input.run_if(input_just_pressed(KeyCode::Space)),
-    );
+    app.add_observer(fetch_navmesh_input);
 }
 
+#[derive(Event)]
+pub(crate) struct GetNavmeshInput;
+
 fn fetch_navmesh_input(
+    _: Trigger<GetNavmeshInput>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
