@@ -1,17 +1,12 @@
 use bevy::{
     color::palettes::tailwind,
-    ecs::{spawn::SpawnWith, system::IntoObserverSystem},
     prelude::*,
     ui::Val::*,
 };
 
 use crate::{
     get_navmesh_input::GetNavmeshInput,
-    theme::{
-        palette::*,
-        prelude::InteractionPalette,
-        widget::{self, button},
-    },
+    theme::widget::button,
 };
 
 pub(super) fn plugin(app: &mut App) {

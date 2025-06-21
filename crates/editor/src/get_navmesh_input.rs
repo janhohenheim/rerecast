@@ -3,7 +3,7 @@ use avian_navmesh::editor_integration::{
     BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
 };
 use avian3d::prelude::*;
-use bevy::{input::common_conditions::input_just_pressed, prelude::*, remote::BrpRequest};
+use bevy::{prelude::*, remote::BrpRequest};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);

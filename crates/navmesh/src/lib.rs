@@ -3,7 +3,6 @@
 
 use bevy::prelude::*;
 
-use crate::heightfield::Heightfield;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
 mod heightfield;
