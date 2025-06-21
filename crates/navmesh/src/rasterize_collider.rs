@@ -4,23 +4,52 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
+/// A [`Collider`] rasterized into trimesh form.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct RasterizedCollider {
-    pub(crate) vertices: Vec<Vec3>,
-    pub(crate) indices: Vec<[u32; 3]>,
+pub struct TrimeshedCollider {
+    /// The vertices composing the collider.
+    /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
+    pub vertices: Vec<Vec3>,
+
+    /// The indices composing the collider.
+    /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
+    pub indices: Vec<[u32; 3]>,
 }
 
-pub(crate) trait Rasterize {
-    fn rasterize(&self, subdivisions: u32) -> Option<RasterizedCollider>;
+/// A trait for converting a [`Collider`] into a [`TrimeshedCollider`].
+pub trait ToTrimesh {
+    /// Converts the collider into a [`TrimeshedCollider`].
+    ///
+    /// # Arguments
+    ///
+    /// * `subdivisions` - The number of subdivisions to use for the collider. This is used for curved shapes such as circles and spheres.
+    ///
+    /// # Returns
+    ///
+    /// A [`TrimeshedCollider`] if the collider is supported, otherwise `None`
+    ///
+    /// The following shapes are not supported:
+    /// - [`Segment`](avian3d::parry::shape::Segment)
+    /// - [`Polyline`](avian3d::parry::shape::Polyline)
+    /// - [`HalfSpace`](avian3d::parry::shape::HalfSpace)
+    /// - Custom shapes
+    ///
+    /// The following rounded shapes are supported, but only the inner shape without rounding is used:
+    /// - [`RoundCuboid`](avian3d::parry::shape::RoundCuboid)
+    /// - [`RoundTriangle`](avian3d::parry::shape::RoundTriangle)
+    /// - [`RoundConvexPolyhedron`](avian3d::parry::shape::RoundConvexPolyhedron)
+    /// - [`RoundCylinder`](avian3d::parry::shape::RoundCylinder)
+    /// - [`RoundCone`](avian3d::parry::shape::RoundCone)
+    fn to_trimesh(&self, subdivisions: u32) -> Option<TrimeshedCollider>;
 }
 
-impl Rasterize for Collider {
-    fn rasterize(&self, subdivisions: u32) -> Option<RasterizedCollider> {
+impl ToTrimesh for Collider {
+    fn to_trimesh(&self, subdivisions: u32) -> Option<TrimeshedCollider> {
         shape_to_trimesh(&self.shape().as_typed_shape(), subdivisions)
     }
 }
 
-fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<RasterizedCollider> {
+fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCollider> {
     let (vertices, indices) = match shape {
         // Simple cases
         TypedShape::Cuboid(cuboid) => cuboid.to_trimesh(),
@@ -61,18 +90,18 @@ fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<RasterizedC
         TypedShape::HalfSpace(_half_space) => return None,
         TypedShape::Custom(_shape) => return None,
     };
-    Some(RasterizedCollider {
+    Some(TrimeshedCollider {
         vertices: vertices.into_iter().map(|v| v.into()).collect(),
         indices,
     })
 }
 
-fn compound_trimesh(compound: &Compound, subdivisions: u32) -> RasterizedCollider {
+fn compound_trimesh(compound: &Compound, subdivisions: u32) -> TrimeshedCollider {
     let mut total_vertices = Vec::new();
     let mut total_indices = Vec::new();
 
     for (isometry, shape) in compound.shapes() {
-        let Some(RasterizedCollider { vertices, indices }) =
+        let Some(TrimeshedCollider { vertices, indices }) =
             // No need to track recursive compounds because parry panics on nested compounds anyways lol
             shape_to_trimesh(&shape.as_typed_shape(), subdivisions)
         else {
@@ -92,7 +121,7 @@ fn compound_trimesh(compound: &Compound, subdivisions: u32) -> RasterizedCollide
             ]
         }));
     }
-    RasterizedCollider {
+    TrimeshedCollider {
         vertices: total_vertices,
         indices: total_indices,
     }
@@ -105,7 +134,7 @@ mod tests {
     #[test]
     fn rasterizes_cuboid() {
         let collider = Collider::cuboid(1.0, 2.0, 3.0);
-        let trimesh = collider.rasterize(1).unwrap();
+        let trimesh = collider.to_trimesh(1).unwrap();
         assert_eq!(trimesh.vertices.len(), 8);
         assert_eq!(trimesh.indices.len(), 12);
     }

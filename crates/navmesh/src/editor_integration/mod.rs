@@ -13,7 +13,7 @@ use crate::{
         input_data::{CloneProxy as _, ProxyMesh},
         serialization::serialize,
     },
-    rasterize_collider::Rasterize as _,
+    rasterize_collider::ToTrimesh as _,
 };
 
 pub mod input_data;
@@ -66,7 +66,9 @@ fn get_navmesh_input(
                 .iter()
                 .filter_map(|entity| {
                     let (transform, collider) = q_colliders.get(entity).ok()?;
-                    Some((*transform, collider.clone()))
+                    let trimesh = collider.to_trimesh(12)?;
+                    let collider = Collider::trimesh(trimesh.vertices, trimesh.indices);
+                    Some((*transform, collider))
                 })
                 .collect::<Vec<_>>()
         })
