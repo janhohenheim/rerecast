@@ -13,7 +13,7 @@ use crate::{
         input_data::{CloneProxy as _, ProxyMesh},
         serialization::serialize,
     },
-    rasterize_collider::ToTrimesh as _,
+    trimesh::ToTrimesh as _,
 };
 
 pub mod input_data;

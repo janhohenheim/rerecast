@@ -1,13 +1,6 @@
-use bevy::{
-    color::palettes::tailwind,
-    prelude::*,
-    ui::Val::*,
-};
+use bevy::{color::palettes::tailwind, prelude::*, ui::Val::*};
 
-use crate::{
-    get_navmesh_input::GetNavmeshInput,
-    theme::widget::button,
-};
+use crate::{build::BuildNavmesh, get_navmesh_input::GetNavmeshInput, theme::widget::button};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_ui);
@@ -76,8 +69,8 @@ fn spawn_ui(mut commands: Commands) {
 #[derive(Component)]
 struct LoadSceneModal;
 
-fn build_navmesh(_: Trigger<Pointer<Click>>) {
-    info!("Building a hecking NAVMESH!!!");
+fn build_navmesh(_: Trigger<Pointer<Click>>, mut commands: Commands) {
+    commands.trigger(BuildNavmesh);
 }
 
 fn spawn_load_scene_modal(_: Trigger<Pointer<Click>>, mut commands: Commands) {

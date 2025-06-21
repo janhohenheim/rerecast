@@ -6,8 +6,8 @@ use bevy::prelude::*;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
 mod heightfield;
-pub mod rasterize_collider;
 mod span;
+pub mod trimesh;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {

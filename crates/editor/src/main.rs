@@ -5,6 +5,7 @@ use bevy::{
     prelude::*,
 };
 
+mod build;
 mod camera;
 mod get_navmesh_input;
 mod theme;
@@ -24,6 +25,7 @@ fn main() -> AppExit {
             get_navmesh_input::plugin,
             ui::plugin,
             theme::plugin,
+            build::plugin,
         ))
         .run()
 }
