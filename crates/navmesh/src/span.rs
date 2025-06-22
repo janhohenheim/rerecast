@@ -22,7 +22,7 @@ impl Spans {
 pub(crate) struct SpanBuilder {
     pub(crate) min: u16,
     pub(crate) max: u16,
-    pub(crate) area: u8,
+    pub(crate) area: AreaType,
     pub(crate) next: Option<SpanKey>,
 }
 
@@ -58,7 +58,7 @@ pub(crate) struct Span {
     /// Area type ID.
     ///
     /// Original uses 6 bits, but that results in the same alignment AFAIK, so we don't bother
-    area: u8,
+    area: AreaType,
     /// The key of the next-higher span in the column
     next: Option<SpanKey>,
 }
@@ -85,13 +85,13 @@ impl Span {
     }
 
     #[inline]
-    pub(crate) fn area(&self) -> u8 {
+    pub(crate) fn area(&self) -> AreaType {
         self.area
     }
 
     #[inline]
-    pub(crate) fn set_area(&mut self, area: u8) {
-        self.area = area;
+    pub(crate) fn set_area(&mut self, area: impl Into<AreaType>) {
+        self.area = area.into();
     }
 
     #[inline]
@@ -105,6 +105,22 @@ impl Span {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+pub(crate) struct AreaType(pub(crate) u8);
+
+impl From<u8> for AreaType {
+    fn from(value: u8) -> Self {
+        AreaType(value)
+    }
+}
+
+impl AreaType {
+    /// The area type 0. Triangles with this area type are not walkable.
+    pub(crate) const NOT_WALKABLE: Self = Self(0);
+    /// Default area type for walkable triangles. The highest possible area type.
+    pub(crate) const WALKABLE: Self = Self(u8::MAX);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,7 +129,7 @@ mod tests {
         SpanBuilder {
             min: 2,
             max: 10,
-            area: 4,
+            area: AreaType(4),
             next: None,
         }
         .build()
@@ -124,7 +140,7 @@ mod tests {
         let span = span();
         assert_eq!(span.min(), 2);
         assert_eq!(span.max(), 10);
-        assert_eq!(span.area(), 4);
+        assert_eq!(span.area(), AreaType(4));
         assert_eq!(span.next(), None);
     }
 
@@ -141,7 +157,7 @@ mod tests {
 
         assert_eq!(span.min(), 1);
         assert_eq!(span.max(), 4);
-        assert_eq!(span.area(), 3);
+        assert_eq!(span.area(), AreaType(3));
         assert_eq!(span.next(), Some(span_key));
     }
 }

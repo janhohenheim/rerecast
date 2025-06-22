@@ -29,6 +29,7 @@ base64 = "0.22.0"
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"
 bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }
+bitflags = "2.9.1"
 
 [workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to

@@ -1,19 +1,63 @@
+//! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
+
+use std::ops::Mul;
+
 use avian3d::{
     parry::shape::{Compound, TypedShape},
     prelude::*,
 };
-use bevy::prelude::*;
+use bevy::{math::bounding::Aabb3d, prelude::*};
 
 /// A [`Collider`] rasterized into trimesh form.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TrimeshedCollider {
     /// The vertices composing the collider.
     /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
-    pub vertices: Vec<Vec3>,
+    pub vertices: Vec<Vec3A>,
 
     /// The indices composing the collider.
     /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
     pub indices: Vec<[u32; 3]>,
+}
+
+impl TrimeshedCollider {
+    /// Extends the trimesh with the vertices and indices of another trimesh.
+    /// The indices of `other` will be offset by the number of vertices in `self`.
+    pub fn extend(&mut self, other: TrimeshedCollider) {
+        if self.vertices.len() > u32::MAX as usize {
+            panic!("Cannot extend a trimesh with more than 2^32 vertices");
+        }
+        let next_vertex_index = self.vertices.len() as u32;
+        self.vertices.extend(other.vertices);
+        self.indices.extend(other.indices.iter().map(|i| {
+            [
+                i[0] + next_vertex_index,
+                i[1] + next_vertex_index,
+                i[2] + next_vertex_index,
+            ]
+        }));
+    }
+
+    /// Applies an isometry to the trimesh.
+    pub fn apply_isometry(&mut self, isometry: Isometry3d) {
+        self.vertices.iter_mut().for_each(|v| {
+            *v = isometry * *v;
+        });
+    }
+
+    /// Computes the AABB of the trimesh.
+    pub fn compute_aabb(&self) -> Aabb3d {
+        todo!("Do the manual impl, not Aabb3d::from_point_cloud. We have no isometry!")
+    }
+}
+
+impl Mul<TrimeshedCollider> for Isometry3d {
+    type Output = TrimeshedCollider;
+
+    fn mul(self, mut trimesh: TrimeshedCollider) -> Self::Output {
+        trimesh.apply_isometry(self);
+        trimesh
+    }
 }
 
 /// A trait for converting a [`Collider`] into a [`TrimeshedCollider`].
@@ -97,34 +141,25 @@ fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCo
 }
 
 fn compound_trimesh(compound: &Compound, subdivisions: u32) -> TrimeshedCollider {
-    let mut total_vertices = Vec::new();
-    let mut total_indices = Vec::new();
+    compound.shapes().iter().fold(
+        TrimeshedCollider::default(),
+        |mut compound_trimesh, (isometry, shape)| {
+            let Some(trimesh) =
+                // No need to track recursive compounds because parry panics on nested compounds anyways lol
+                shape_to_trimesh(&shape.as_typed_shape(), subdivisions)
+            else {
+                return compound_trimesh;
+            };
 
-    for (isometry, shape) in compound.shapes() {
-        let Some(TrimeshedCollider { vertices, indices }) =
-            // No need to track recursive compounds because parry panics on nested compounds anyways lol
-            shape_to_trimesh(&shape.as_typed_shape(), subdivisions)
-        else {
-            continue;
-        };
+            let isometry = Isometry3d {
+                translation: Vec3A::from(isometry.translation),
+                rotation: Quat::from(isometry.rotation),
+            };
 
-        let translation = Vec3::from(isometry.translation);
-        let rotation = Quat::from(isometry.rotation);
-
-        let next_vertex_index = total_vertices.len();
-        total_vertices.extend(vertices.iter().map(|v| rotation * *v + translation));
-        total_indices.extend(indices.iter().map(|i| {
-            [
-                i[0] + next_vertex_index as u32,
-                i[1] + next_vertex_index as u32,
-                i[2] + next_vertex_index as u32,
-            ]
-        }));
-    }
-    TrimeshedCollider {
-        vertices: total_vertices,
-        indices: total_indices,
-    }
+            compound_trimesh.extend(isometry * trimesh);
+            compound_trimesh
+        },
+    )
 }
 
 #[cfg(test)]

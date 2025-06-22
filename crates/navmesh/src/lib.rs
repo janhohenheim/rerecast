@@ -5,7 +5,8 @@ use bevy::prelude::*;
 
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
-mod heightfield;
+pub mod heightfield;
+pub mod rasterize;
 mod span;
 pub mod trimesh;
 
@@ -14,6 +15,7 @@ pub mod prelude {
     pub use crate::NavMeshPlugin;
 }
 
+/// The plugin of the crate.
 #[non_exhaustive]
 #[derive(Default)]
 pub struct NavMeshPlugin;

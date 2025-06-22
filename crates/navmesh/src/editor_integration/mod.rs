@@ -66,9 +66,7 @@ fn get_navmesh_input(
                 .iter()
                 .filter_map(|entity| {
                     let (transform, collider) = q_colliders.get(entity).ok()?;
-                    let trimesh = collider.to_trimesh(12)?;
-                    let collider = Collider::trimesh(trimesh.vertices, trimesh.indices);
-                    Some((*transform, collider))
+                    Some((*transform, collider.clone()))
                 })
                 .collect::<Vec<_>>()
         })

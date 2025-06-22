@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::span::{Span, SpanKey, Spans};
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
-pub(crate) struct Heightfield {
+pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
     width: u32,
     /// The height of the heightfield along the y-axis in cell units
@@ -62,7 +62,7 @@ impl Heightfield {
                 <= insertion.flag_merge_threshold
             {
                 // Higher area ID numbers indicate higher resolution priority.
-                let area = new_span.area().max(current_span.area());
+                let area = new_span.area().max(current_span.area().0);
                 new_span.set_area(area);
             }
 
@@ -118,16 +118,16 @@ impl Heightfield {
     }
 }
 
-pub(crate) struct HeightfieldBuilder {
-    width: u32,
-    height: u32,
-    aabb: Aabb3d,
-    cell_size: f32,
-    cell_height: f32,
+pub struct HeightfieldBuilder {
+    pub width: u32,
+    pub height: u32,
+    pub aabb: Aabb3d,
+    pub cell_size: f32,
+    pub cell_height: f32,
 }
 
 impl HeightfieldBuilder {
-    pub(crate) fn build(self) -> Heightfield {
+    pub fn build(self) -> Heightfield {
         let column_count = self.width as u128 * self.height as u128;
         if column_count > usize::MAX as u128 {
             panic!(
@@ -169,7 +169,7 @@ pub(crate) struct SpanInsertion {
 mod tests {
     use bevy::math::Vec3A;
 
-    use crate::span::SpanBuilder;
+    use crate::span::{AreaType, SpanBuilder};
 
     use super::*;
 
@@ -188,7 +188,7 @@ mod tests {
         SpanBuilder {
             min: 2,
             max: 4,
-            area: 2,
+            area: AreaType(2),
             next: None,
         }
     }
@@ -197,7 +197,7 @@ mod tests {
         SpanBuilder {
             min: 4,
             max: 7,
-            area: 2,
+            area: AreaType(2),
             next: None,
         }
     }
@@ -206,7 +206,7 @@ mod tests {
         SpanBuilder {
             min: 7,
             max: 10,
-            area: 2,
+            area: AreaType(2),
             next: None,
         }
     }
