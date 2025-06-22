@@ -8,6 +8,7 @@ use thiserror::Error;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(build_navmesh);
+    app.init_resource::<BuildNavmeshConfig>();
 }
 
 #[derive(Event)]

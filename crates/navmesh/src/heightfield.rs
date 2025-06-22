@@ -11,7 +11,7 @@ use crate::span::{Span, SpanKey, Spans};
 pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
     pub width: u32,
-    /// The height of the heightfield along the y-axis in cell units
+    /// The height of the heightfield along the z-axis in cell units
     pub height: u32,
     /// The AABB of the heightfield
     pub aabb: Aabb3d,
@@ -142,11 +142,7 @@ impl HeightfieldBuilder {
     /// Panics if the column count is above `usize::MAX`.
     pub fn build(self) -> Result<Heightfield, HeightfieldBuilderError> {
         let width = (self.aabb.max.x - self.aabb.min.x) / self.cell_size + 0.5;
-        let depth = (self.aabb.max.z - self.aabb.min.z) / self.cell_size + 0.5;
-        if width != depth {
-            return Err(HeightfieldBuilderError::WidthAndDepthMismatch { width, depth });
-        }
-        let height = (self.aabb.max.y - self.aabb.min.y) / self.cell_height + 0.5;
+        let height = (self.aabb.max.z - self.aabb.min.z) / self.cell_size + 0.5;
         let column_count = width as u128 * height as u128;
         if column_count > usize::MAX as u128 {
             return Err(HeightfieldBuilderError::ColumnCountTooLarge { width, height });
@@ -167,20 +163,12 @@ impl HeightfieldBuilder {
 /// Errors that can occur when building a [`Heightfield`] with [`HeightfieldBuilder::build`].
 #[derive(Error, Debug)]
 pub enum HeightfieldBuilderError {
-    /// Happens when the width and depth of the heightfield are not the same.
-    #[error("Width and depth must be the same, but got {width} and {depth}")]
-    WidthAndDepthMismatch {
-        /// The width of the heightfield along the x-axis in cell units
-        width: f32,
-        /// The depth of the heightfield along the z-axis in cell units
-        depth: f32,
-    },
     /// Happens when the column count is too large.
     #[error("Column count (width*height) is too large, got {width}*{height}={column_count} but max is {max}", column_count = width * height, max = usize::MAX)]
     ColumnCountTooLarge {
         /// The width of the heightfield along the x-axis in cell units
         width: f32,
-        /// The height of the heightfield along the y-axis in cell units
+        /// The height of the heightfield along the z-axis in cell units
         height: f32,
     },
 }

@@ -259,6 +259,8 @@ fn divide_poly(
 ) -> Result<(), PolygonDivisionError> {
     if in_vert_count > 12 {
         return Err(PolygonDivisionError::TooManyVertices(in_vert_count));
+    } else if in_vert_count == 0 {
+        return Err(PolygonDivisionError::NoVertices);
     }
     let in_vert_count = in_vert_count as usize;
     let axis_dir = axis_dir as usize;
@@ -323,6 +325,9 @@ pub enum PolygonDivisionError {
     /// Happens when the polygon has more than 12 vertices.
     #[error("Failed to divide polygon: too many vertices. Expected at most 12, got {0}.")]
     TooManyVertices(u8),
+    /// Happens when the polygon has no vertices.
+    #[error("Failed to divide polygon: no vertices.")]
+    NoVertices,
 }
 
 #[derive(Error, Debug)]
