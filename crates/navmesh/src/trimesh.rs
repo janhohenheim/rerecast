@@ -8,6 +8,8 @@ use avian3d::{
 };
 use bevy::{math::bounding::Aabb3d, prelude::*};
 
+use crate::span::AreaType;
+
 /// A [`Collider`] rasterized into trimesh form.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TrimeshedCollider {
@@ -18,6 +20,9 @@ pub struct TrimeshedCollider {
     /// The indices composing the collider.
     /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
     pub indices: Vec<[u32; 3]>,
+
+    /// The area types of the trimesh. Each index corresponds 1:1 to the [`TrimeshedCollider::indices`].
+    pub area_types: Vec<AreaType>,
 }
 
 impl TrimeshedCollider {
@@ -36,6 +41,7 @@ impl TrimeshedCollider {
                 i[2] + next_vertex_index,
             ]
         }));
+        self.area_types.extend(other.area_types);
     }
 
     /// Applies an isometry to the trimesh.
@@ -46,8 +52,17 @@ impl TrimeshedCollider {
     }
 
     /// Computes the AABB of the trimesh.
-    pub fn compute_aabb(&self) -> Aabb3d {
-        todo!("Do the manual impl, not Aabb3d::from_point_cloud. We have no isometry!")
+    /// Returns `None` if the trimesh is empty.
+    pub fn compute_aabb(&self) -> Option<Aabb3d> {
+        let mut iter = self.vertices.iter();
+
+        let first = iter.next()?;
+
+        let (min, max) = iter.fold((*first, *first), |(prev_min, prev_max), point| {
+            (point.min(prev_min), point.max(prev_max))
+        });
+
+        Some(Aabb3d { min, max })
     }
 }
 
@@ -134,9 +149,11 @@ fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCo
         TypedShape::HalfSpace(_half_space) => return None,
         TypedShape::Custom(_shape) => return None,
     };
+    let indices_len = indices.len();
     Some(TrimeshedCollider {
         vertices: vertices.into_iter().map(|v| v.into()).collect(),
         indices,
+        area_types: vec![AreaType::NOT_WALKABLE; indices_len],
     })
 }
 

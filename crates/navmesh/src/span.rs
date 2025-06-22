@@ -105,8 +105,12 @@ impl Span {
     }
 }
 
+/// An identifier for the area type of a span.
+/// The values 0 ([`AreaType::NOT_WALKABLE`]) and [`u8::MAX`] ([`AreaType::WALKABLE`]) are reserved.
+/// The rest can be used for custom area types to e.g. assign different costs to different areas.
+/// When two spans are merged, the area type of the merged span is the maximum of the two area types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
-pub(crate) struct AreaType(pub(crate) u8);
+pub struct AreaType(pub u8);
 
 impl From<u8> for AreaType {
     fn from(value: u8) -> Self {

@@ -22,8 +22,9 @@ avian_navmesh = { version = "0.1.0", path = "../navmesh", features = [
 avian3d = { workspace = true, features = ["serialize"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
-anyhow = "1.0.0"
+anyhow = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true

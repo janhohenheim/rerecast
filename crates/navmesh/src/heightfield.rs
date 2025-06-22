@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use crate::span::{Span, SpanKey, Spans};
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
+/// Build with [`HeightfieldBuilder`].
 pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
     width: u32,
@@ -118,34 +119,65 @@ impl Heightfield {
     }
 }
 
+/// A builder for [`Heightfield`]s.
 pub struct HeightfieldBuilder {
-    pub width: u32,
-    pub height: u32,
+    /// The AABB of the heightfield
     pub aabb: Aabb3d,
+    /// The size of each cell on the xz-plane
     pub cell_size: f32,
+    /// The size of each cell along the y-axis
     pub cell_height: f32,
 }
 
 impl HeightfieldBuilder {
-    pub fn build(self) -> Heightfield {
-        let column_count = self.width as u128 * self.height as u128;
+    /// Builds the heightfield.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the column count is above `usize::MAX`.
+    pub fn build(self) -> Result<Heightfield, HeightfieldBuilderError> {
+        let width = (self.aabb.max.x - self.aabb.min.x) / self.cell_size + 0.5;
+        let depth = (self.aabb.max.z - self.aabb.min.z) / self.cell_size + 0.5;
+        if width != depth {
+            return Err(HeightfieldBuilderError::WidthAndDepthMismatch { width, depth });
+        }
+        let height = (self.aabb.max.y - self.aabb.min.y) / self.cell_height + 0.5;
+        let column_count = width as u128 * height as u128;
         if column_count > usize::MAX as u128 {
-            panic!(
-                "Failed to build heightfield: column count is too large using {}x{}",
-                self.width, self.height
-            );
+            return Err(HeightfieldBuilderError::ColumnCountTooLarge { width, height });
         }
         let column_count = column_count as usize;
-        Heightfield {
-            width: self.width,
-            height: self.height,
+        Ok(Heightfield {
+            width: width as u32,
+            height: height as u32,
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
             columns: vec![None; column_count],
             spans: Spans::with_min_capacity(column_count),
-        }
+        })
     }
+}
+
+/// Errors that can occur when building a [`Heightfield`] with [`HeightfieldBuilder::build`].
+#[derive(Error, Debug)]
+pub enum HeightfieldBuilderError {
+    /// Happens when the width and depth of the heightfield are not the same.
+    #[error("Width and depth must be the same, but got {width} and {depth}")]
+    WidthAndDepthMismatch {
+        /// The width of the heightfield along the x-axis in cell units
+        width: f32,
+        /// The depth of the heightfield along the z-axis in cell units
+        depth: f32,
+    },
+    /// Happens when the column count is too large.
+    #[error("Column count (width*height) is too large, got {width}*{height}={column_count} but max is {max}", column_count = width * height, max = usize::MAX)]
+    ColumnCountTooLarge {
+        /// The width of the heightfield along the x-axis in cell units
+        width: f32,
+        /// The height of the heightfield along the y-axis in cell units
+        height: f32,
+    },
 }
 
 #[derive(Error, Debug)]
@@ -175,13 +207,12 @@ mod tests {
 
     fn height_field() -> Heightfield {
         HeightfieldBuilder {
-            width: 10,
-            height: 10,
             aabb: Aabb3d::new(Vec3A::ZERO, [5.0, 5.0, 5.0]),
             cell_size: 1.0,
             cell_height: 1.0,
         }
         .build()
+        .unwrap()
     }
 
     fn span_low() -> SpanBuilder {

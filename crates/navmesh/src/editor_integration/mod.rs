@@ -8,12 +8,9 @@ use bevy::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    editor_integration::{
-        input_data::{CloneProxy as _, ProxyMesh},
-        serialization::serialize,
-    },
-    trimesh::ToTrimesh as _,
+use crate::editor_integration::{
+    input_data::{CloneProxy as _, ProxyMesh},
+    serialization::serialize,
 };
 
 pub mod input_data;

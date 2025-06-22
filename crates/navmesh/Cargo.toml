@@ -33,6 +33,7 @@ editor_integration = [
     "dep:wgpu-types",
     "dep:bincode",
     "dep:base64",
+    "bevy/bevy_remote",
 ]
 
 [lints]
