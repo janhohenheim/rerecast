@@ -2,9 +2,9 @@
 
 use std::fmt::Display;
 
-use bevy::math::{
-    UVec3, Vec3A,
-    bounding::{Aabb3d, IntersectsVolume as _},
+use bevy::{
+    math::bounding::{Aabb3d, IntersectsVolume as _},
+    prelude::*,
 };
 use thiserror::Error;
 
@@ -101,6 +101,10 @@ impl Heightfield {
         let (mut in_tri, rest) = buf.split_at_mut(MAX_VERTICES_AFTER_CLIPPING);
         let (mut in_row, rest) = rest.split_at_mut(MAX_VERTICES_AFTER_CLIPPING);
         let (mut p1, mut p2) = rest.split_at_mut(MAX_VERTICES_AFTER_CLIPPING);
+
+        in_tri[0] = triangle[0];
+        in_tri[1] = triangle[1];
+        in_tri[2] = triangle[2];
 
         let mut nv_row = 0_u8;
         let mut nv_in = 3_u8;
