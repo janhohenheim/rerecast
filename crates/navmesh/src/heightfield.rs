@@ -1,3 +1,7 @@
+//! The heightfield module contains the types and functions for working with [`Heightfield`]s.
+//!
+//! A heightfield is a 3D grid of [`Span`]s, where each column contains 0, 1, or more spans.
+
 use bevy::math::bounding::Aabb3d;
 use thiserror::Error;
 
@@ -6,30 +10,30 @@ use crate::span::{Span, SpanKey, Spans};
 /// Build with [`HeightfieldBuilder`].
 pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
-    width: u32,
+    pub width: u32,
     /// The height of the heightfield along the y-axis in cell units
-    height: u32,
+    pub height: u32,
     /// The AABB of the heightfield
-    aabb: Aabb3d,
+    pub aabb: Aabb3d,
     /// The size of each cell on the xz-plane
-    cell_size: f32,
+    pub cell_size: f32,
     /// The size of each cell along the y-axis
-    cell_height: f32,
+    pub cell_height: f32,
     /// The indices to the spans in the heightfield in width*height order
     /// Each index corresponds to a column in the heightfield by pointing to the lowest span in the column
-    columns: Vec<Option<SpanKey>>,
+    pub columns: Vec<Option<SpanKey>>,
     /// All spans in the heightfield
-    spans: Spans,
+    pub spans: Spans,
 }
 
 impl Heightfield {
     /// https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Source/RecastRasterization.cpp#L105
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {
-        let column_index = insertion.x as u128 + insertion.y as u128 * self.width as u128;
+        let column_index = insertion.x as u128 + insertion.z as u128 * self.width as u128;
         if column_index >= self.columns.len() as u128 {
             return Err(SpanInsertionError::ColumnIndexOutOfBounds {
                 x: insertion.x,
-                y: insertion.y,
+                y: insertion.z,
             });
         }
         let column_index = column_index as usize;
@@ -95,6 +99,7 @@ impl Heightfield {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn span_at(&self, x: u32, y: u32) -> Option<Span> {
         let column_index = x as u128 + y as u128 * self.width as u128;
         let Some(span_key) = self.columns.get(column_index as usize) else {
@@ -180,17 +185,24 @@ pub enum HeightfieldBuilderError {
     },
 }
 
+/// Errors that can occur when inserting a span into a [`Heightfield`]
 #[derive(Error, Debug)]
 pub enum SpanInsertionError {
+    /// Happens when the column index is out of bounds.
     #[error("column index out of bounds: x={x}, y={y}")]
-    ColumnIndexOutOfBounds { x: u32, y: u32 },
+    ColumnIndexOutOfBounds {
+        /// The x-coordinate of the span
+        x: u32,
+        /// The z-coordinate of the span
+        y: u32,
+    },
 }
 
 pub(crate) struct SpanInsertion {
     /// The x-coordinate of the span
     pub(crate) x: u32,
-    /// The y-coordinate of the span
-    pub(crate) y: u32,
+    /// The z-coordinate of the span
+    pub(crate) z: u32,
     /// Maximum difference between the ceilings of two spans to merge area type IDs
     pub(crate) flag_merge_threshold: u32,
     /// The span to insert
@@ -254,7 +266,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: expected_span.clone(),
             })
@@ -273,7 +285,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: expected_span_1.clone(),
             })
@@ -283,7 +295,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 2,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: expected_span_2.clone(),
             })
@@ -305,7 +317,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_low.clone(),
             })
@@ -315,7 +327,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_high.clone(),
             })
@@ -338,7 +350,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_high.clone(),
             })
@@ -348,7 +360,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_low.clone(),
             })
@@ -371,7 +383,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_low.clone(),
             })
@@ -381,7 +393,7 @@ mod tests {
         heightfield
             .add_span(SpanInsertion {
                 x: 1,
-                y: 3,
+                z: 3,
                 flag_merge_threshold: 0,
                 span: span_mid.clone(),
             })

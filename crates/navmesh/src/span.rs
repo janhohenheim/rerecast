@@ -1,14 +1,21 @@
+//! The span module contains the types and functions for working with spans.
+//!
+//! A span is a voxel column with a floor and a ceiling.
+//! It is used to represent the height of a non-occupied voxel column.
+//!
+//! The spans are stored in a [`Spans`](crate::span::Spans) collection.
+
 use bevy::prelude::*;
 use slotmap::SlotMap;
 
 slotmap::new_key_type! {
-    pub(crate) struct SpanKey;
+    /// A key for a span in [`Spans`](crate::span::Spans).
+    pub struct SpanKey;
 }
 
+/// A collection of spans.
 #[derive(Deref, DerefMut)]
-pub(crate) struct Spans(SlotMap<SpanKey, Span>);
-
-struct SpanKeyReflect(slotmap::KeyData);
+pub struct Spans(SlotMap<SpanKey, Span>);
 
 impl Spans {
     const DEFAULT_CAPACITY: usize = 1024;
@@ -46,7 +53,7 @@ impl From<SpanBuilder> for Span {
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L294>
 /// Build with [`SpanBuilder`]
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) struct Span {
+pub struct Span {
     /// Height of the floor.
     ///
     /// Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
@@ -64,6 +71,8 @@ pub(crate) struct Span {
 }
 
 impl Span {
+    pub(crate) const MAX_HEIGHT: u16 = u16::MAX;
+
     #[inline]
     pub(crate) fn min(&self) -> u16 {
         self.min

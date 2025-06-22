@@ -19,7 +19,7 @@ pub struct TrimeshedCollider {
 
     /// The indices composing the collider.
     /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
-    pub indices: Vec<[u32; 3]>,
+    pub indices: Vec<UVec3>,
 
     /// The area types of the trimesh. Each index corresponds 1:1 to the [`TrimeshedCollider::indices`].
     pub area_types: Vec<AreaType>,
@@ -34,13 +34,8 @@ impl TrimeshedCollider {
         }
         let next_vertex_index = self.vertices.len() as u32;
         self.vertices.extend(other.vertices);
-        self.indices.extend(other.indices.iter().map(|i| {
-            [
-                i[0] + next_vertex_index,
-                i[1] + next_vertex_index,
-                i[2] + next_vertex_index,
-            ]
-        }));
+        self.indices
+            .extend(other.indices.iter().map(|i| i + next_vertex_index));
         self.area_types.extend(other.area_types);
     }
 
@@ -152,7 +147,7 @@ fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCo
     let indices_len = indices.len();
     Some(TrimeshedCollider {
         vertices: vertices.into_iter().map(|v| v.into()).collect(),
-        indices,
+        indices: indices.into_iter().map(|i| i.into()).collect(),
         area_types: vec![AreaType::NOT_WALKABLE; indices_len],
     })
 }

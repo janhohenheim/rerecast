@@ -1,9 +1,6 @@
 use anyhow::Context as _;
-use avian_navmesh::{
-    editor_integration::{
-        BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
-    },
-    trimesh::ToTrimesh as _,
+use avian_navmesh::editor_integration::{
+    BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
 };
 use avian3d::prelude::*;
 use bevy::{prelude::*, remote::BrpRequest};
@@ -60,11 +57,6 @@ fn fetch_navmesh_input(
     for rigid_bodies in response.rigid_bodies {
         let mut entity_commands = commands.spawn((RigidBody::Static, Transform::default()));
         for (transform, collider) in rigid_bodies.into_iter() {
-            let trimesh = collider.to_trimesh(12).unwrap();
-            let collider = Collider::trimesh(
-                trimesh.vertices.into_iter().map(|v| v.into()).collect(),
-                trimesh.indices,
-            );
             entity_commands.with_child((transform.compute_transform(), collider));
         }
     }
