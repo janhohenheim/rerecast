@@ -99,6 +99,7 @@ impl Heightfield {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn span_at(&self, x: u32, z: u32) -> Option<Span> {
         let column_index = x as u128 + z as u128 * self.width as u128;
         let Some(span_key) = self.columns.get(column_index as usize) else {

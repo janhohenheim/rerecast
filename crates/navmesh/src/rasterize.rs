@@ -2,72 +2,17 @@
 
 use std::fmt::Display;
 
-use bevy::{
-    math::bounding::{Aabb3d, IntersectsVolume as _},
-    prelude::*,
-};
+use bevy::{math::bounding::IntersectsVolume as _, prelude::*};
 use thiserror::Error;
 
 use crate::{
     heightfield::{Heightfield, SpanInsertion, SpanInsertionError},
+    math::TriangleVertices as _,
     span::{AreaType, Span, SpanBuilder},
-    trimesh::TrimeshedCollider,
 };
 
-impl TrimeshedCollider {
-    /// Marks the triangles as walkable or not based on the threshold angle.
-    ///
-    /// The triangles are marked as walkable if the normal angle is greater than the threshold angle.
-    ///
-    /// # Arguments
-    ///
-    /// * `threshold_rad` - The threshold angle in radians.
-    ///
-    pub fn mark_walkable_triangles(&mut self, threshold_rad: f32) {
-        let threshold_cos = threshold_rad.cos();
-        for (i, indices) in self.indices.iter().enumerate() {
-            let normal = indices.normal(&self.vertices);
-
-            if normal.y > threshold_cos {
-                self.area_types[i] = AreaType::DEFAULT_WALKABLE;
-            }
-        }
-    }
-}
-
 impl Heightfield {
-    /// Rasterizes the triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
-    ///
-    /// # Arguments
-    ///
-    /// * `trimesh` - The [`TrimeshedCollider`] to rasterize.
-    /// * `walkable_climb_height` - The maximum height difference between a non-walkable span and a walkable span that can be considered walkable.
-    ///
-    pub fn populate_from_trimesh(
-        &mut self,
-        trimesh: TrimeshedCollider,
-        walkable_climb_height: u16,
-    ) -> Result<(), RasterizationError> {
-        // Implementation note: flag_merge_threshold and walkable_climb_height are the same thing in practice, so we just chose one name for the param.
-
-        // Find triangles which are walkable based on their slope and rasterize them.
-        for (i, triangle) in trimesh.indices.iter().enumerate() {
-            let triangle = [
-                trimesh.vertices[triangle[0] as usize],
-                trimesh.vertices[triangle[1] as usize],
-                trimesh.vertices[triangle[2] as usize],
-            ];
-            let area_type = trimesh.area_types[i];
-            self.rasterize_triangle(triangle, area_type, walkable_climb_height)?;
-        }
-        // Once all geometry is rasterized, we do initial pass of filtering to
-        // remove unwanted overhangs caused by the conservative rasterization
-        // as well as filter spans where the character cannot possibly stand.
-        self.filter_low_hanging_walkable_obstacles(walkable_climb_height);
-        Ok(())
-    }
-
-    fn rasterize_triangle(
+    pub(crate) fn rasterize_triangle(
         &mut self,
         triangle: [Vec3A; 3],
         area_type: AreaType,
@@ -213,39 +158,6 @@ impl Heightfield {
         }
         Ok(())
     }
-
-    fn filter_low_hanging_walkable_obstacles(&mut self, walkable_climb_height: u16) {
-        for z in 0..self.height {
-            for x in 0..self.width {
-                let mut previous_span: Option<Span> = None;
-                let mut previous_was_walkable = false;
-                let mut previous_area_id = AreaType::NOT_WALKABLE;
-
-                // For each span in the column...
-                while let Some(span) = self.span_at_mut(x, z) {
-                    let walkable = span.area().is_walkable();
-
-                    // If current span is not walkable, but there is walkable span just below it and the height difference
-                    // is small enough for the agent to walk over, mark the current span as walkable too.
-                    if let Some(previous_span) = previous_span.as_ref() {
-                        if !walkable
-                            && previous_was_walkable
-                            && (span.max() as i32 - previous_span.max() as i32)
-                                <= walkable_climb_height as i32
-                        {
-                            span.set_area(previous_area_id);
-                        }
-                    }
-
-                    // Copy the original walkable value regardless of whether we changed it.
-                    // This prevents multiple consecutive non-walkable spans from being erroneously marked as walkable.
-                    previous_span.replace(span.clone());
-                    previous_was_walkable = walkable;
-                    previous_area_id = span.area();
-                }
-            }
-        }
-    }
 }
 
 /// Errors that can occur when rasterizing a triangle into a heightfield with [`Heightfield::populate_from_trimesh`].
@@ -257,35 +169,6 @@ pub enum RasterizationError {
     /// Happens when the span insertion fails.
     #[error("Failed to add span: {0}")]
     SpanInsertionError(#[from] SpanInsertionError),
-}
-
-trait TriangleIndices {
-    fn normal(&self, vertices: &[Vec3A]) -> Vec3A;
-}
-
-impl TriangleIndices for UVec3 {
-    #[inline]
-    fn normal(&self, vertices: &[Vec3A]) -> Vec3A {
-        let a = vertices[self[0] as usize];
-        let b = vertices[self[1] as usize];
-        let c = vertices[self[2] as usize];
-        let ab = b - a;
-        let ac = c - a;
-        ab.cross(ac).normalize_or_zero()
-    }
-}
-
-trait TriangleVertices {
-    fn aabb(&self) -> Aabb3d;
-}
-
-impl TriangleVertices for [Vec3A; 3] {
-    #[inline]
-    fn aabb(&self) -> Aabb3d {
-        let min = self[0].min(self[1]).min(self[2]);
-        let max = self[0].max(self[1]).max(self[2]);
-        Aabb3d { min, max }
-    }
 }
 
 /// Divides a convex polygon of max 12 vertices into two convex polygons
