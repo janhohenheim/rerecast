@@ -64,7 +64,7 @@ impl Heightfield {
 
             // Merge flags.
             if (new_span.max() as i32 - current_span.max() as i32).unsigned_abs()
-                <= insertion.flag_merge_threshold
+                <= insertion.flag_merge_threshold as u32
             {
                 // Higher area ID numbers indicate higher resolution priority.
                 let area = new_span.area().max(current_span.area().0);
@@ -99,9 +99,8 @@ impl Heightfield {
         Ok(())
     }
 
-    #[cfg(test)]
-    pub(crate) fn span_at(&self, x: u32, y: u32) -> Option<Span> {
-        let column_index = x as u128 + y as u128 * self.width as u128;
+    pub(crate) fn span_at(&self, x: u32, z: u32) -> Option<Span> {
+        let column_index = x as u128 + z as u128 * self.width as u128;
         let Some(span_key) = self.columns.get(column_index as usize) else {
             // Invalid coordinates
             return None;
@@ -111,6 +110,19 @@ impl Heightfield {
             return None;
         };
         Some(self.span(*span_key))
+    }
+
+    pub(crate) fn span_at_mut(&mut self, x: u32, z: u32) -> Option<&mut Span> {
+        let column_index = x as u128 + z as u128 * self.width as u128;
+        let Some(span_key) = self.columns.get(column_index as usize) else {
+            // Invalid coordinates
+            return None;
+        };
+        let Some(span_key) = span_key else {
+            // No span in this column
+            return None;
+        };
+        Some(self.span_mut(*span_key))
     }
 
     #[inline]
@@ -192,7 +204,7 @@ pub(crate) struct SpanInsertion {
     /// The z-coordinate of the span
     pub(crate) z: u32,
     /// Maximum difference between the ceilings of two spans to merge area type IDs
-    pub(crate) flag_merge_threshold: u32,
+    pub(crate) flag_merge_threshold: u16,
     /// The span to insert
     pub(crate) span: Span,
 }

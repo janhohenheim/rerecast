@@ -29,7 +29,7 @@ impl TrimeshedCollider {
             let normal = indices.normal(&self.vertices);
 
             if normal.y > threshold_cos {
-                self.area_types[i] = AreaType::WALKABLE;
+                self.area_types[i] = AreaType::DEFAULT_WALKABLE;
             }
         }
     }
@@ -41,13 +41,16 @@ impl Heightfield {
     /// # Arguments
     ///
     /// * `trimesh` - The [`TrimeshedCollider`] to rasterize.
-    /// * `flag_merge_threshold` - The maximum difference between the ceilings of two spans to merge area type IDs.
+    /// * `walkable_climb_height` - The maximum height difference between a non-walkable span and a walkable span that can be considered walkable.
     ///
     pub fn populate_from_trimesh(
         &mut self,
         trimesh: TrimeshedCollider,
-        flag_merge_threshold: u32,
+        walkable_climb_height: u16,
     ) -> Result<(), RasterizationError> {
+        // Implementation note: flag_merge_threshold and walkable_climb_height are the same thing in practice, so we just chose one name for the param.
+
+        // Find triangles which are walkable based on their slope and rasterize them.
         for (i, triangle) in trimesh.indices.iter().enumerate() {
             let triangle = [
                 trimesh.vertices[triangle[0] as usize],
@@ -55,8 +58,12 @@ impl Heightfield {
                 trimesh.vertices[triangle[2] as usize],
             ];
             let area_type = trimesh.area_types[i];
-            self.rasterize_triangle(triangle, area_type, flag_merge_threshold)?;
+            self.rasterize_triangle(triangle, area_type, walkable_climb_height)?;
         }
+        // Once all geometry is rasterized, we do initial pass of filtering to
+        // remove unwanted overhangs caused by the conservative rasterization
+        // as well as filter spans where the character cannot possibly stand.
+        self.filter_low_hanging_walkable_obstacles(walkable_climb_height);
         Ok(())
     }
 
@@ -64,7 +71,7 @@ impl Heightfield {
         &mut self,
         triangle: [Vec3A; 3],
         area_type: AreaType,
-        flag_merge_threshold: u32,
+        flag_merge_threshold: u16,
     ) -> Result<(), RasterizationError> {
         let aabb = triangle.aabb();
         // If the triangle does not touch the bounding box of the heightfield, skip the triangle.
@@ -205,6 +212,39 @@ impl Heightfield {
             }
         }
         Ok(())
+    }
+
+    fn filter_low_hanging_walkable_obstacles(&mut self, walkable_climb_height: u16) {
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let mut previous_span: Option<Span> = None;
+                let mut previous_was_walkable = false;
+                let mut previous_area_id = AreaType::NOT_WALKABLE;
+
+                // For each span in the column...
+                while let Some(span) = self.span_at_mut(x, z) {
+                    let walkable = span.area().is_walkable();
+
+                    // If current span is not walkable, but there is walkable span just below it and the height difference
+                    // is small enough for the agent to walk over, mark the current span as walkable too.
+                    if let Some(previous_span) = previous_span.as_ref() {
+                        if !walkable
+                            && previous_was_walkable
+                            && (span.max() as i32 - previous_span.max() as i32)
+                                <= walkable_climb_height as i32
+                        {
+                            span.set_area(previous_area_id);
+                        }
+                    }
+
+                    // Copy the original walkable value regardless of whether we changed it.
+                    // This prevents multiple consecutive non-walkable spans from being erroneously marked as walkable.
+                    previous_span.replace(span.clone());
+                    previous_was_walkable = walkable;
+                    previous_area_id = span.area();
+                }
+            }
+        }
     }
 }
 
