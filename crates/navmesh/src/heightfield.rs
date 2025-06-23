@@ -28,6 +28,7 @@ pub struct Heightfield {
 
 impl Heightfield {
     /// https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Source/RecastRasterization.cpp#L105
+    #[inline]
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {
         let column_index = insertion.x as u128 + insertion.z as u128 * self.width as u128;
         if column_index >= self.columns.len() as u128 {
@@ -99,40 +100,41 @@ impl Heightfield {
         Ok(())
     }
 
-    #[cfg(test)]
-    pub(crate) fn span_at(&self, x: u32, z: u32) -> Option<Span> {
+    #[inline]
+    pub(crate) fn span_key_at(&self, x: u32, z: u32) -> Option<SpanKey> {
         let column_index = x as u128 + z as u128 * self.width as u128;
         let Some(span_key) = self.columns.get(column_index as usize) else {
             // Invalid coordinates
             return None;
         };
-        let Some(span_key) = span_key else {
+        span_key.clone()
+    }
+
+    #[inline]
+    pub(crate) fn span_at(&self, x: u32, z: u32) -> Option<&Span> {
+        let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
         };
-        Some(self.span(*span_key))
+        Some(&self.span(span_key))
     }
 
+    #[inline]
     pub(crate) fn span_at_mut(&mut self, x: u32, z: u32) -> Option<&mut Span> {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        let Some(span_key) = self.columns.get(column_index as usize) else {
-            // Invalid coordinates
-            return None;
-        };
-        let Some(span_key) = span_key else {
+        let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
         };
-        Some(self.span_mut(*span_key))
+        Some(self.span_mut(span_key))
     }
 
     #[inline]
-    fn span(&self, key: SpanKey) -> Span {
-        self.spans[key].clone()
+    pub(crate) fn span(&self, key: SpanKey) -> &Span {
+        &self.spans[key]
     }
 
     #[inline]
-    fn span_mut(&mut self, key: SpanKey) -> &mut Span {
+    pub(crate) fn span_mut(&mut self, key: SpanKey) -> &mut Span {
         &mut self.spans[key]
     }
 }
@@ -273,7 +275,7 @@ mod tests {
             })
             .unwrap();
         let span = heightfield.span_at(1, 3).unwrap();
-        assert_eq!(span, expected_span);
+        assert_eq!(*span, expected_span);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);
@@ -303,9 +305,9 @@ mod tests {
             .unwrap();
 
         let span = heightfield.span_at(1, 3).unwrap();
-        assert_eq!(span, expected_span_1);
+        assert_eq!(*span, expected_span_1);
         let span = heightfield.span_at(2, 3).unwrap();
-        assert_eq!(span, expected_span_2);
+        assert_eq!(*span, expected_span_2);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);
@@ -409,7 +411,7 @@ mod tests {
         .build();
 
         let span = heightfield.span_at(1, 3).unwrap();
-        assert_eq!(span, merged_span);
+        assert_eq!(*span, merged_span);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);

@@ -19,7 +19,8 @@ pub(crate) struct BuildNavmeshConfig {
     pub(crate) subdivisions: u32,
     pub(crate) cell_size: f32,
     pub(crate) cell_height: f32,
-    pub(crate) walkable_climb_height: u16,
+    pub(crate) walkable_height: u16,
+    pub(crate) walkable_climb: u16,
 }
 
 impl Default for BuildNavmeshConfig {
@@ -28,7 +29,8 @@ impl Default for BuildNavmeshConfig {
             subdivisions: 12,
             cell_size: 1.0,
             cell_height: 1.0,
-            walkable_climb_height: 0,
+            walkable_height: 1,
+            walkable_climb: 1,
         }
     }
 }
@@ -57,7 +59,7 @@ fn build_navmesh(
         cell_height: config.cell_height,
     }
     .build()?;
-    heightfield.populate_from_trimesh(trimesh, config.walkable_climb_height)?;
+    heightfield.populate_from_trimesh(trimesh, config.walkable_height, config.walkable_climb)?;
     Ok(())
 }
 
