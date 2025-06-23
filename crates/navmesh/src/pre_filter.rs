@@ -161,6 +161,34 @@ impl Heightfield {
 
     /// Taken 1:1 from the original implementation.
     const MAX_HEIGHTFIELD_HEIGHT: u16 = u16::MAX;
+
+    pub(crate) fn filter_walkable_low_height_spans(&mut self, walkable_height: u16) {
+        // Remove walkable flag from spans which do not have enough
+        // space above them for the agent to stand there.
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let mut span_key = self.span_key_at(x, z);
+                while let Some(current_span_key) = span_key {
+                    let filtered: bool = {
+                        let span = self.span(current_span_key);
+                        let floor = span.max() as i32;
+                        let ceiling = span
+                            .next()
+                            .map(|key| self.span(key).min() as i32)
+                            .unwrap_or(Self::MAX_HEIGHTFIELD_HEIGHT as i32);
+                        ceiling - floor < walkable_height as i32
+                    };
+
+                    let span = self.span_mut(current_span_key);
+                    if filtered {
+                        span.set_area(AreaType::NOT_WALKABLE);
+                    }
+
+                    span_key = span.next();
+                }
+            }
+        }
+    }
 }
 
 /// Gets the standard width (x-axis) offset for the specified direction.

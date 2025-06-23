@@ -56,6 +56,7 @@ impl Heightfield {
         // as well as filter spans where the character cannot possibly stand.
         self.filter_low_hanging_walkable_obstacles(walkable_climb);
         self.filter_ledge_spans(walkable_height, walkable_climb);
+        self.filter_walkable_low_height_spans(walkable_height);
         Ok(())
     }
 }
