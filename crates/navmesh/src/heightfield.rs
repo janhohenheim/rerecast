@@ -107,7 +107,7 @@ impl Heightfield {
             // Invalid coordinates
             return None;
         };
-        span_key.clone()
+        *span_key
     }
 
     #[inline]
@@ -116,7 +116,7 @@ impl Heightfield {
             // No span in this column
             return None;
         };
-        Some(&self.span(span_key))
+        Some(self.span(span_key))
     }
 
     #[inline]
