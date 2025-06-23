@@ -50,6 +50,7 @@ impl Heightfield {
 
                         // Skip non-walkable spans.
                         if !self.span(current_span_key).area().is_walkable() {
+                            span_key = span.next();
                             continue;
                         }
 
@@ -112,6 +113,8 @@ impl Heightfield {
                                     < walkable_height as i32
                                 {
                                     // No space to travese between them.
+                                    neighbor_span =
+                                        current_neighbor_span.next().map(|key| self.span(key));
                                     continue;
                                 }
 
