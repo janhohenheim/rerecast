@@ -21,9 +21,9 @@ pub struct Heightfield {
     pub cell_height: f32,
     /// The indices to the spans in the heightfield in width*height order
     /// Each index corresponds to a column in the heightfield by pointing to the lowest span in the column
-    pub columns: Vec<Option<SpanKey>>,
+    pub spans: Vec<Option<SpanKey>>,
     /// All spans in the heightfield
-    pub spans: Spans,
+    pub allocated_spans: Spans,
 }
 
 impl Heightfield {
@@ -31,7 +31,7 @@ impl Heightfield {
     #[inline]
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {
         let column_index = insertion.x as u128 + insertion.z as u128 * self.width as u128;
-        if column_index >= self.columns.len() as u128 {
+        if column_index >= self.spans.len() as u128 {
             return Err(SpanInsertionError::ColumnIndexOutOfBounds {
                 x: insertion.x,
                 y: insertion.z,
@@ -41,7 +41,7 @@ impl Heightfield {
 
         let mut new_span = insertion.span;
         let mut previous_span_key = None;
-        let mut current_span_key_iter = self.columns[column_index];
+        let mut current_span_key_iter = self.spans[column_index];
         // Insert the new span, possibly merging it with existing spans.
         while let Some(current_span_key) = current_span_key_iter {
             let current_span = self.span_mut(current_span_key);
@@ -75,11 +75,11 @@ impl Heightfield {
             // Remove the current span since it's now merged with newSpan.
             // Keep going because there might be other overlapping spans that also need to be merged.
             let next_key = current_span.next();
-            self.spans.remove(current_span_key);
+            self.allocated_spans.remove(current_span_key);
             if let Some(previous_span_key) = previous_span_key {
                 self.span_mut(previous_span_key).set_next(next_key);
             } else {
-                self.columns[column_index] = next_key;
+                self.spans[column_index] = next_key;
             }
             current_span_key_iter = next_key;
         }
@@ -87,14 +87,14 @@ impl Heightfield {
         if let Some(previous_span_key) = previous_span_key {
             // Insert new span after prev
             new_span.set_next(self.span(previous_span_key).next());
-            let new_span_key = self.spans.insert(new_span);
+            let new_span_key = self.allocated_spans.insert(new_span);
             self.span_mut(previous_span_key).set_next(new_span_key);
         } else {
             // This span should go before the others in the list
-            let lowest_span_key = self.columns[column_index];
+            let lowest_span_key = self.spans[column_index];
             new_span.set_next(lowest_span_key);
-            let new_span_key = self.spans.insert(new_span);
-            self.columns[column_index] = Some(new_span_key);
+            let new_span_key = self.allocated_spans.insert(new_span);
+            self.spans[column_index] = Some(new_span_key);
         }
 
         Ok(())
@@ -103,7 +103,7 @@ impl Heightfield {
     #[inline]
     pub(crate) fn span_key_at(&self, x: u32, z: u32) -> Option<SpanKey> {
         let column_index = x as u128 + z as u128 * self.width as u128;
-        let Some(span_key) = self.columns.get(column_index as usize) else {
+        let Some(span_key) = self.spans.get(column_index as usize) else {
             // Invalid coordinates
             return None;
         };
@@ -130,12 +130,12 @@ impl Heightfield {
 
     #[inline]
     pub(crate) fn span(&self, key: SpanKey) -> &Span {
-        &self.spans[key]
+        &self.allocated_spans[key]
     }
 
     #[inline]
     pub(crate) fn span_mut(&mut self, key: SpanKey) -> &mut Span {
-        &mut self.spans[key]
+        &mut self.allocated_spans[key]
     }
 }
 
@@ -169,8 +169,8 @@ impl HeightfieldBuilder {
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
-            columns: vec![None; column_count],
-            spans: Spans::with_min_capacity(column_count),
+            spans: vec![None; column_count],
+            allocated_spans: Spans::with_min_capacity(column_count),
         })
     }
 }

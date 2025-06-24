@@ -119,7 +119,14 @@ impl Span {
 /// The rest can be used for custom area types to e.g. assign different costs to different areas.
 /// When two spans are merged, the area type of the merged span is the maximum of the two area types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[repr(transparent)]
 pub struct AreaType(pub u8);
+
+impl Default for AreaType {
+    fn default() -> Self {
+        Self::NOT_WALKABLE
+    }
+}
 
 impl From<u8> for AreaType {
     fn from(value: u8) -> Self {

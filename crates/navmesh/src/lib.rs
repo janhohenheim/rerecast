@@ -3,6 +3,9 @@
 
 use bevy::prelude::*;
 
+pub mod compact_cell;
+pub mod compact_heightfield;
+pub mod compact_span;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
 pub mod heightfield;
@@ -10,6 +13,7 @@ mod main_api;
 pub(crate) mod math;
 mod pre_filter;
 pub mod rasterize;
+pub mod region;
 pub mod span;
 pub mod trimesh;
 
