@@ -28,3 +28,25 @@ impl TriangleVertices for [Vec3A; 3] {
         Aabb3d { min, max }
     }
 }
+
+/// Gets the standard width (x-axis) offset for the specified direction.
+/// # Arguments
+/// - `direction`: The direction. [Limits: 0 <= value < 4]
+/// # Returns
+///
+/// The width offset to apply to the current cell position to move in the direction.
+pub(crate) fn dir_offset_x(direction: u8) -> i8 {
+    const OFFSET: [i8; 4] = [-1, 0, 1, 0];
+    OFFSET[direction as usize & 0x03]
+}
+
+/// Gets the standard height (z-axis) offset for the specified direction.
+/// # Arguments
+/// - `direction`: The direction. [Limits: 0 <= value < 4]
+/// # Returns
+///
+/// The height offset to apply to the current cell position to move in the direction.
+pub(crate) fn dir_offset_z(direction: u8) -> i8 {
+    const OFFSET: [i8; 4] = [0, 1, 0, -1];
+    OFFSET[direction as usize & 0x03]
+}

@@ -6,7 +6,7 @@ use crate::{
     span::{AreaType, SpanKey},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CompactSpan {
     /// The lower extent of the span. (Measured from the heightfield's base.)
     pub y: u16,
@@ -18,20 +18,32 @@ pub struct CompactSpan {
 }
 
 impl CompactSpan {
-    pub fn con(&self) -> u32 {
-        todo!()
+    const NOT_CONNECTED: u8 = 0x3f;
+
+    pub fn set_con(&mut self, direction: u8, neighbor: impl Into<Option<u8>>) {
+        let shift = (direction as u32) * 6;
+        let con = self.data;
+        let value =
+            neighbor.into().unwrap_or(Self::NOT_CONNECTED) as u32 & Self::NOT_CONNECTED as u32;
+        self.data = (con & !(0x3f << shift)) | (value << shift);
     }
 
-    pub fn set_con(&mut self, con: u32) {
-        todo!()
+    pub fn con(&self, direction: u8) -> Option<u8> {
+        let shift = (direction as u32) * 6;
+        let value = ((self.data >> shift) & Self::NOT_CONNECTED as u32) as u8;
+        if value == Self::NOT_CONNECTED {
+            None
+        } else {
+            Some(value)
+        }
     }
 
     pub fn height(&self) -> u8 {
-        todo!()
+        (self.data >> 24) as u8
     }
 
     pub fn set_height(&mut self, height: u8) {
-        todo!()
+        self.data = (self.data & 0x00FF_FFFF) | ((height as u32) << 24);
     }
 }
 
@@ -46,5 +58,39 @@ pub struct CompactSpans(SlotMap<CompactSpanKey, CompactSpan>);
 impl CompactSpans {
     pub fn with_capacity(capacity: usize) -> Self {
         Self(SlotMap::with_capacity_and_key(capacity))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compact_span() {
+        let mut span = CompactSpan::default();
+        span.set_height(10);
+        assert_eq!(span.height(), 10);
+    }
+
+    #[test]
+    fn test_compact_span_con() {
+        let mut span = CompactSpan::default();
+        span.set_con(0, Some(1));
+        assert_eq!(span.con(0), Some(1));
+
+        span.set_con(1, Some(3));
+        assert_eq!(span.con(1), Some(3));
+
+        span.set_con(2, Some(5));
+        assert_eq!(span.con(2), Some(5));
+
+        span.set_con(0, Some(2));
+        assert_eq!(span.con(0), Some(2));
+
+        span.set_con(1, None);
+        assert_eq!(span.con(1), None);
+
+        span.set_con(2, None);
+        assert_eq!(span.con(2), None);
     }
 }

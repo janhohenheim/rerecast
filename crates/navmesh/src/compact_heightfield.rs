@@ -1,20 +1,21 @@
-use std::usize;
-
 use bevy::math::bounding::Aabb3d;
 
 use crate::{
     compact_cell::CompactCell,
-    compact_span::{CompactSpan, CompactSpanKey, CompactSpans},
+    compact_span::CompactSpan,
     heightfield::Heightfield,
+    math::{dir_offset_x, dir_offset_z},
     region::Region,
-    span::{AreaType, SpanKey, Spans},
+    span::AreaType,
 };
 
+/// A packed representation of a [`Heightfield`].
+#[derive(Debug, Clone)]
 pub struct CompactHeightfield {
     /// The width of the heightfield along the x-axis in cell units
-    pub width: u32,
+    pub width: u16,
     /// The height of the heightfield along the z-axis in cell units
-    pub height: u32,
+    pub height: u16,
     /// The walkable height used during the build of the field
     pub walkable_height: u16,
     /// The walkable climb used during the build of the field.
@@ -42,11 +43,16 @@ pub struct CompactHeightfield {
 impl CompactHeightfield {
     const MAX_HEIGHT: u16 = u16::MAX;
 
+    /// Builds a compact heightfield from a heightfield.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the heightfield has too many layers.
     pub fn from_heightfield(
         heightfield: Heightfield,
         walkable_height: u16,
         walkable_climb: u16,
-    ) -> Self {
+    ) -> Result<Self, CompactHeightfieldError> {
         let walkable_span_count = heightfield
             .allocated_spans
             .values()
@@ -109,55 +115,121 @@ impl CompactHeightfield {
         }
 
         // Find neighbour connections
-        // Original is an ugly RC_NOT_CONNECTED - 1 lol
-        const MAX_LAYERS: u8 = u8::MAX;
-        let mut max_layer_index = 0;
-        let z_stride = heightfield.width;
+        // Original is RC_NOT_CONNECTED - 1
+        const MAX_LAYERS: u8 = u8::MAX - 1;
+        let mut max_layer_index = 0_i32;
         for z in 0..heightfield.height {
             for x in 0..heightfield.width {
                 let column_index = x as usize + z as usize * heightfield.width as usize;
                 let cell = &mut compact_heightfield.cells[column_index];
                 let index_count = cell.index() as usize + cell.count() as usize;
                 for i in cell.index() as usize..index_count as usize {
-                    let span = compact_heightfield.spans[i];
-                    for dir in 0..4 {
-                        todo!()
+                    for dir in 0..4_u8 {
+                        compact_heightfield.spans[i].set_con(dir, None);
+                        let neighbor_x = x as i32 + dir_offset_x(dir) as i32;
+                        let neighbor_z = z as i32 + dir_offset_z(dir) as i32;
+                        // First check that the neighbour cell is in bounds.
+                        if !heightfield.contains(neighbor_x, neighbor_z) {
+                            continue;
+                        }
+                        let neighbor_x = neighbor_x as u16;
+                        let neighbor_z = neighbor_z as u16;
+
+                        // Iterate over all neighbour spans and check if any of the is
+                        // accessible from current cell.
+                        let column_index = heightfield.column_index(neighbor_x, neighbor_z);
+                        let neighbor_cell = &compact_heightfield.cells[column_index];
+                        let neighbor_index_count =
+                            neighbor_cell.index() as usize + neighbor_cell.count() as usize;
+                        let span_clone = compact_heightfield.spans[i].clone();
+                        for k in neighbor_cell.index() as usize..neighbor_index_count as usize {
+                            let neighbor_span = &compact_heightfield.spans[k];
+                            let bot = span_clone.y.max(neighbor_span.y);
+                            let top = (span_clone.y + span_clone.height() as u16)
+                                .min(neighbor_span.y + neighbor_span.height() as u16);
+
+                            // Check that the gap between the spans is walkable,
+                            // and that the climb height between the gaps is not too high.
+                            let is_walkable = (top - bot) >= walkable_height;
+                            let is_climbable = (neighbor_span.y as i32 - span_clone.y as i32).abs()
+                                <= walkable_climb as i32;
+                            if !is_walkable || !is_climbable {
+                                continue;
+                            }
+                            // Mark direction as walkable.
+                            let layer_index = k as i32 - neighbor_cell.index() as i32;
+                            if layer_index < 0 || layer_index >= MAX_LAYERS as i32 {
+                                max_layer_index = max_layer_index.max(layer_index as i32);
+                                continue;
+                            }
+                            let layer_index = layer_index as u8;
+                            compact_heightfield.spans[i].set_con(dir, Some(layer_index));
+                            break;
+                        }
                     }
                 }
             }
         }
-        compact_heightfield
+        if max_layer_index > MAX_LAYERS as i32 {
+            return Err(CompactHeightfieldError::TooManyLayers {
+                max_layer_index: MAX_LAYERS,
+                layer_index: max_layer_index as u8,
+            });
+        }
+        Ok(compact_heightfield)
     }
 
     #[inline]
-    pub fn get_cell_at(&self, x: u32, z: u32) -> Option<&CompactCell> {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        let Some(cell) = self.cells.get(column_index as usize) else {
+    fn column_index(&self, x: u16, z: u16) -> usize {
+        x as usize + z as usize * self.width as usize
+    }
+
+    /// Returns the cell at the given coordinates. Returns `None` if the coordinates are invalid.
+    #[inline]
+    pub fn get_cell_at(&self, x: u16, z: u16) -> Option<&CompactCell> {
+        let Some(cell) = self.cells.get(self.column_index(x, z)) else {
             // Invalid coordinates
             return None;
         };
         Some(cell)
     }
 
+    /// Returns the cell at the given coordinates. Panics if the coordinates are invalid.
     #[inline]
-    pub fn cell_at(&self, x: u32, z: u32) -> &CompactCell {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        &self.cells[column_index as usize]
+    pub fn cell_at(&self, x: u16, z: u16) -> &CompactCell {
+        &self.cells[self.column_index(x, z)]
     }
 
+    /// Returns the cell mutably at the given coordinates. Returns `None` if the coordinates are invalid.
     #[inline]
-    pub fn get_cell_at_mut(&mut self, x: u32, z: u32) -> Option<&mut CompactCell> {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        let Some(cell) = self.cells.get_mut(column_index as usize) else {
+    pub fn get_cell_at_mut(&mut self, x: u16, z: u16) -> Option<&mut CompactCell> {
+        let index = self.column_index(x, z);
+        let Some(cell) = self.cells.get_mut(index) else {
             // Invalid coordinates
             return None;
         };
         Some(cell)
     }
 
+    /// Returns the cell mutably at the given coordinates. Panics if the coordinates are invalid.
     #[inline]
-    pub fn cell_at_mut(&mut self, x: u32, z: u32) -> &mut CompactCell {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        &mut self.cells[column_index as usize]
+    pub fn cell_at_mut(&mut self, x: u16, z: u16) -> &mut CompactCell {
+        let index = self.column_index(x, z);
+        &mut self.cells[index]
     }
+}
+
+/// Errors that can occur when building a compact heightfield.
+#[derive(Debug, thiserror::Error)]
+pub enum CompactHeightfieldError {
+    /// The heightfield has too many layers.
+    #[error(
+        "Heightfield has too many layers. Max layer index is {max_layer_index}, but got {layer_index}"
+    )]
+    TooManyLayers {
+        /// The maximum layer index.
+        max_layer_index: u8,
+        /// The layer index that caused the error.
+        layer_index: u8,
+    },
 }

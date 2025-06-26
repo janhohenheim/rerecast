@@ -1,5 +1,6 @@
 use crate::{
     heightfield::Heightfield,
+    math::{dir_offset_x, dir_offset_z},
     span::{AreaType, Span},
 };
 
@@ -71,20 +72,16 @@ impl Heightfield {
                         let mut highest_traversable_neighbor_floor = span.max() as i32;
 
                         for direction in 0..4 {
-                            let neighbor_x = x as i64 + dir_offset_x(direction) as i64;
-                            let neighbor_z = z as i64 + dir_offset_z(direction) as i64;
+                            let neighbor_x = x as i32 + dir_offset_x(direction) as i32;
+                            let neighbor_z = z as i32 + dir_offset_z(direction) as i32;
 
                             // Skip neighbours which are out of bounds.
-                            if neighbor_x < 0
-                                || neighbor_x >= self.width as i64
-                                || neighbor_z < 0
-                                || neighbor_z >= self.height as i64
-                            {
+                            if !self.contains(neighbor_x, neighbor_z) {
                                 lowest_neighbor_floor_difference = -(walkable_climb as i32) - 1;
                                 break;
                             }
-                            let neighbor_x = neighbor_x as u32;
-                            let neighbor_z = neighbor_z as u32;
+                            let neighbor_x = neighbor_x as u16;
+                            let neighbor_z = neighbor_z as u16;
 
                             let mut neighbor_span = self.span_at(neighbor_x, neighbor_z);
 
@@ -192,27 +189,4 @@ impl Heightfield {
             }
         }
     }
-}
-
-/// Gets the standard width (x-axis) offset for the specified direction.
-/// # Arguments
-/// - `direction`: The direction. [Limits: 0 <= value < 4]
-/// # Returns
-///
-/// The width offset to apply to the current cell position to move in the direction.
-fn dir_offset_x(direction: u8) -> i32 {
-    const OFFSET: [i32; 4] = [-1, 0, 1, 0];
-    OFFSET[direction as usize & 0x03]
-}
-
-// TODO (graham): Rename this to rcGetDirOffsetZ
-/// Gets the standard height (z-axis) offset for the specified direction.
-/// # Arguments
-/// - `direction`: The direction. [Limits: 0 <= value < 4]
-/// # Returns
-///
-/// The height offset to apply to the current cell position to move in the direction.
-fn dir_offset_z(direction: u8) -> i32 {
-    const OFFSET: [i32; 4] = [0, 1, 0, -1];
-    OFFSET[direction as usize & 0x03]
 }

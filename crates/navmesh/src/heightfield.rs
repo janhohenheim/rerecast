@@ -10,9 +10,9 @@ use crate::span::{Span, SpanKey, Spans};
 /// Build with [`HeightfieldBuilder`].
 pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
-    pub width: u32,
+    pub width: u16,
     /// The height of the heightfield along the z-axis in cell units
-    pub height: u32,
+    pub height: u16,
     /// The AABB of the heightfield
     pub aabb: Aabb3d,
     /// The size of each cell on the xz-plane
@@ -30,8 +30,8 @@ impl Heightfield {
     /// https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Source/RecastRasterization.cpp#L105
     #[inline]
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {
-        let column_index = insertion.x as u128 + insertion.z as u128 * self.width as u128;
-        if column_index >= self.spans.len() as u128 {
+        let column_index = self.column_index(insertion.x, insertion.z);
+        if column_index >= self.spans.len() {
             return Err(SpanInsertionError::ColumnIndexOutOfBounds {
                 x: insertion.x,
                 y: insertion.z,
@@ -101,7 +101,18 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_key_at(&self, x: u32, z: u32) -> Option<SpanKey> {
+    pub(crate) fn column_index(&self, x: u16, z: u16) -> usize {
+        x as usize + z as usize * self.width as usize
+    }
+
+    #[inline]
+    pub(crate) fn contains(&self, x: i32, z: i32) -> bool {
+        // Jan: Interesting that `width` and `height` are not included in the bounds check, isn't it?
+        x >= 0 && x < self.width as i32 && z >= 0 && z < self.height as i32
+    }
+
+    #[inline]
+    pub(crate) fn span_key_at(&self, x: u16, z: u16) -> Option<SpanKey> {
         let column_index = x as u128 + z as u128 * self.width as u128;
         let Some(span_key) = self.spans.get(column_index as usize) else {
             // Invalid coordinates
@@ -111,7 +122,7 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_at(&self, x: u32, z: u32) -> Option<&Span> {
+    pub(crate) fn span_at(&self, x: u16, z: u16) -> Option<&Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
@@ -120,7 +131,7 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_at_mut(&mut self, x: u32, z: u32) -> Option<&mut Span> {
+    pub(crate) fn span_at_mut(&mut self, x: u16, z: u16) -> Option<&mut Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
@@ -164,8 +175,8 @@ impl HeightfieldBuilder {
         }
         let column_count = column_count as usize;
         Ok(Heightfield {
-            width: width as u32,
-            height: height as u32,
+            width: width as u16,
+            height: height as u16,
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
@@ -195,17 +206,17 @@ pub enum SpanInsertionError {
     #[error("column index out of bounds: x={x}, y={y}")]
     ColumnIndexOutOfBounds {
         /// The x-coordinate of the span
-        x: u32,
+        x: u16,
         /// The z-coordinate of the span
-        y: u32,
+        y: u16,
     },
 }
 
 pub(crate) struct SpanInsertion {
     /// The x-coordinate of the span
-    pub(crate) x: u32,
+    pub(crate) x: u16,
     /// The z-coordinate of the span
-    pub(crate) z: u32,
+    pub(crate) z: u16,
     /// Maximum difference between the ceilings of two spans to merge area type IDs
     pub(crate) flag_merge_threshold: u16,
     /// The span to insert
