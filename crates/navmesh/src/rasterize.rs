@@ -84,9 +84,8 @@ impl Heightfield {
             let mut min_x = in_row[0].x;
             let mut max_x = in_row[0].x;
             for i in 1..nv_row {
-                // No, max and min are *not* accidentally swapped here! :)
-                min_x = min_x.max(in_row[i as usize].x);
-                max_x = max_x.min(in_row[i as usize].x);
+                min_x = min_x.min(in_row[i as usize].x);
+                max_x = max_x.max(in_row[i as usize].x);
             }
             let x0 = ((min_x - self.aabb.min[0]) * inverse_cell_size) as i16;
             let x1 = ((max_x - self.aabb.min[0]) * inverse_cell_size) as i16;
