@@ -8,10 +8,12 @@ use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
 #[test]
-fn initial_heightfield() {
+fn heightfield() {
     let geometry = load_json::<CppGeometry>("geometry");
     let mut trimesh = geometry.to_trimesh();
     let walkable_slope = 45.0_f32.to_radians();
+    let walkable_height = 10;
+    let walkable_climb = 4;
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
@@ -24,20 +26,11 @@ fn initial_heightfield() {
     .build()
     .unwrap();
 
-    let walkable_climb = 4;
-    for (i, triangle) in trimesh.indices.iter().enumerate() {
-        let triangle = [
-            trimesh.vertices[triangle[0] as usize],
-            trimesh.vertices[triangle[1] as usize],
-            trimesh.vertices[triangle[2] as usize],
-        ];
-        let area_type = trimesh.area_types[i];
-        heightfield
-            .rasterize_triangle(triangle, area_type, walkable_climb)
-            .unwrap();
-    }
+    heightfield
+        .populate_from_trimesh(trimesh, walkable_height, walkable_climb)
+        .unwrap();
 
-    let cpp_heightfield = load_json::<CppHeightfield>("heightfield_initial");
+    let cpp_heightfield = load_json::<CppHeightfield>("heightfield");
 
     println!("heightfield:");
     println!("\twidth: {}", heightfield.width);

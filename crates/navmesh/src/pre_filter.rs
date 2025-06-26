@@ -5,7 +5,7 @@ use crate::{
 };
 
 impl Heightfield {
-    pub(crate) fn filter_low_hanging_walkable_obstacles(&mut self, walkable_climb: u16) {
+    pub fn filter_low_hanging_walkable_obstacles(&mut self, walkable_climb: u16) {
         for z in 0..self.height {
             for x in 0..self.width {
                 let mut previous_span: Option<Span> = None;
@@ -40,7 +40,7 @@ impl Heightfield {
         }
     }
 
-    pub(crate) fn filter_ledge_spans(&mut self, walkable_height: u16, walkable_climb: u16) {
+    pub fn filter_ledge_spans(&mut self, walkable_height: u16, walkable_climb: u16) {
         // Mark spans that are adjacent to a ledge as unwalkable..
         for z in 0..self.height {
             for x in 0..self.width {
@@ -162,7 +162,7 @@ impl Heightfield {
     /// Taken 1:1 from the original implementation.
     const MAX_HEIGHTFIELD_HEIGHT: u16 = u16::MAX;
 
-    pub(crate) fn filter_walkable_low_height_spans(&mut self, walkable_height: u16) {
+    pub fn filter_walkable_low_height_spans(&mut self, walkable_height: u16) {
         // Remove walkable flag from spans which do not have enough
         // space above them for the agent to stand there.
         for z in 0..self.height {
