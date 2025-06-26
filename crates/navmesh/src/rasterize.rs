@@ -117,7 +117,7 @@ impl Heightfield {
                 }
 
                 // Calculate min and max of the span.
-                let mut span_min = p1[1].y;
+                let mut span_min = p1[0].y;
                 let mut span_max = span_min;
                 for i in 1..nv {
                     let y = p1[i as usize].y;
@@ -136,10 +136,12 @@ impl Heightfield {
                 span_max = span_max.min(by);
 
                 // Snap the span to the heightfield height grid.
-                let span_min_cell_index =
-                    ((span_min * inverse_cell_height).floor() as u16).clamp(0, Span::MAX_HEIGHT);
-                let span_max_cell_index = ((span_max * inverse_cell_height).ceil() as u16)
-                    .clamp(span_min_cell_index + 1, Span::MAX_HEIGHT);
+                let span_min_cell_index = ((span_min * inverse_cell_height).floor() as i32)
+                    .clamp(0, Span::MAX_HEIGHT as i32)
+                    as u16;
+                let span_max_cell_index = ((span_max * inverse_cell_height).ceil() as i32)
+                    .clamp(span_min_cell_index as i32 + 1, Span::MAX_HEIGHT as i32)
+                    as u16;
 
                 self.add_span(SpanInsertion {
                     x: x as u16,
@@ -229,6 +231,7 @@ fn divide_poly(
                 out_verts_1[poly_1_vert] = in_verts[in_vert_a];
                 poly_1_vert += 1;
                 if in_vert_axis_delta[in_vert_a] != 0.0 {
+                    in_vert_b = in_vert_a;
                     continue;
                 }
             }
