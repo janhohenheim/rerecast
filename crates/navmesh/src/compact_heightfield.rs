@@ -91,7 +91,7 @@ impl CompactHeightfield {
                     continue;
                 };
                 let mut span_key_iter = Some(span_key);
-                let column_index = x as usize + z as usize * heightfield.width as usize;
+                let column_index = heightfield.column_index(x, z);
 
                 let cell = &mut compact_heightfield.cells[column_index];
                 cell.set_index(cell_index as u32);
@@ -109,9 +109,9 @@ impl CompactHeightfield {
                         .map(|span| heightfield.span(span).min())
                         .unwrap_or(Self::MAX_HEIGHT);
                     compact_heightfield.spans[cell_index].y = bot.clamp(0, Self::MAX_HEIGHT);
-                    compact_heightfield.spans[cell_index].set_height(top.saturating_sub(bot) as u8);
+                    let height = (top.saturating_sub(bot)).min(u8::MAX.into()) as u8;
+                    compact_heightfield.spans[cell_index].set_height(height);
                     compact_heightfield.areas[cell_index] = span.area();
-                    compact_heightfield.dist[cell_index] = 0;
                     cell_index += 1;
                     cell.inc_count();
                 }
@@ -119,9 +119,8 @@ impl CompactHeightfield {
         }
 
         // Find neighbour connections
-        // Original is RC_NOT_CONNECTED - 1
-        const MAX_LAYERS: u8 = u8::MAX - 1;
-        let mut max_layer_index = 0_i32;
+        const MAX_LAYERS: u8 = CompactSpan::NOT_CONNECTED - 1;
+        let mut max_layer_index = 0_u32;
         for z in 0..heightfield.height {
             for x in 0..heightfield.width {
                 let column_index = x as usize + z as usize * heightfield.width as usize;
@@ -163,7 +162,7 @@ impl CompactHeightfield {
                             // Mark direction as walkable.
                             let layer_index = k as i32 - neighbor_cell.index() as i32;
                             if layer_index < 0 || layer_index >= MAX_LAYERS as i32 {
-                                max_layer_index = max_layer_index.max(layer_index as i32);
+                                max_layer_index = max_layer_index.max(layer_index as u32);
                                 continue;
                             }
                             let layer_index = layer_index as u8;
@@ -174,10 +173,10 @@ impl CompactHeightfield {
                 }
             }
         }
-        if max_layer_index > MAX_LAYERS as i32 {
+        if max_layer_index > MAX_LAYERS as u32 {
             return Err(CompactHeightfieldError::TooManyLayers {
                 max_layer_index: MAX_LAYERS,
-                layer_index: max_layer_index as u8,
+                layer_index: max_layer_index,
             });
         }
         Ok(compact_heightfield)
@@ -234,6 +233,6 @@ pub enum CompactHeightfieldError {
         /// The maximum layer index.
         max_layer_index: u8,
         /// The layer index that caused the error.
-        layer_index: u8,
+        layer_index: u32,
     },
 }

@@ -14,7 +14,7 @@ pub struct CompactSpan {
 }
 
 impl CompactSpan {
-    const NOT_CONNECTED: u8 = 0x3f;
+    pub(crate) const NOT_CONNECTED: u8 = 0x3f;
 
     /// Sets the neighbor connection data for the given direction.
     /// `None` if the neighbor is not connected.

@@ -291,7 +291,12 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         .zip(cpp_heightfield.areas.iter())
         .enumerate()
     {
-        assert_eq!(*area, AreaType(*cpp_area), "compact_heightfield area {i}");
+        let cpp_area = if *cpp_area == 63 {
+            AreaType::DEFAULT_WALKABLE
+        } else {
+            AreaType::from(*cpp_area)
+        };
+        assert_eq!(*area, cpp_area, "compact_heightfield area {i}");
     }
 }
 
