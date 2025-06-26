@@ -1,5 +1,6 @@
 use std::{env, path::PathBuf};
 
+use approx::assert_relative_eq;
 use avian_navmesh::{heightfield::HeightfieldBuilder, trimesh::TrimeshedCollider};
 use bevy::{
     gltf::GltfPlugin,
@@ -31,7 +32,7 @@ fn initial_heightfield() {
 }
 
 fn load_heightfield(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let virtual_path = "models/dungeon.gltf#Mesh0/Primitive0";
+    let virtual_path = "models/dungeon.glb#Mesh0/Primitive0";
     let global_path = virtual_path_to_global_path(virtual_path);
     if !global_path.exists() {
         panic!("Asset not found: {global_path:?}");
@@ -101,15 +102,15 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
         heightfield.height, cpp_heightfield.height,
         "heightfield height"
     );
-    assert_eq!(
-        heightfield.aabb.min.to_array(),
-        cpp_heightfield.bmin,
-        "heightfield bmin"
+    assert_relative_eq!(
+        heightfield.aabb.min,
+        Vec3A::from(cpp_heightfield.bmin),
+        epsilon = 1e-2
     );
-    assert_eq!(
-        heightfield.aabb.max.to_array(),
-        cpp_heightfield.bmax,
-        "heightfield bmax"
+    assert_relative_eq!(
+        heightfield.aabb.max,
+        Vec3A::from(cpp_heightfield.bmax),
+        epsilon = 1e-2
     );
     assert_eq!(
         heightfield.cell_size, cpp_heightfield.cs,

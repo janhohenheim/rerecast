@@ -26,9 +26,10 @@ wgpu-types = { workspace = true, features = ["serde"], optional = true }
 
 [dev-dependencies]
 bevy = { workspace = true, features = ["bevy_gltf", "bevy_asset", "bevy_pbr"] }
+bevy_math = { workspace = true, features = ["approx"] }
+approx = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-
 
 [features]
 default = ["editor_integration"]

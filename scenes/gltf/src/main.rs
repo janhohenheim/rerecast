@@ -19,7 +19,7 @@ fn main() -> AppExit {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Name::new("Level"),
-        SceneRoot(asset_server.load("models/dungeon.gltf#Scene0")),
+        SceneRoot(asset_server.load("models/dungeon.glb#Scene0")),
         RigidBody::Static,
         ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));

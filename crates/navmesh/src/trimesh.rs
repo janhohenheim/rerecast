@@ -57,7 +57,6 @@ impl TrimeshedCollider {
         let (min, max) = iter.fold((*first, *first), |(prev_min, prev_max), point| {
             (point.min(prev_min), point.max(prev_max))
         });
-        let 
 
         Some(Aabb3d { min, max })
     }
