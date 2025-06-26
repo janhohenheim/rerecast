@@ -62,7 +62,11 @@ fn handle_asset_event(mut events: EventReader<AssetEvent<Mesh>>, mut commands: C
     }
 }
 
-fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>) {
+fn compare_heightfields(
+    trigger: Trigger<MeshLoaded>,
+    meshes: Res<Assets<Mesh>>,
+    mut writer: EventWriter<AppExit>,
+) {
     let mesh = meshes.get(trigger.event().0).unwrap();
     let trimesh = TrimeshedCollider::from_mesh(mesh).unwrap();
 
@@ -79,20 +83,20 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
 
     let cpp_heightfield = load_json::<CppHeightfield>("heightfield_initial");
 
-    info!("heightfield:");
-    info!("\twidth: {}", heightfield.width);
-    info!("\theight: {}", heightfield.height);
-    info!("\taabb: {:?}", heightfield.aabb);
-    info!("\tcell size: {}", heightfield.cell_size);
-    info!("\tcell height: {}", heightfield.cell_height);
+    println!("heightfield:");
+    println!("\twidth: {}", heightfield.width);
+    println!("\theight: {}", heightfield.height);
+    println!("\taabb: {:?}", heightfield.aabb);
+    println!("\tcell size: {}", heightfield.cell_size);
+    println!("\tcell height: {}", heightfield.cell_height);
 
-    info!("C++ heightfield:");
-    info!("\twidth: {}", cpp_heightfield.width);
-    info!("\theight: {}", cpp_heightfield.height);
-    info!("\tbmin: {:?}", cpp_heightfield.bmin);
-    info!("\tbmax: {:?}", cpp_heightfield.bmax);
-    info!("\tcs: {}", cpp_heightfield.cs);
-    info!("\tch: {}", cpp_heightfield.ch);
+    println!("C++ heightfield:");
+    println!("\twidth: {}", cpp_heightfield.width);
+    println!("\theight: {}", cpp_heightfield.height);
+    println!("\tbmin: {:?}", cpp_heightfield.bmin);
+    println!("\tbmax: {:?}", cpp_heightfield.bmax);
+    println!("\tcs: {}", cpp_heightfield.cs);
+    println!("\tch: {}", cpp_heightfield.ch);
 
     assert_eq!(
         heightfield.width, cpp_heightfield.width,
@@ -105,12 +109,12 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
     assert_relative_eq!(
         heightfield.aabb.min,
         Vec3A::from(cpp_heightfield.bmin),
-        epsilon = 1e-2
+        epsilon = 5e-3
     );
     assert_relative_eq!(
         heightfield.aabb.max,
         Vec3A::from(cpp_heightfield.bmax),
-        epsilon = 1e-2
+        epsilon = 5e-3
     );
     assert_eq!(
         heightfield.cell_size, cpp_heightfield.cs,
@@ -146,6 +150,7 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
             assert!(span.is_none());
         }
     }
+    writer.write(AppExit::Success);
 }
 
 #[derive(Debug, Deserialize, Clone)]
