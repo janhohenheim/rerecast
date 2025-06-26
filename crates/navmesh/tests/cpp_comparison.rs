@@ -97,8 +97,8 @@ fn initial_heightfield() {
 
     for x in 0..heightfield.width {
         for z in 0..heightfield.height {
-            let column_index = x + z * heightfield.width;
-            let cpp_span = cpp_heightfield.spans[column_index as usize].clone();
+            let column_index = x as usize + z as usize * heightfield.width as usize;
+            let cpp_span = cpp_heightfield.spans[column_index].clone();
             let span_key = heightfield.span_key_at(x, z);
             if let EmptyOption::Some(mut cpp_span) = cpp_span {
                 let mut layer = 0;
@@ -122,6 +122,7 @@ fn initial_heightfield() {
                         cpp_span = *next;
                     } else {
                         assert!(span.next().is_none());
+                        break;
                     }
                     layer += 1;
                 }
