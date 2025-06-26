@@ -1,7 +1,4 @@
-use avian_navmesh::{
-    heightfield::{HeightfieldBuilder, HeightfieldBuilderError},
-    trimesh::TrimeshedCollider,
-};
+use avian_navmesh::{HeightfieldBuilder, HeightfieldBuilderError, TrimeshedCollider};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use thiserror::Error;

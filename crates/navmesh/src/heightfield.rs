@@ -111,6 +111,8 @@ impl Heightfield {
         x >= 0 && x < self.width as i32 && z >= 0 && z < self.height as i32
     }
 
+    /// Returns the key of the lowest span in the column at the given coordinates.
+    /// `None` if either the index is out of bounds or there is no span in the column.
     #[inline]
     pub fn span_key_at(&self, x: u16, z: u16) -> Option<SpanKey> {
         let column_index = self.column_index(x, z);
@@ -121,6 +123,8 @@ impl Heightfield {
         *span_key
     }
 
+    /// Returns the span at the given coordinates.
+    /// `None` if either the index is out of bounds or there is no span in the column.
     #[inline]
     pub fn span_at(&self, x: u16, z: u16) -> Option<&Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
@@ -130,6 +134,8 @@ impl Heightfield {
         Some(self.span(span_key))
     }
 
+    /// Returns a mutable reference to the span at the given coordinates.
+    /// `None` if either the index is out of bounds or there is no span in the column.
     #[inline]
     pub fn span_at_mut(&mut self, x: u16, z: u16) -> Option<&mut Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
@@ -139,11 +145,17 @@ impl Heightfield {
         Some(self.span_mut(span_key))
     }
 
+    /// Returns a reference to the span with the given key.
+    /// # Panics
+    /// Panics if the key is not found.
     #[inline]
     pub fn span(&self, key: SpanKey) -> &Span {
         &self.allocated_spans[key]
     }
 
+    /// Returns a mutable reference to the span with the given key.
+    /// # Panics
+    /// Panics if the key is not found.
     #[inline]
     pub fn span_mut(&mut self, key: SpanKey) -> &mut Span {
         &mut self.allocated_spans[key]
@@ -348,10 +360,10 @@ mod tests {
             .unwrap();
 
         let span = heightfield.span_at(1, 3).unwrap();
-        assert_eq_without_next(&span, &span_low);
+        assert_eq_without_next(span, &span_low);
         let next_span = span.next().unwrap();
         let next_span = heightfield.span(next_span);
-        assert_eq_without_next(&next_span, &span_high);
+        assert_eq_without_next(next_span, &span_high);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);
@@ -381,10 +393,10 @@ mod tests {
             .unwrap();
 
         let span = heightfield.span_at(1, 3).unwrap();
-        assert_eq_without_next(&span, &span_low);
+        assert_eq_without_next(span, &span_low);
         let next_span = span.next().unwrap();
         let next_span = heightfield.span(next_span);
-        assert_eq_without_next(&next_span, &span_high);
+        assert_eq_without_next(next_span, &span_high);
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);

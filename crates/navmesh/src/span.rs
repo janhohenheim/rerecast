@@ -73,41 +73,49 @@ pub struct Span {
 impl Span {
     pub(crate) const MAX_HEIGHT: u16 = u16::MAX;
 
+    /// Returns the height of the floor.
     #[inline]
     pub fn min(&self) -> u16 {
         self.min
     }
 
+    /// Sets the height of the floor.
     #[inline]
     pub fn set_min(&mut self, min: u16) {
         self.min = min;
     }
 
+    /// Returns the height of the ceiling.
     #[inline]
     pub fn max(&self) -> u16 {
         self.max
     }
 
+    /// Sets the height of the ceiling.
     #[inline]
     pub fn set_max(&mut self, max: u16) {
         self.max = max;
     }
 
+    /// Returns the area type of the span.
     #[inline]
     pub fn area(&self) -> AreaType {
         self.area
     }
 
+    /// Sets the area type of the span.
     #[inline]
     pub fn set_area(&mut self, area: impl Into<AreaType>) {
         self.area = area.into();
     }
 
+    /// Returns the key of the next-higher span in the column.
     #[inline]
     pub fn next(&self) -> Option<SpanKey> {
         self.next
     }
 
+    /// Sets the key of the next-higher span in the column.
     #[inline]
     pub fn set_next(&mut self, next: impl Into<Option<SpanKey>>) {
         self.next = next.into();
@@ -142,6 +150,7 @@ impl AreaType {
     /// Other area types that are not [`AreaType::NOT_WALKABLE`] are also walkable.
     pub const DEFAULT_WALKABLE: Self = Self(u8::MAX);
 
+    /// Returns whether the area type is walkable.
     #[inline]
     pub fn is_walkable(&self) -> bool {
         self != &Self::NOT_WALKABLE

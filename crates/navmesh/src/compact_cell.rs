@@ -10,22 +10,27 @@ pub struct CompactCell {
 }
 
 impl CompactCell {
+    /// Returns the index of the first span in the column.
     pub fn index(&self) -> u32 {
         self.index
     }
 
+    /// Returns the number of spans in the column.
     pub fn count(&self) -> u8 {
         self.count
     }
 
+    /// Sets the index of the first span in the column.
     pub fn set_index(&mut self, index: u32) {
         self.index = index;
     }
 
+    /// Sets the number of spans in the column.
     pub fn set_count(&mut self, count: u8) {
         self.count = count;
     }
 
+    /// Increments the number of spans in the column by 1.
     pub fn inc_count(&mut self) {
         self.count += 1;
     }

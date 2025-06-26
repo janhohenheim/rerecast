@@ -20,6 +20,8 @@ pub struct CompactSpan {
 impl CompactSpan {
     const NOT_CONNECTED: u8 = 0x3f;
 
+    /// Sets the neighbor connection data for the given direction.
+    /// `None` if the neighbor is not connected.
     pub fn set_con(&mut self, direction: u8, neighbor: impl Into<Option<u8>>) {
         let shift = (direction as u32) * 6;
         let con = self.data;
@@ -28,6 +30,8 @@ impl CompactSpan {
         self.data = (con & !(0x3f << shift)) | (value << shift);
     }
 
+    /// Returns the neighbor connection data for the given direction.
+    /// `None` if the neighbor is not connected.
     pub fn con(&self, direction: u8) -> Option<u8> {
         let shift = (direction as u32) * 6;
         let value = ((self.data >> shift) & Self::NOT_CONNECTED as u32) as u8;
@@ -38,10 +42,12 @@ impl CompactSpan {
         }
     }
 
+    /// Returns the height of the span.
     pub fn height(&self) -> u8 {
         (self.data >> 24) as u8
     }
 
+    /// Sets the height of the span.
     pub fn set_height(&mut self, height: u8) {
         self.data = (self.data & 0x00FF_FFFF) | ((height as u32) << 24);
     }
@@ -50,15 +56,6 @@ impl CompactSpan {
 slotmap::new_key_type! {
     /// A key for a span in [`CompactSpans`](crate::compact_span::CompactSpans).
     pub struct CompactSpanKey;
-}
-
-#[derive(Deref, DerefMut)]
-pub struct CompactSpans(SlotMap<CompactSpanKey, CompactSpan>);
-
-impl CompactSpans {
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(SlotMap::with_capacity_and_key(capacity))
-    }
 }
 
 #[cfg(test)]

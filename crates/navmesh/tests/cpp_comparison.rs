@@ -3,11 +3,7 @@
 use std::env;
 
 use avian_navmesh::{
-    compact_heightfield::CompactHeightfield,
-    heightfield::{Heightfield, HeightfieldBuilder},
-    region::Region,
-    span::AreaType,
-    trimesh::TrimeshedCollider,
+    AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TrimeshedCollider,
 };
 use bevy::prelude::*;
 use serde::{Deserialize, de::DeserializeOwned};

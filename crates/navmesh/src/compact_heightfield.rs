@@ -69,7 +69,7 @@ impl CompactHeightfield {
             border_size: 0,
             aabb: heightfield.aabb,
             max_distance: 0,
-            max_region: Region::None,
+            max_region: Region::NONE,
             cell_size: heightfield.cell_size,
             cell_height: heightfield.cell_height,
             cells: vec![

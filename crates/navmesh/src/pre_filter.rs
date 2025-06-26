@@ -5,6 +5,7 @@ use crate::{
 };
 
 impl Heightfield {
+    /// Adds the walkable flag to spans which are adjacent to a walkable span and the height difference is small enough for the agent to walk over.
     pub fn filter_low_hanging_walkable_obstacles(&mut self, walkable_climb: u16) {
         for z in 0..self.height {
             for x in 0..self.width {
@@ -40,6 +41,7 @@ impl Heightfield {
         }
     }
 
+    /// Removes the walkable flag from spans which are adjacent to a ledge.
     pub fn filter_ledge_spans(&mut self, walkable_height: u16, walkable_climb: u16) {
         // Mark spans that are adjacent to a ledge as unwalkable..
         for z in 0..self.height {
@@ -162,6 +164,7 @@ impl Heightfield {
     /// Taken 1:1 from the original implementation.
     const MAX_HEIGHTFIELD_HEIGHT: u16 = u16::MAX;
 
+    /// Removes the walkable flag from spans which do not have enough space above them for the agent to stand there.
     pub fn filter_walkable_low_height_spans(&mut self, walkable_height: u16) {
         // Remove walkable flag from spans which do not have enough
         // space above them for the agent to stand there.

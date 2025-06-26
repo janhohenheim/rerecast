@@ -12,6 +12,7 @@ use crate::{
 };
 
 impl Heightfield {
+    /// Rasterizes a triangle into a [`Heightfield`].
     pub fn rasterize_triangle(
         &mut self,
         triangle: [Vec3A; 3],
