@@ -14,7 +14,7 @@ pub struct CompactSpan {
     pub region: Region,
     /// 24 bits: packed neighbor connection data
     /// 8 bits: the height of the span
-    data: u32,
+    pub data: u32,
 }
 
 impl CompactSpan {

@@ -20,6 +20,8 @@ pub struct CompactHeightfield {
     pub walkable_height: u16,
     /// The walkable climb used during the build of the field.
     pub walkable_climb: u16,
+    /// The AABB border size used during the build of the field.
+    pub border_size: u16,
     /// The maximum distance value of any span within the field.
     pub max_distance: u16,
     /// The maximum region id of any span within the field.
@@ -64,6 +66,7 @@ impl CompactHeightfield {
             height: heightfield.height,
             walkable_height,
             walkable_climb,
+            border_size: 0,
             aabb: heightfield.aabb,
             max_distance: 0,
             max_region: Region::None,

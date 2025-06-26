@@ -2,7 +2,13 @@
 
 use std::env;
 
-use avian_navmesh::{heightfield::HeightfieldBuilder, span::AreaType, trimesh::TrimeshedCollider};
+use avian_navmesh::{
+    compact_heightfield::CompactHeightfield,
+    heightfield::{Heightfield, HeightfieldBuilder},
+    region::Region,
+    span::AreaType,
+    trimesh::TrimeshedCollider,
+};
 use bevy::prelude::*;
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -30,22 +36,41 @@ fn heightfield() {
         .populate_from_trimesh(trimesh, walkable_height, walkable_climb)
         .unwrap();
 
-    let cpp_heightfield = load_json::<CppHeightfield>("heightfield");
+    assert_eq_heightfield(&heightfield, "heightfield");
+}
 
-    println!("heightfield:");
-    println!("\twidth: {}", heightfield.width);
-    println!("\theight: {}", heightfield.height);
-    println!("\taabb: {:?}", heightfield.aabb);
-    println!("\tcell size: {}", heightfield.cell_size);
-    println!("\tcell height: {}", heightfield.cell_height);
+#[test]
+fn compact_heightfield_initial() {
+    let geometry = load_json::<CppGeometry>("geometry");
+    let mut trimesh = geometry.to_trimesh();
+    let walkable_slope = 45.0_f32.to_radians();
+    let walkable_height = 10;
+    let walkable_climb = 4;
+    trimesh.mark_walkable_triangles(walkable_slope);
 
-    println!("C++ heightfield:");
-    println!("\twidth: {}", cpp_heightfield.width);
-    println!("\theight: {}", cpp_heightfield.height);
-    println!("\tbmin: {:?}", cpp_heightfield.bmin);
-    println!("\tbmax: {:?}", cpp_heightfield.bmax);
-    println!("\tcs: {}", cpp_heightfield.cs);
-    println!("\tch: {}", cpp_heightfield.ch);
+    let aabb = trimesh.compute_aabb().unwrap();
+
+    let mut heightfield = HeightfieldBuilder {
+        aabb,
+        cell_size: 0.3,
+        cell_height: 0.2,
+    }
+    .build()
+    .unwrap();
+
+    heightfield
+        .populate_from_trimesh(trimesh, walkable_height, walkable_climb)
+        .unwrap();
+
+    let compact_heightfield =
+        CompactHeightfield::from_heightfield(heightfield, walkable_height, walkable_climb).unwrap();
+
+    assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_initial");
+}
+
+#[track_caller]
+fn assert_eq_heightfield(heightfield: &Heightfield, reference_name: &str) {
+    let cpp_heightfield = load_json::<CppHeightfield>(reference_name);
 
     assert_eq!(
         heightfield.width, cpp_heightfield.width,
@@ -129,6 +154,141 @@ fn heightfield() {
     }
 }
 
+#[track_caller]
+fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, reference_name: &str) {
+    let cpp_heightfield = load_json::<CppCompactHeightfield>(reference_name);
+
+    assert_eq!(
+        compact_heightfield.width, cpp_heightfield.width,
+        "compact_heightfield width"
+    );
+    assert_eq!(
+        compact_heightfield.height, cpp_heightfield.height,
+        "compact_heightfield height"
+    );
+    assert_eq!(
+        compact_heightfield.walkable_height, cpp_heightfield.walkable_height,
+        "compact_heightfield walkable height"
+    );
+    assert_eq!(
+        compact_heightfield.walkable_climb, cpp_heightfield.walkable_climb,
+        "compact_heightfield walkable climb"
+    );
+    assert_eq!(
+        compact_heightfield.border_size, cpp_heightfield.border_size,
+        "compact_heightfield border size"
+    );
+    assert_eq!(
+        compact_heightfield.max_region,
+        Region(cpp_heightfield.max_region),
+        "compact_heightfield max region"
+    );
+    assert_eq!(
+        compact_heightfield.max_distance, cpp_heightfield.max_distance,
+        "compact_heightfield max distance"
+    );
+    assert_eq!(
+        compact_heightfield.aabb.min,
+        Vec3A::from(cpp_heightfield.bmin),
+        "compact_heightfield aabb min"
+    );
+    assert_eq!(
+        compact_heightfield.aabb.max,
+        Vec3A::from(cpp_heightfield.bmax),
+        "compact_heightfield aabb max"
+    );
+    assert_eq!(
+        compact_heightfield.cell_size, cpp_heightfield.cs,
+        "compact_heightfield cell size"
+    );
+    assert_eq!(
+        compact_heightfield.cell_height, cpp_heightfield.ch,
+        "compact_heightfield cell height"
+    );
+    assert_eq!(
+        compact_heightfield.cells.len(),
+        cpp_heightfield.cells.len(),
+        "compact_heightfield cells length"
+    );
+    assert_eq!(
+        compact_heightfield.spans.len(),
+        cpp_heightfield.spans.len(),
+        "compact_heightfield spans length"
+    );
+    assert_eq!(
+        compact_heightfield.dist.len(),
+        cpp_heightfield.dist.len(),
+        "compact_heightfield dist length"
+    );
+    assert_eq!(
+        compact_heightfield.areas.len(),
+        cpp_heightfield.areas.len(),
+        "compact_heightfield areas length"
+    );
+
+    assert_eq!(
+        compact_heightfield.cells.len(),
+        compact_heightfield.width as usize * compact_heightfield.height as usize
+    );
+    assert_eq!(
+        cpp_heightfield.cells.len(),
+        cpp_heightfield.width as usize * cpp_heightfield.height as usize
+    );
+
+    for (cell, cpp_cell) in compact_heightfield
+        .cells
+        .iter()
+        .zip(cpp_heightfield.cells.iter())
+    {
+        assert_eq!(
+            cell.index(),
+            cpp_cell.index,
+            "compact_heightfield cell index"
+        );
+        assert_eq!(
+            cell.count(),
+            cpp_cell.count,
+            "compact_heightfield cell count"
+        );
+    }
+
+    for (span, cpp_span) in compact_heightfield
+        .spans
+        .iter()
+        .zip(cpp_heightfield.spans.iter())
+    {
+        assert_eq!(span.y, cpp_span.y, "compact_heightfield span y");
+        assert_eq!(
+            span.region,
+            Region(cpp_span.reg),
+            "compact_heightfield span reg"
+        );
+        let first_24_bits = span.data & 0x00FF_FFFF;
+        assert_eq!(first_24_bits, cpp_span.con, "compact_heightfield span con");
+        assert_eq!(
+            span.height(),
+            cpp_span.height,
+            "compact_heightfield span height"
+        );
+    }
+
+    for (dist, cpp_dist) in compact_heightfield
+        .dist
+        .iter()
+        .zip(cpp_heightfield.dist.iter())
+    {
+        assert_eq!(*dist, *cpp_dist, "compact_heightfield dist");
+    }
+
+    for (area, cpp_area) in compact_heightfield
+        .areas
+        .iter()
+        .zip(cpp_heightfield.areas.iter())
+    {
+        assert_eq!(*area, AreaType(*cpp_area), "compact_heightfield area");
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct CppHeightfield {
     width: u16,
@@ -146,6 +306,39 @@ struct CppSpan {
     max: u16,
     area: u8,
     next: EmptyOption<Box<CppSpan>>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppCompactHeightfield {
+    width: u16,
+    height: u16,
+    walkable_height: u16,
+    walkable_climb: u16,
+    border_size: u16,
+    max_distance: u16,
+    max_region: u16,
+    bmin: [f32; 3],
+    bmax: [f32; 3],
+    cs: f32,
+    ch: f32,
+    cells: Vec<CppCompactCell>,
+    spans: Vec<CppCompactSpan>,
+    dist: Vec<u16>,
+    areas: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppCompactCell {
+    index: u32,
+    count: u8,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppCompactSpan {
+    y: u16,
+    reg: u16,
+    con: u32,
+    height: u8,
 }
 
 #[derive(Debug, Deserialize)]
