@@ -1,11 +1,7 @@
-use bevy::prelude::*;
-use slotmap::SlotMap;
+use crate::region::Region;
 
-use crate::{
-    region::Region,
-    span::{AreaType, SpanKey},
-};
-
+/// A span in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
+/// Packed for memory efficiency.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CompactSpan {
     /// The lower extent of the span. (Measured from the heightfield's base.)

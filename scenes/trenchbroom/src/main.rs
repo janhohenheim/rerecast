@@ -1,3 +1,5 @@
+//! A test scene that loads a TrenchBroom map.
+
 use avian_navmesh::NavMeshPlugin;
 use avian3d::prelude::*;
 use bevy::{
@@ -24,7 +26,7 @@ fn main() -> AppExit {
 #[derive(SolidClass, Component, Reflect)]
 #[reflect(QuakeClass, Component)]
 #[spawn_hooks(SpawnHooks::new().smooth_by_default_angle().convex_collider())]
-pub struct Worldspawn;
+struct Worldspawn;
 
 fn write_trenchbroom_config(server: Res<TrenchBroomServer>, type_registry: Res<AppTypeRegistry>) {
     if let Err(err) = server

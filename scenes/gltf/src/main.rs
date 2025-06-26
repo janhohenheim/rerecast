@@ -1,3 +1,5 @@
+//! A test scene that loads a GLTF model as a level.
+
 use avian_navmesh::NavMeshPlugin;
 use avian3d::prelude::*;
 use bevy::{

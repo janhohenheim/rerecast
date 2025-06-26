@@ -1,3 +1,5 @@
+//! A test scene that only uses primitive shapes.
+
 use avian_navmesh::NavMeshPlugin;
 use avian3d::prelude::*;
 use bevy::{

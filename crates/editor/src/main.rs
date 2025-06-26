@@ -1,3 +1,5 @@
+//! The editor for the NavMesh plugin.
+
 use avian_navmesh::prelude::*;
 use avian3d::prelude::*;
 use bevy::{
