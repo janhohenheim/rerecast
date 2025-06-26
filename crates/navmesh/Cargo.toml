@@ -24,6 +24,11 @@ bincode = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 wgpu-types = { workspace = true, features = ["serde"], optional = true }
 
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+
 [features]
 default = ["editor_integration"]
 serialize = ["dep:serde", "avian3d/serialize"]
