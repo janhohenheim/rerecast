@@ -7,6 +7,7 @@ mod compact_heightfield;
 mod compact_span;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
+mod erosion;
 mod heightfield;
 mod main_api;
 pub(crate) mod math;

@@ -183,7 +183,7 @@ impl CompactHeightfield {
     }
 
     #[inline]
-    fn column_index(&self, x: u16, z: u16) -> usize {
+    pub(crate) fn column_index(&self, x: u16, z: u16) -> usize {
         x as usize + z as usize * self.width as usize
     }
 
