@@ -38,7 +38,6 @@ fn load_heightfield(asset_server: Res<AssetServer>, mut commands: Commands) {
     }
 
     let mesh = asset_server.load(virtual_path);
-    println!("{:?}", asset_server.get_load_state(mesh.id()));
     commands.spawn(Mesh3d(mesh));
 }
 
@@ -79,13 +78,52 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
 
     let cpp_heightfield = load_json::<CppHeightfield>("heightfield_initial");
 
-    assert_eq!(heightfield.width, cpp_heightfield.width);
-    assert_eq!(heightfield.height, cpp_heightfield.height);
-    assert_eq!(heightfield.aabb.min.to_array(), cpp_heightfield.bmin);
-    assert_eq!(heightfield.aabb.max.to_array(), cpp_heightfield.bmax);
-    assert_eq!(heightfield.cell_size, cpp_heightfield.cs);
-    assert_eq!(heightfield.cell_height, cpp_heightfield.ch);
-    assert_eq!(heightfield.spans.len(), cpp_heightfield.spans.len());
+    info!("heightfield:");
+    info!("\twidth: {}", heightfield.width);
+    info!("\theight: {}", heightfield.height);
+    info!("\taabb: {:?}", heightfield.aabb);
+    info!("\tcell size: {}", heightfield.cell_size);
+    info!("\tcell height: {}", heightfield.cell_height);
+
+    info!("C++ heightfield:");
+    info!("\twidth: {}", cpp_heightfield.width);
+    info!("\theight: {}", cpp_heightfield.height);
+    info!("\tbmin: {:?}", cpp_heightfield.bmin);
+    info!("\tbmax: {:?}", cpp_heightfield.bmax);
+    info!("\tcs: {}", cpp_heightfield.cs);
+    info!("\tch: {}", cpp_heightfield.ch);
+
+    assert_eq!(
+        heightfield.width, cpp_heightfield.width,
+        "heightfield width"
+    );
+    assert_eq!(
+        heightfield.height, cpp_heightfield.height,
+        "heightfield height"
+    );
+    assert_eq!(
+        heightfield.aabb.min.to_array(),
+        cpp_heightfield.bmin,
+        "heightfield bmin"
+    );
+    assert_eq!(
+        heightfield.aabb.max.to_array(),
+        cpp_heightfield.bmax,
+        "heightfield bmax"
+    );
+    assert_eq!(
+        heightfield.cell_size, cpp_heightfield.cs,
+        "heightfield cell size"
+    );
+    assert_eq!(
+        heightfield.cell_height, cpp_heightfield.ch,
+        "heightfield cell height"
+    );
+    assert_eq!(
+        heightfield.spans.len(),
+        cpp_heightfield.spans.len(),
+        "heightfield spans length"
+    );
     for (i, span) in heightfield.spans.iter().enumerate() {
         let cpp_span = cpp_heightfield.spans[i].clone();
         if let EmptyOption::Some(mut cpp_span) = cpp_span {
@@ -93,9 +131,9 @@ fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>)
 
             loop {
                 let span = heightfield.allocated_spans[span_key].clone();
-                assert_eq!(span.min(), cpp_span.min);
-                assert_eq!(span.max(), cpp_span.max);
-                assert_eq!(span.area().0, cpp_span.area);
+                assert_eq!(span.min(), cpp_span.min, "span min");
+                assert_eq!(span.max(), cpp_span.max, "span max");
+                assert_eq!(span.area().0, cpp_span.area, "span area");
                 if let EmptyOption::Some(next) = cpp_span.next {
                     span_key = span.next().unwrap();
                     cpp_span = *next;

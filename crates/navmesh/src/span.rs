@@ -14,7 +14,7 @@ slotmap::new_key_type! {
 }
 
 /// A collection of spans.
-#[derive(Deref, DerefMut)]
+#[derive(Deref, DerefMut, Debug, Clone)]
 pub struct Spans(SlotMap<SpanKey, Span>);
 
 impl Spans {
