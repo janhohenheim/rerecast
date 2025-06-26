@@ -33,6 +33,9 @@ bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }
 bitflags = "2.9.1"
 approx = "0.5"
 
+[workspace.lints.rust]
+missing_docs = "warn"
+
 [workspace.lints.clippy]
 # Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
 # request more than 7 arguments, which would undesirably trigger this lint.

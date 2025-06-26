@@ -137,13 +137,13 @@ impl From<u8> for AreaType {
 impl AreaType {
     /// The area type 0. Triangles with this area type are not walkable.
     /// All other area types are walkable.
-    pub(crate) const NOT_WALKABLE: Self = Self(0);
+    pub const NOT_WALKABLE: Self = Self(0);
     /// Default area type for walkable triangles. The highest possible area type.
     /// Other area types that are not [`AreaType::NOT_WALKABLE`] are also walkable.
-    pub(crate) const DEFAULT_WALKABLE: Self = Self(u8::MAX);
+    pub const DEFAULT_WALKABLE: Self = Self(u8::MAX);
 
     #[inline]
-    pub(crate) fn is_walkable(&self) -> bool {
+    pub fn is_walkable(&self) -> bool {
         self != &Self::NOT_WALKABLE
     }
 }

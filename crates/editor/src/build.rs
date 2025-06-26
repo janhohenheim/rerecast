@@ -21,6 +21,7 @@ pub(crate) struct BuildNavmeshConfig {
     pub(crate) cell_height: f32,
     pub(crate) walkable_height: u16,
     pub(crate) walkable_climb: u16,
+    pub(crate) walkable_slope: f32,
 }
 
 impl Default for BuildNavmeshConfig {
@@ -31,6 +32,7 @@ impl Default for BuildNavmeshConfig {
             cell_height: 1.0,
             walkable_height: 1,
             walkable_climb: 1,
+            walkable_slope: 45.0_f32.to_radians(),
         }
     }
 }
@@ -59,6 +61,7 @@ fn build_navmesh(
         cell_height: config.cell_height,
     }
     .build()?;
+    trimesh.mark_walkable_triangles(config.walkable_slope);
     heightfield.populate_from_trimesh(trimesh, config.walkable_height, config.walkable_climb)?;
     Ok(())
 }

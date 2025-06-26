@@ -1,74 +1,19 @@
-use std::{env, path::PathBuf};
+//! Compare the output of the C++ implementation with the Rust implementation.
+
+use std::env;
 
 use approx::assert_relative_eq;
-use avian_navmesh::{heightfield::HeightfieldBuilder, trimesh::TrimeshedCollider};
-use bevy::{
-    gltf::GltfPlugin,
-    log::LogPlugin,
-    pbr::PbrPlugin,
-    prelude::*,
-    render::{mesh::MeshPlugin, view::PreviousVisibleEntities},
-};
+use avian_navmesh::{heightfield::HeightfieldBuilder, span::AreaType, trimesh::TrimeshedCollider};
+use bevy::prelude::*;
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
 #[test]
 fn initial_heightfield() {
-    App::new()
-        .add_plugins((MinimalPlugins, AssetPlugin::default()))
-        .init_asset::<Shader>()
-        .init_asset::<Scene>()
-        .init_resource::<PreviousVisibleEntities>()
-        .add_plugins((
-            GltfPlugin::default(),
-            MeshPlugin,
-            PbrPlugin::default(),
-            LogPlugin::default(),
-        ))
-        .add_systems(Startup, load_heightfield)
-        .add_systems(Update, handle_asset_event)
-        .add_observer(compare_heightfields)
-        .run();
-}
-
-fn load_heightfield(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let virtual_path = "models/dungeon.glb#Mesh0/Primitive0";
-    let global_path = virtual_path_to_global_path(virtual_path);
-    if !global_path.exists() {
-        panic!("Asset not found: {global_path:?}");
-    }
-
-    let mesh = asset_server.load(virtual_path);
-    commands.spawn(Mesh3d(mesh));
-}
-
-#[derive(Event)]
-struct MeshLoaded(AssetId<Mesh>);
-
-fn handle_asset_event(mut events: EventReader<AssetEvent<Mesh>>, mut commands: Commands) {
-    for event in events.read() {
-        match event {
-            AssetEvent::LoadedWithDependencies { id } => {
-                commands.trigger(MeshLoaded(*id));
-            }
-            AssetEvent::Removed { id } => {
-                panic!("Failed to load asset {id:?}");
-            }
-            AssetEvent::Unused { id } => {
-                panic!("Failed to load asset {id:?}");
-            }
-            _ => {}
-        }
-    }
-}
-
-fn compare_heightfields(
-    trigger: Trigger<MeshLoaded>,
-    meshes: Res<Assets<Mesh>>,
-    mut writer: EventWriter<AppExit>,
-) {
-    let mesh = meshes.get(trigger.event().0).unwrap();
-    let trimesh = TrimeshedCollider::from_mesh(mesh).unwrap();
+    let geometry = load_json::<CppGeometry>("geometry");
+    let mut trimesh = geometry.to_trimesh();
+    let walkable_slope = 45.0_f32.to_radians();
+    trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
 
@@ -79,7 +24,19 @@ fn compare_heightfields(
     }
     .build()
     .unwrap();
-    heightfield.populate_from_trimesh(trimesh, 10, 4).unwrap();
+
+    let walkable_climb = 4;
+    for (i, triangle) in trimesh.indices.iter().enumerate() {
+        let triangle = [
+            trimesh.vertices[triangle[0] as usize],
+            trimesh.vertices[triangle[1] as usize],
+            trimesh.vertices[triangle[2] as usize],
+        ];
+        let area_type = trimesh.area_types[i];
+        heightfield
+            .rasterize_triangle(triangle, area_type, walkable_climb)
+            .unwrap();
+    }
 
     let cpp_heightfield = load_json::<CppHeightfield>("heightfield_initial");
 
@@ -106,15 +63,15 @@ fn compare_heightfields(
         heightfield.height, cpp_heightfield.height,
         "heightfield height"
     );
-    assert_relative_eq!(
+    assert_eq!(
         heightfield.aabb.min,
         Vec3A::from(cpp_heightfield.bmin),
-        epsilon = 5e-3
+        "heightfield aabb min"
     );
-    assert_relative_eq!(
+    assert_eq!(
         heightfield.aabb.max,
         Vec3A::from(cpp_heightfield.bmax),
-        epsilon = 5e-3
+        "heightfield aabb max"
     );
     assert_eq!(
         heightfield.cell_size, cpp_heightfield.cs,
@@ -130,11 +87,14 @@ fn compare_heightfields(
         "heightfield spans length"
     );
     for (i, span) in heightfield.spans.iter().enumerate() {
+        println!("span {i}");
         let cpp_span = cpp_heightfield.spans[i].clone();
         if let EmptyOption::Some(mut cpp_span) = cpp_span {
             let mut span_key = span.unwrap();
 
+            let mut layer = 0;
             loop {
+                println!("layer {layer}");
                 let span = heightfield.allocated_spans[span_key].clone();
                 assert_eq!(span.min(), cpp_span.min, "span min");
                 assert_eq!(span.max(), cpp_span.max, "span max");
@@ -145,12 +105,12 @@ fn compare_heightfields(
                 } else {
                     assert!(span.next().is_none());
                 }
+                layer += 1;
             }
         } else {
             assert!(span.is_none());
         }
     }
-    writer.write(AppExit::Success);
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -175,7 +135,7 @@ struct CppSpan {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
-pub enum EmptyOption<T> {
+enum EmptyOption<T> {
     Some(T),
     None {},
 }
@@ -189,11 +149,27 @@ impl<T: Clone> Clone for EmptyOption<T> {
     }
 }
 
+#[derive(Debug, Deserialize, Clone)]
+struct CppGeometry {
+    verts: Vec<[f32; 3]>,
+    tris: Vec<[u32; 3]>,
+}
+
+impl CppGeometry {
+    fn to_trimesh(&self) -> TrimeshedCollider {
+        TrimeshedCollider {
+            vertices: self.verts.iter().map(|v| Vec3A::from(*v)).collect(),
+            indices: self.tris.iter().map(|i| UVec3::from(*i)).collect(),
+            area_types: vec![AreaType::NOT_WALKABLE; self.tris.len()],
+        }
+    }
+}
+
 #[track_caller]
 fn load_json<T: DeserializeOwned>(name: &str) -> T {
     let test_path = env::current_dir()
         .unwrap()
-        .join("assets")
+        .join("tests")
         .join("reference_data")
         .join(format!("{name}.json"));
 
@@ -206,13 +182,4 @@ fn load_json<T: DeserializeOwned>(name: &str) -> T {
     serde_json::from_value(value).unwrap_or_else(|e| {
         panic!("Failed to deserialize JSON: {}: {}", test_path.display(), e);
     })
-}
-
-fn virtual_path_to_global_path(virtual_path: &str) -> PathBuf {
-    // remove everything after the first #
-    let stripped = virtual_path.split('#').next().unwrap();
-    let mut path = env::current_dir().unwrap();
-    path.push("assets");
-    path.push(stripped);
-    path
 }
