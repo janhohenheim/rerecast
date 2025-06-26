@@ -110,7 +110,13 @@ fn initial_heightfield() {
                     let span = heightfield.allocated_spans[span_key].clone();
                     assert_eq!(span.min(), cpp_span.min, "[{x}, {z}] span min");
                     assert_eq!(span.max(), cpp_span.max, "[{x}, {z}] span max");
-                    assert_eq!(span.area().0, cpp_span.area, "[{x}, {z}] span area");
+                    let cpp_area = if cpp_span.area == 63 {
+                        // We use u8::MAX currently, though this may change in the future.
+                        AreaType::DEFAULT_WALKABLE
+                    } else {
+                        AreaType::from(cpp_span.area)
+                    };
+                    assert_eq!(span.area(), cpp_area, "[{x}, {z}] span area");
                     if let EmptyOption::Some(next) = cpp_span.next {
                         span_key = span.next().unwrap();
                         cpp_span = *next;
