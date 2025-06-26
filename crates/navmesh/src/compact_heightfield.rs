@@ -153,7 +153,7 @@ impl CompactHeightfield {
 
                             // Check that the gap between the spans is walkable,
                             // and that the climb height between the gaps is not too high.
-                            let is_walkable = (top - bot) >= walkable_height;
+                            let is_walkable = (top as i32 - bot as i32) >= walkable_height as i32;
                             let is_climbable = (neighbor_span.y as i32 - span_clone.y as i32).abs()
                                 <= walkable_climb as i32;
                             if !is_walkable || !is_climbable {

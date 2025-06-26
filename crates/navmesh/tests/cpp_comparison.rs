@@ -180,7 +180,7 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
     );
     assert_eq!(
         compact_heightfield.max_region,
-        Region(cpp_heightfield.max_region),
+        Region(cpp_heightfield.max_regions),
         "compact_heightfield max region"
     );
     assert_eq!(
@@ -215,11 +215,14 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         cpp_heightfield.spans.len(),
         "compact_heightfield spans length"
     );
-    assert_eq!(
-        compact_heightfield.dist.len(),
-        cpp_heightfield.dist.len(),
-        "compact_heightfield dist length"
-    );
+    if !cpp_heightfield.dist.is_empty() {
+        // we preallocate the dist array to the maximum possible size, so an empty array will be full of 0s for us
+        assert_eq!(
+            compact_heightfield.dist.len(),
+            cpp_heightfield.dist.len(),
+            "compact_heightfield dist length"
+        );
+    }
     assert_eq!(
         compact_heightfield.areas.len(),
         cpp_heightfield.areas.len(),
@@ -265,11 +268,7 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         );
         let first_24_bits = span.data & 0x00FF_FFFF;
         assert_eq!(first_24_bits, cpp_span.con, "compact_heightfield span con");
-        assert_eq!(
-            span.height(),
-            cpp_span.height,
-            "compact_heightfield span height"
-        );
+        assert_eq!(span.height(), cpp_span.h, "compact_heightfield span height");
     }
 
     for (dist, cpp_dist) in compact_heightfield
@@ -312,11 +311,16 @@ struct CppSpan {
 struct CppCompactHeightfield {
     width: u16,
     height: u16,
+    #[serde(rename = "walkableHeight")]
     walkable_height: u16,
+    #[serde(rename = "walkableClimb")]
     walkable_climb: u16,
+    #[serde(rename = "borderSize")]
     border_size: u16,
+    #[serde(rename = "maxDistance")]
     max_distance: u16,
-    max_region: u16,
+    #[serde(rename = "maxRegions")]
+    max_regions: u16,
     bmin: [f32; 3],
     bmax: [f32; 3],
     cs: f32,
@@ -338,7 +342,7 @@ struct CppCompactSpan {
     y: u16,
     reg: u16,
     con: u32,
-    height: u8,
+    h: u8,
 }
 
 #[derive(Debug, Deserialize)]
