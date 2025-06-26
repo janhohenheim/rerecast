@@ -38,7 +38,6 @@ impl Heightfield {
                 y: insertion.z,
             });
         }
-        let column_index = column_index as usize;
 
         let mut new_span = insertion.span;
         let mut previous_span_key = None;
@@ -113,9 +112,9 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_key_at(&self, x: u16, z: u16) -> Option<SpanKey> {
-        let column_index = x as u128 + z as u128 * self.width as u128;
-        let Some(span_key) = self.spans.get(column_index as usize) else {
+    pub fn span_key_at(&self, x: u16, z: u16) -> Option<SpanKey> {
+        let column_index = self.column_index(x, z);
+        let Some(span_key) = self.spans.get(column_index) else {
             // Invalid coordinates
             return None;
         };
@@ -123,7 +122,7 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_at(&self, x: u16, z: u16) -> Option<&Span> {
+    pub fn span_at(&self, x: u16, z: u16) -> Option<&Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
@@ -132,7 +131,7 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span_at_mut(&mut self, x: u16, z: u16) -> Option<&mut Span> {
+    pub fn span_at_mut(&mut self, x: u16, z: u16) -> Option<&mut Span> {
         let Some(span_key) = self.span_key_at(x, z) else {
             // No span in this column
             return None;
@@ -141,12 +140,12 @@ impl Heightfield {
     }
 
     #[inline]
-    pub(crate) fn span(&self, key: SpanKey) -> &Span {
+    pub fn span(&self, key: SpanKey) -> &Span {
         &self.allocated_spans[key]
     }
 
     #[inline]
-    pub(crate) fn span_mut(&mut self, key: SpanKey) -> &mut Span {
+    pub fn span_mut(&mut self, key: SpanKey) -> &mut Span {
         &mut self.allocated_spans[key]
     }
 }

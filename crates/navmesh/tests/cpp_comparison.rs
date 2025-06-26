@@ -2,7 +2,6 @@
 
 use std::env;
 
-use approx::assert_relative_eq;
 use avian_navmesh::{heightfield::HeightfieldBuilder, span::AreaType, trimesh::TrimeshedCollider};
 use bevy::prelude::*;
 use serde::{Deserialize, de::DeserializeOwned};
@@ -86,29 +85,46 @@ fn initial_heightfield() {
         cpp_heightfield.spans.len(),
         "heightfield spans length"
     );
-    for (i, span) in heightfield.spans.iter().enumerate() {
-        println!("span {i}");
-        let cpp_span = cpp_heightfield.spans[i].clone();
-        if let EmptyOption::Some(mut cpp_span) = cpp_span {
-            let mut span_key = span.unwrap();
 
-            let mut layer = 0;
-            loop {
-                println!("layer {layer}");
-                let span = heightfield.allocated_spans[span_key].clone();
-                assert_eq!(span.min(), cpp_span.min, "span min");
-                assert_eq!(span.max(), cpp_span.max, "span max");
-                assert_eq!(span.area().0, cpp_span.area, "span area");
-                if let EmptyOption::Some(next) = cpp_span.next {
-                    span_key = span.next().unwrap();
-                    cpp_span = *next;
-                } else {
-                    assert!(span.next().is_none());
+    assert_eq!(
+        heightfield.spans.len(),
+        heightfield.width as usize * heightfield.height as usize
+    );
+    assert_eq!(
+        cpp_heightfield.spans.len(),
+        cpp_heightfield.width as usize * cpp_heightfield.height as usize
+    );
+
+    for x in 0..heightfield.width {
+        for z in 0..heightfield.height {
+            let column_index = x + z * heightfield.width;
+            let cpp_span = cpp_heightfield.spans[column_index as usize].clone();
+            let span_key = heightfield.span_key_at(x, z);
+            if let EmptyOption::Some(mut cpp_span) = cpp_span {
+                let mut layer = 0;
+                let mut span_key = span_key.unwrap_or_else(|| {
+                    panic!("C++ has a base span at [{x}, {z}] but Rust does not")
+                });
+                loop {
+                    println!("layer {layer}");
+                    let span = heightfield.allocated_spans[span_key].clone();
+                    assert_eq!(span.min(), cpp_span.min, "span min");
+                    assert_eq!(span.max(), cpp_span.max, "span max");
+                    assert_eq!(span.area().0, cpp_span.area, "span area");
+                    if let EmptyOption::Some(next) = cpp_span.next {
+                        span_key = span.next().unwrap();
+                        cpp_span = *next;
+                    } else {
+                        assert!(span.next().is_none());
+                    }
+                    layer += 1;
                 }
-                layer += 1;
+            } else {
+                assert!(
+                    span_key.is_none(),
+                    "C++ has no base span at [{x}, {z}] but Rust does"
+                );
             }
-        } else {
-            assert!(span.is_none());
         }
     }
 }
