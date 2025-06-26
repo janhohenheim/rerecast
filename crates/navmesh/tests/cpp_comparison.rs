@@ -1,18 +1,12 @@
-use std::{
-    env,
-    ffi::OsString,
-    fs::read_dir,
-    io,
-    path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 
+use avian_navmesh::{heightfield::HeightfieldBuilder, trimesh::TrimeshedCollider};
 use bevy::{
     gltf::GltfPlugin,
     log::LogPlugin,
     pbr::PbrPlugin,
     prelude::*,
     render::{mesh::MeshPlugin, view::PreviousVisibleEntities},
-    scene::SceneInstanceReady,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -63,21 +57,59 @@ fn handle_asset_event(mut events: EventReader<AssetEvent<Mesh>>, mut commands: C
             AssetEvent::Unused { id } => {
                 panic!("Failed to load asset {id:?}");
             }
-            AssetEvent::Added { id } => {
-                info!("Added: {id:?}");
-            }
-            AssetEvent::Modified { id } => {
-                info!("Modified: {id:?}");
-            }
+            _ => {}
         }
     }
 }
 
 fn compare_heightfields(trigger: Trigger<MeshLoaded>, meshes: Res<Assets<Mesh>>) {
     let mesh = meshes.get(trigger.event().0).unwrap();
+    let trimesh = TrimeshedCollider::from_mesh(mesh).unwrap();
+
+    let aabb = trimesh.compute_aabb().unwrap();
+
+    let mut heightfield = HeightfieldBuilder {
+        aabb,
+        cell_size: 0.3,
+        cell_height: 0.2,
+    }
+    .build()
+    .unwrap();
+    heightfield.populate_from_trimesh(trimesh, 10, 4).unwrap();
+
+    let cpp_heightfield = load_json::<CppHeightfield>("heightfield_initial");
+
+    assert_eq!(heightfield.width, cpp_heightfield.width);
+    assert_eq!(heightfield.height, cpp_heightfield.height);
+    assert_eq!(heightfield.aabb.min.to_array(), cpp_heightfield.bmin);
+    assert_eq!(heightfield.aabb.max.to_array(), cpp_heightfield.bmax);
+    assert_eq!(heightfield.cell_size, cpp_heightfield.cs);
+    assert_eq!(heightfield.cell_height, cpp_heightfield.ch);
+    assert_eq!(heightfield.spans.len(), cpp_heightfield.spans.len());
+    for (i, span) in heightfield.spans.iter().enumerate() {
+        let cpp_span = cpp_heightfield.spans[i].clone();
+        if let EmptyOption::Some(mut cpp_span) = cpp_span {
+            let mut span_key = span.unwrap();
+
+            loop {
+                let span = heightfield.allocated_spans[span_key].clone();
+                assert_eq!(span.min(), cpp_span.min);
+                assert_eq!(span.max(), cpp_span.max);
+                assert_eq!(span.area().0, cpp_span.area);
+                if let EmptyOption::Some(next) = cpp_span.next {
+                    span_key = span.next().unwrap();
+                    cpp_span = *next;
+                } else {
+                    assert!(span.next().is_none());
+                }
+            }
+        } else {
+            assert!(span.is_none());
+        }
+    }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct CppHeightfield {
     width: u16,
     height: u16,
@@ -88,7 +120,7 @@ struct CppHeightfield {
     spans: Vec<EmptyOption<CppSpan>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct CppSpan {
     min: u16,
     max: u16,
@@ -104,10 +136,20 @@ pub enum EmptyOption<T> {
     None {},
 }
 
+impl<T: Clone> Clone for EmptyOption<T> {
+    fn clone(&self) -> Self {
+        match self {
+            EmptyOption::Some(value) => EmptyOption::Some(value.clone()),
+            EmptyOption::None {} => EmptyOption::None {},
+        }
+    }
+}
+
 #[track_caller]
 fn load_json<T: DeserializeOwned>(name: &str) -> T {
     let test_path = env::current_dir()
         .unwrap()
+        .join("assets")
         .join("reference_data")
         .join(format!("{name}.json"));
 

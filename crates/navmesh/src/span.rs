@@ -74,42 +74,42 @@ impl Span {
     pub(crate) const MAX_HEIGHT: u16 = u16::MAX;
 
     #[inline]
-    pub(crate) fn min(&self) -> u16 {
+    pub fn min(&self) -> u16 {
         self.min
     }
 
     #[inline]
-    pub(crate) fn set_min(&mut self, min: u16) {
+    pub fn set_min(&mut self, min: u16) {
         self.min = min;
     }
 
     #[inline]
-    pub(crate) fn max(&self) -> u16 {
+    pub fn max(&self) -> u16 {
         self.max
     }
 
     #[inline]
-    pub(crate) fn set_max(&mut self, max: u16) {
+    pub fn set_max(&mut self, max: u16) {
         self.max = max;
     }
 
     #[inline]
-    pub(crate) fn area(&self) -> AreaType {
+    pub fn area(&self) -> AreaType {
         self.area
     }
 
     #[inline]
-    pub(crate) fn set_area(&mut self, area: impl Into<AreaType>) {
+    pub fn set_area(&mut self, area: impl Into<AreaType>) {
         self.area = area.into();
     }
 
     #[inline]
-    pub(crate) fn next(&self) -> Option<SpanKey> {
+    pub fn next(&self) -> Option<SpanKey> {
         self.next
     }
 
     #[inline]
-    pub(crate) fn set_next(&mut self, next: impl Into<Option<SpanKey>>) {
+    pub fn set_next(&mut self, next: impl Into<Option<SpanKey>>) {
         self.next = next.into();
     }
 }
