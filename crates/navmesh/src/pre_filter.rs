@@ -50,10 +50,10 @@ impl Heightfield {
                 while let Some(current_span_key) = span_key {
                     let filtered = {
                         let span = self.span(current_span_key);
+                        span_key = span.next();
 
                         // Skip non-walkable spans.
                         if !self.span(current_span_key).area().is_walkable() {
-                            span_key = span.next();
                             continue;
                         }
 
@@ -155,7 +155,6 @@ impl Heightfield {
                     if filtered {
                         span.set_area(AreaType::NOT_WALKABLE);
                     }
-                    span_key = span.next();
                 }
             }
         }

@@ -45,6 +45,7 @@ impl Heightfield {
         // Insert the new span, possibly merging it with existing spans.
         while let Some(current_span_key) = current_span_key_iter {
             let current_span = self.span_mut(current_span_key);
+            current_span_key_iter = current_span.next();
             if current_span.min() > new_span.max() {
                 // Current span is completely below the new span, break.
                 break;
@@ -52,7 +53,6 @@ impl Heightfield {
             if current_span.max() < new_span.min() {
                 // Current span is completely above the new span.  Keep going.
                 previous_span_key.replace(current_span_key);
-                current_span_key_iter = current_span.next();
                 continue;
             }
             // The new span overlaps with an existing span.  Merge them.
@@ -81,7 +81,6 @@ impl Heightfield {
             } else {
                 self.spans[column_index] = next_key;
             }
-            current_span_key_iter = next_key;
         }
 
         if let Some(previous_span_key) = previous_span_key {

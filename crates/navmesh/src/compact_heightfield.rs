@@ -90,15 +90,16 @@ impl CompactHeightfield {
                     // If there are no spans at this cell, just leave the data to index=0, count=0.
                     continue;
                 };
-                let mut span = heightfield.span(span_key);
+                let mut span_key_iter = Some(span_key);
                 let column_index = x as usize + z as usize * heightfield.width as usize;
 
                 let cell = &mut compact_heightfield.cells[column_index];
                 cell.set_index(cell_index as u32);
                 cell.set_count(0);
 
-                while let Some(span_key) = span.next() {
-                    span = heightfield.span(span_key);
+                while let Some(span_key) = span_key_iter {
+                    let span = heightfield.span(span_key);
+                    span_key_iter = span.next();
                     if !span.area().is_walkable() {
                         continue;
                     }
