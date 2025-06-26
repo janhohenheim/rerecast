@@ -234,53 +234,64 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         cpp_heightfield.width as usize * cpp_heightfield.height as usize
     );
 
-    for (cell, cpp_cell) in compact_heightfield
+    for (i, (cell, cpp_cell)) in compact_heightfield
         .cells
         .iter()
         .zip(cpp_heightfield.cells.iter())
+        .enumerate()
     {
         assert_eq!(
             cell.index(),
             cpp_cell.index,
-            "compact_heightfield cell index"
+            "compact_heightfield cell index {i}"
         );
         assert_eq!(
             cell.count(),
             cpp_cell.count,
-            "compact_heightfield cell count"
+            "compact_heightfield cell count {i}"
         );
     }
 
-    for (span, cpp_span) in compact_heightfield
+    for (i, (span, cpp_span)) in compact_heightfield
         .spans
         .iter()
         .zip(cpp_heightfield.spans.iter())
+        .enumerate()
     {
-        assert_eq!(span.y, cpp_span.y, "compact_heightfield span y");
+        assert_eq!(span.y, cpp_span.y, "compact_heightfield span y {i}");
         assert_eq!(
             span.region,
             Region(cpp_span.reg),
-            "compact_heightfield span reg"
+            "compact_heightfield span reg {i}"
         );
         let first_24_bits = span.data & 0x00FF_FFFF;
-        assert_eq!(first_24_bits, cpp_span.con, "compact_heightfield span con");
-        assert_eq!(span.height(), cpp_span.h, "compact_heightfield span height");
+        assert_eq!(
+            first_24_bits, cpp_span.con,
+            "compact_heightfield span con {i}"
+        );
+        assert_eq!(
+            span.height(),
+            cpp_span.h,
+            "compact_heightfield span height {i}"
+        );
     }
 
-    for (dist, cpp_dist) in compact_heightfield
+    for (i, (dist, cpp_dist)) in compact_heightfield
         .dist
         .iter()
         .zip(cpp_heightfield.dist.iter())
+        .enumerate()
     {
-        assert_eq!(*dist, *cpp_dist, "compact_heightfield dist");
+        assert_eq!(*dist, *cpp_dist, "compact_heightfield dist {i}");
     }
 
-    for (area, cpp_area) in compact_heightfield
+    for (i, (area, cpp_area)) in compact_heightfield
         .areas
         .iter()
         .zip(cpp_heightfield.areas.iter())
+        .enumerate()
     {
-        assert_eq!(*area, AreaType(*cpp_area), "compact_heightfield area");
+        assert_eq!(*area, AreaType(*cpp_area), "compact_heightfield area {i}");
     }
 }
 
