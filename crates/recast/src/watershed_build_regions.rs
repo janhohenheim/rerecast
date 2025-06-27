@@ -1,4 +1,7 @@
-use crate::{CompactHeightfield, Region};
+use crate::{
+    CompactHeightfield, Region,
+    math::{dir_offset_x, dir_offset_z},
+};
 
 impl CompactHeightfield {
     /// Non-null regions will consist of connected, non-overlapping walkable spans that form a single contour.
@@ -56,7 +59,7 @@ impl CompactHeightfield {
                 region_id | Region::BORDER,
                 src_reg,
             );
-            region_id.inc();
+            region_id += 1;
             self.paint_rect_region(
                 self.width - border_width,
                 self.width,
@@ -65,7 +68,7 @@ impl CompactHeightfield {
                 region_id | Region::BORDER,
                 src_reg,
             );
-            region_id.inc();
+            region_id += 1;
             self.paint_rect_region(
                 0,
                 self.width,
@@ -74,7 +77,7 @@ impl CompactHeightfield {
                 region_id | Region::BORDER,
                 src_reg,
             );
-            region_id.inc();
+            region_id += 1;
             self.paint_rect_region(
                 0,
                 border_width,
@@ -83,7 +86,7 @@ impl CompactHeightfield {
                 region_id | Region::BORDER,
                 src_reg,
             );
-            region_id.inc();
+            region_id += 1;
         }
         self.border_size = border_size;
 
@@ -166,7 +169,7 @@ impl CompactHeightfield {
                     stacks[s_id as usize].push(LevelStackEntry {
                         x,
                         z,
-                        index: i as u16,
+                        index: Some(i),
                     });
                 }
             }
@@ -182,7 +185,110 @@ impl CompactHeightfield {
         stack: &mut Vec<LevelStackEntry>,
         fill_stack: bool,
     ) {
-        todo!()
+        if fill_stack {
+            // Find cells revealed by the raised level.
+            stack.clear();
+            for z in 0..self.height {
+                for x in 0..self.width {
+                    let cell = self.cell_at(x, z);
+                    let max_index = cell.index() as usize + cell.count() as usize;
+                    #[expect(clippy::needless_range_loop)]
+                    for i in cell.index() as usize..max_index {
+                        if self.dist[i] >= level
+                            && src_reg[i] == Region::NONE
+                            && self.areas[i].is_walkable()
+                        {
+                            stack.push(LevelStackEntry {
+                                x,
+                                z,
+                                index: Some(i),
+                            });
+                        }
+                    }
+                }
+            }
+        } else {
+            // use cells in the input stack
+            // mark all cells which already have a region
+            for entry in stack.iter_mut() {
+                let Some(i) = entry.index else {
+                    continue;
+                };
+                if src_reg[i] != Region::NONE {
+                    entry.index = None;
+                }
+            }
+        }
+
+        let mut dirty_entries = Vec::new();
+        let mut iter = 0;
+        // Jan: I don't think stack is ever made smaller? Is this just an `if` in disguise?
+        while stack.len() > 0 {
+            let mut failed = 0;
+            dirty_entries.clear();
+
+            for entry in stack.iter_mut() {
+                let x = entry.x;
+                let z = entry.z;
+                let Some(i) = entry.index else {
+                    failed += 1;
+                    continue;
+                };
+
+                let mut r = src_reg[i];
+                let mut d2 = u16::MAX;
+                let area = self.areas[i];
+                let span = &self.spans[i];
+                for dir in 0..4 {
+                    let Some(con) = span.con(dir) else {
+                        continue;
+                    };
+                    let a_x = (x as i32 + dir_offset_x(dir) as i32) as u16;
+                    let a_z = (z as i32 + dir_offset_z(dir) as i32) as u16;
+                    let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                    if self.areas[a_index] != area {
+                        continue;
+                    }
+                    let a_region = src_reg[a_index];
+                    let a_dist = src_dist[a_index] + 2;
+                    if a_region != Region::NONE
+                        && a_region.contains(Region::BORDER)
+                        && a_dist.bits() < d2
+                    {
+                        r = a_region;
+                        d2 = a_dist.bits();
+                    }
+                }
+                if r != Region::NONE {
+                    // Mark as used
+                    entry.index = None;
+                    dirty_entries.push(DirtyEntry {
+                        index: i,
+                        region: r,
+                        distance2: d2,
+                    });
+                } else {
+                    failed += 1;
+                }
+            }
+            // Copy entries that differ between src and dst to keep them in sync.
+            for dirty_entry in dirty_entries.iter() {
+                let index = dirty_entry.index;
+                src_reg[index] = dirty_entry.region;
+                src_dist[index] = Region::from(dirty_entry.distance2);
+            }
+
+            if failed == stack.len() {
+                break;
+            }
+
+            if level > 0 {
+                iter += 1;
+                if iter >= max_iter {
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -192,10 +298,10 @@ fn append_stacks(
     src_region: &[Region],
 ) {
     for stack in src_stack.iter() {
-        let i = stack.index as usize;
-        // TODO: the original also checks if i < 0, hmm
-        // Is that a legit state?
-        if src_region[i] != Region::NONE {
+        let Some(i) = stack.index else {
+            continue;
+        };
+        if src_region[i as usize] != Region::NONE {
             continue;
         }
         dst_stack.push(stack.clone());
@@ -206,13 +312,20 @@ fn append_stacks(
 struct LevelStackEntry {
     x: u16,
     z: u16,
-    index: u16,
+    index: Option<usize>,
+}
+
+#[derive(Clone, Debug)]
+struct DirtyEntry {
+    index: usize,
+    region: Region,
+    distance2: u16,
 }
 
 impl LevelStackEntry {
     const EMPTY: Self = Self {
         x: 0,
         z: 0,
-        index: 0,
+        index: Some(0),
     };
 }

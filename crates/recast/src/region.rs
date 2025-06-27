@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign};
+
 bitflags::bitflags! {
     /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -13,9 +15,16 @@ bitflags::bitflags! {
     }
 }
 
-impl Region {
-    pub(crate) fn inc(&mut self) {
-        *self = Region::from(self.bits() + 1);
+impl Add<u16> for Region {
+    type Output = Self;
+    fn add(self, other: u16) -> Self::Output {
+        Region::from(self.bits() + other)
+    }
+}
+
+impl AddAssign<u16> for Region {
+    fn add_assign(&mut self, other: u16) {
+        *self = Region::from(self.bits() + other);
     }
 }
 
