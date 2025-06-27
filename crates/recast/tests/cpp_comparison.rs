@@ -2,7 +2,7 @@
 
 use std::env;
 
-use bevy::prelude::*;
+use glam::{UVec3, Vec3A};
 use recast::{AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TriMesh};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;

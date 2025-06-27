@@ -1,12 +1,10 @@
 //! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
 
-use std::ops::Mul;
-
 #[cfg(feature = "bevy")]
-use bevy::{prelude::*, render::mesh::PrimitiveTopology};
-use bevy_math::{Isometry3d, UVec3, Vec3A, bounding::Aabb3d};
+use bevy::render::mesh::{Mesh, PrimitiveTopology};
+use glam::{UVec3, Vec3A};
 
-use crate::span::AreaType;
+use crate::{math::Aabb3d, span::AreaType};
 
 /// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -37,13 +35,6 @@ impl TriMesh {
         self.area_types.extend(other.area_types);
     }
 
-    /// Applies an isometry to the trimesh.
-    pub fn apply_isometry(&mut self, isometry: Isometry3d) {
-        self.vertices.iter_mut().for_each(|v| {
-            *v = isometry * *v;
-        });
-    }
-
     /// Computes the AABB of the trimesh.
     /// Returns `None` if the trimesh is empty.
     pub fn compute_aabb(&self) -> Option<Aabb3d> {
@@ -56,15 +47,6 @@ impl TriMesh {
         });
 
         Some(Aabb3d { min, max })
-    }
-}
-
-impl Mul<TriMesh> for Isometry3d {
-    type Output = TriMesh;
-
-    fn mul(self, mut trimesh: TriMesh) -> Self::Output {
-        trimesh.apply_isometry(self);
-        trimesh
     }
 }
 

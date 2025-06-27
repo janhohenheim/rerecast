@@ -4419,9 +4419,8 @@ name = "recast"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "approx",
  "bevy",
- "bevy_math",
+ "glam",
  "serde",
  "serde_json",
  "slotmap",

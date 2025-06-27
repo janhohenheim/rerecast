@@ -2,10 +2,12 @@
 //!
 //! A heightfield is a 3D grid of [`Span`]s, where each column contains 0, 1, or more spans.
 
-use bevy::math::bounding::Aabb3d;
 use thiserror::Error;
 
-use crate::span::{Span, SpanKey, Spans};
+use crate::{
+    Aabb3d,
+    span::{Span, SpanKey, Spans},
+};
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
 /// Build with [`HeightfieldBuilder`].
 #[derive(Debug, Clone)]
@@ -236,9 +238,13 @@ pub(crate) struct SpanInsertion {
 
 #[cfg(test)]
 mod tests {
-    use bevy::math::Vec3A;
 
-    use crate::span::{AreaType, SpanBuilder};
+    use glam::Vec3A;
+
+    use crate::{
+        Aabb3d,
+        span::{AreaType, SpanBuilder},
+    };
 
     use super::*;
 

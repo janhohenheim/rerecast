@@ -1,4 +1,32 @@
-use bevy::{math::bounding::Aabb3d, prelude::*};
+use glam::{UVec3, Vec3A};
+
+/// A 3D axis-aligned bounding box
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Aabb3d {
+    /// The minimum point of the box
+    pub min: Vec3A,
+    /// The maximum point of the box
+    pub max: Vec3A,
+}
+
+impl Aabb3d {
+    /// Constructs an AABB from its center and half-size.
+    #[inline]
+    pub fn new(center: impl Into<Vec3A>, half_size: impl Into<Vec3A>) -> Self {
+        let (center, half_size) = (center.into(), half_size.into());
+        debug_assert!(half_size.x >= 0.0 && half_size.y >= 0.0 && half_size.z >= 0.0);
+        Self {
+            min: center - half_size,
+            max: center + half_size,
+        }
+    }
+
+    /// Checks if this AABB intersects with another AABB.
+    #[inline]
+    pub fn intersects(&self, other: &Aabb3d) -> bool {
+        self.min.cmple(other.max).all() && self.max.cmpge(other.min).all()
+    }
+}
 
 pub(crate) trait TriangleIndices {
     fn normal(&self, vertices: &[Vec3A]) -> Vec3A;

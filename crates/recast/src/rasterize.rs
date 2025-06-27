@@ -1,8 +1,7 @@
 //! Contains methods for rasterizing triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
 
+use glam::Vec3A;
 use std::fmt::Display;
-
-use bevy::{math::bounding::IntersectsVolume as _, prelude::*};
 use thiserror::Error;
 
 use crate::{

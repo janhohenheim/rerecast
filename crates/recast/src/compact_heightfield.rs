@@ -1,6 +1,5 @@
-use bevy::math::bounding::Aabb3d;
-
 use crate::{
+    Aabb3d,
     compact_cell::CompactCell,
     compact_span::CompactSpan,
     heightfield::Heightfield,

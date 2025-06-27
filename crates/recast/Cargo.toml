@@ -14,21 +14,19 @@ readme = { workspace = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-bevy_math = { workspace = true }
+glam = { workspace = true }
 
 # Bevy integration
 bevy = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
-bevy_math = { workspace = true, features = ["approx"] }
-approx = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
 default = []
-serialize = ["dep:serde"]
+serialize = ["dep:serde", "glam/serde"]
 bevy = ["dep:bevy"]
 
 [lints]

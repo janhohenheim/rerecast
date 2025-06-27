@@ -107,10 +107,18 @@ fn compound_trimesh(compound: &Compound, subdivisions: u32) -> TriMesh {
                 rotation: Quat::from(isometry.rotation),
             };
 
-            compound_trimesh.extend(isometry * trimesh);
+            apply_isometry(&mut compound_trimesh, isometry);
+            compound_trimesh.extend(trimesh);
             compound_trimesh
         },
     )
+}
+
+/// Applies an isometry to the trimesh.
+pub fn apply_isometry(trimesh: &mut TriMesh, isometry: Isometry3d) {
+    trimesh.vertices.iter_mut().for_each(|v| {
+        *v = isometry * *v;
+    });
 }
 
 #[cfg(test)]

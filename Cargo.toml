@@ -23,6 +23,7 @@ thiserror = "2.0.12"
 ureq = "3.0.12"
 bevy = { version = "0.16.0", default-features = false }
 bevy_math = "0.16.0"
+glam = "0.29.3"
 # In sync with Bevy
 wgpu-types = "24"
 # In sync with Bevy

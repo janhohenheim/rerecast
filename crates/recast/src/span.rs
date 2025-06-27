@@ -5,8 +5,8 @@
 //!
 //! The spans are stored in a [`Spans`](crate::span::Spans) collection.
 
-use bevy::prelude::*;
 use slotmap::SlotMap;
+use std::ops::{Deref, DerefMut};
 
 slotmap::new_key_type! {
     /// A key for a span in [`Spans`](crate::span::Spans).
@@ -14,8 +14,22 @@ slotmap::new_key_type! {
 }
 
 /// A collection of spans.
-#[derive(Deref, DerefMut, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Spans(SlotMap<SpanKey, Span>);
+
+impl Deref for Spans {
+    type Target = SlotMap<SpanKey, Span>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Spans {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Spans {
     const DEFAULT_CAPACITY: usize = 1024;
@@ -126,9 +140,23 @@ impl Span {
 /// The values 0 ([`AreaType::NOT_WALKABLE`]) and [`u8::MAX`] ([`AreaType::WALKABLE`]) are reserved.
 /// The rest can be used for custom area types to e.g. assign different costs to different areas.
 /// When two spans are merged, the area type of the merged span is the maximum of the two area types.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AreaType(pub u8);
+
+impl Deref for AreaType {
+    type Target = u8;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for AreaType {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Default for AreaType {
     fn default() -> Self {
