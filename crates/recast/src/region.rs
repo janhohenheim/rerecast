@@ -1,8 +1,11 @@
-use std::ops::{Add, AddAssign};
+use std::{
+    cmp::Ordering,
+    ops::{Add, AddAssign},
+};
 
 bitflags::bitflags! {
     /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
     #[repr(transparent)]
     pub struct Region: u16 {
         /// The default region, which is used for spans that are not in a region, i.e. not walkable.
@@ -26,6 +29,12 @@ impl Add<u16> for Region {
 impl AddAssign<u16> for Region {
     fn add_assign(&mut self, other: u16) {
         *self = Region::from(self.bits() + other);
+    }
+}
+
+impl Ord for Region {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.bits().cmp(&other.bits())
     }
 }
 

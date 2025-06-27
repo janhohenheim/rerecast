@@ -25,7 +25,7 @@ impl CompactHeightfield {
         &mut self,
         border_size: u16,
         min_region_area: u16,
-        max_region_area: u16,
+        merge_region_area: u16,
     ) -> Result<(), BuildRegionsError> {
         const LOG_NB_STACKS: usize = 3;
         const NB_STACKS: usize = 1 << LOG_NB_STACKS;
@@ -139,11 +139,75 @@ impl CompactHeightfield {
             }
         }
 
+        // Expand current regions until no empty connected cells found.
+        self.expand_regions(
+            expand_iters * 8,
+            0,
+            &mut src_reg,
+            &mut src_dist,
+            &mut stack,
+            true,
+        );
+
+        // Merge regions and filter out small regions.
+        self.max_region = region_id;
+        // Jan: the early return is just triggered for OOM, so let's skip that :P
+        let overlaps =
+            self.merge_and_filter_regions(min_region_area, merge_region_area, &mut src_reg);
+
+        // If overlapping regions were found during merging, split those regions.
+        if overlaps.len() > 0 {
+            // Jan: Contrary to the comment above, we don't actually split anything here. This probably happens during the next iteration? idk
+            tracing::error!(
+                "{len} overlapping regions found during merging.",
+                len = overlaps.len()
+            );
+        }
+
+        // Write the result out
+        for i in 0..self.spans.len() {
+            self.spans[i].region = src_reg[i];
+        }
+
         Ok(())
     }
 
+    fn merge_and_filter_regions(
+        &self,
+        min_region_area: u16,
+        merge_region_size: u16,
+        src_reg: &mut [Region],
+    ) -> Vec<i32> {
+        let mut overlaps = Vec::new();
+        let max_region = self.max_region;
+        let w = self.width;
+        let h = self.height;
+
+        let nreg = max_region.bits() + 1;
+
+        // Construct regions
+        let mut regions = (0..nreg).map(|i| Region::from(i)).collect::<Vec<_>>();
+
+        // Find edge of a region and find connections around the contour.
+        for z in 0..h {
+            for x in 0..w {
+                let cell = self.cell_at(x, z);
+                let max_index = cell.index() as usize + cell.count() as usize;
+                for i in cell.index() as usize..max_index {
+                    let r = src_reg[i];
+                    if r == Region::NONE || r >= Region::from(nreg) {
+                        continue;
+                    }
+                    let reg = regions[r.bits() as usize];
+                }
+            }
+        }
+
+        overlaps
+    }
+
     fn flood_region(
-        &mut self,
+        &self,
         entry: &LevelStackEntry,
         level: u16,
         region: Region,
@@ -248,7 +312,7 @@ impl CompactHeightfield {
     }
 
     fn paint_rect_region(
-        &mut self,
+        &self,
         min_x: u16,
         max_x: u16,
         min_z: u16,
@@ -271,7 +335,7 @@ impl CompactHeightfield {
     }
 
     fn sort_cells_by_level(
-        &mut self,
+        &self,
         start_level: u16,
         src_reg: &mut [Region],
         nb_stacks: usize,
@@ -310,7 +374,7 @@ impl CompactHeightfield {
     }
 
     fn expand_regions(
-        &mut self,
+        &self,
         max_iter: u16,
         level: u16,
         src_reg: &mut [Region],

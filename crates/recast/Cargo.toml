@@ -16,6 +16,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 glam = { workspace = true }
 bitflags = { workspace = true }
+tracing = { workspace = true }
 
 # Bevy integration
 bevy = { workspace = true, optional = true }

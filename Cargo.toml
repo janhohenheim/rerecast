@@ -33,6 +33,7 @@ anyhow = "1.0.98"
 bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }
 bitflags = "2.9.1"
 approx = "0.5"
+tracing = "0.1.41"
 
 [workspace.lints.rust]
 missing_docs = "warn"
