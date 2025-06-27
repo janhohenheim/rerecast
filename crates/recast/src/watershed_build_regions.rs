@@ -21,7 +21,12 @@ impl CompactHeightfield {
     /// @warning The distance field must be created using [`CompactHeightfield::build_distance_field`] before attempting to build regions.
     ///
     /// @see rcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, rcConfig
-    pub fn build_regions(&mut self, border_size: u16, min_region_area: u16, max_region_area: u16) {
+    pub fn build_regions(
+        &mut self,
+        border_size: u16,
+        min_region_area: u16,
+        max_region_area: u16,
+    ) -> Result<(), BuildRegionsError> {
         const LOG_NB_STACKS: usize = 3;
         const NB_STACKS: usize = 1 << LOG_NB_STACKS;
         let mut level_stacks: [Vec<LevelStackEntry>; NB_STACKS] = [const { Vec::new() }; NB_STACKS];
@@ -110,7 +115,136 @@ impl CompactHeightfield {
                 &mut level_stacks[s_id as usize],
                 false,
             );
+
+            // Mark new regions with IDs.
+            for current in level_stacks[s_id as usize].iter() {
+                let Some(i) = current.index else {
+                    continue;
+                };
+                if src_reg[i] == Region::NONE
+                    && self.flood_region(
+                        current,
+                        level,
+                        region_id,
+                        &mut src_reg,
+                        &mut src_dist,
+                        &mut stack,
+                    )
+                {
+                    if region_id == Region::MAX {
+                        return Err(BuildRegionsError::RegionIdOverflow);
+                    }
+                    region_id += 1;
+                }
+            }
         }
+
+        Ok(())
+    }
+
+    fn flood_region(
+        &mut self,
+        entry: &LevelStackEntry,
+        level: u16,
+        region: Region,
+        src_reg: &mut [Region],
+        src_dist: &mut [u16],
+        stack: &mut Vec<LevelStackEntry>,
+    ) -> bool {
+        let w = self.width;
+        // Safety: entry.index has to be verified before calling this function.
+        let i = entry.index.unwrap();
+        let area = self.areas[i];
+
+        // Flood fill mark region
+        stack.clear();
+        stack.push(entry.clone());
+        src_reg[i] = region;
+        src_dist[i] = 0;
+
+        let level = if level >= 2 { level - 2 } else { 0 };
+        let mut count = 0;
+
+        while let Some(back) = stack.pop() {
+            let cx = back.x;
+            let cz = back.z;
+            let Some(ci) = back.index else {
+                // Jan: The original just accesses invalid memory here lol.
+                continue;
+            };
+
+            let cs = &self.spans[ci];
+
+            // Check if any of the neighbours already have a valid region set.
+            let mut ar = Region::NONE;
+            for dir in 0..4 {
+                // 8 connected
+                if let Some(con) = cs.con(dir) {
+                    let a_x = (cx as i32 + dir_offset_x(dir) as i32) as u16;
+                    let a_z = (cz as i32 + dir_offset_z(dir) as i32) as u16;
+                    let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                    if self.areas[a_index] != area {
+                        continue;
+                    }
+                    let nr = src_reg[a_index];
+                    if nr.contains(Region::BORDER) {
+                        // Do not take borders into account.
+                        break;
+                    }
+                    if nr != Region::NONE && nr != region {
+                        ar = nr;
+                        break;
+                    }
+
+                    let a_span = &self.spans[a_index];
+
+                    let dir2 = (dir + 1) & 0x3;
+                    if let Some(con) = a_span.con(dir2) {
+                        let a_x = (a_x as i32 + dir_offset_x(dir2) as i32) as u16;
+                        let a_z = (a_z as i32 + dir_offset_z(dir2) as i32) as u16;
+                        let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                        if self.areas[a_index] != area {
+                            continue;
+                        }
+                        let nr = src_reg[a_index];
+                        if nr != Region::NONE && nr != region {
+                            ar = nr;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ar != Region::NONE {
+                src_reg[ci] = Region::NONE;
+                continue;
+            }
+
+            count += 1;
+
+            // Expand neighbours.
+            for dir in 0..4 {
+                let Some(con) = cs.con(dir) else {
+                    continue;
+                };
+                let a_x = (cx as i32 + dir_offset_x(dir) as i32) as u16;
+                let a_z = (cz as i32 + dir_offset_z(dir) as i32) as u16;
+                let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                if self.areas[a_index] != area {
+                    continue;
+                }
+                if self.dist[a_index] >= level && src_reg[a_index] == Region::NONE {
+                    src_reg[a_index] = region;
+                    src_dist[a_index] = 0;
+                    stack.push(LevelStackEntry {
+                        x: a_x,
+                        z: a_z,
+                        index: Some(a_index),
+                    });
+                }
+            }
+        }
+        count > 0
     }
 
     fn paint_rect_region(
@@ -317,4 +451,12 @@ struct DirtyEntry {
     index: usize,
     region: Region,
     distance2: u16,
+}
+
+/// Error type for [`CompactHeightfield::build_regions`].
+#[derive(Debug, thiserror::Error)]
+pub enum BuildRegionsError {
+    /// The region ID overflowed.
+    #[error("Region ID overflow")]
+    RegionIdOverflow,
 }

@@ -12,6 +12,7 @@ bitflags::bitflags! {
         /// region and its spans are considered un-walkable.
         /// (Used during the region and contour build process.)
         const BORDER = 0x8000;
+        const MAX = u16::MAX;
     }
 }
 
