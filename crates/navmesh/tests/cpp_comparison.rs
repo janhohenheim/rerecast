@@ -59,6 +59,9 @@ fn validate_navmesh_against_cpp_implementation() {
 
     compact_heightfield.erode_walkable_area(walkable_radius);
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_eroded");
+
+    compact_heightfield.build_distance_field();
+    assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_distance_field");
 }
 
 #[track_caller]
@@ -117,17 +120,16 @@ fn assert_eq_heightfield(heightfield: &Heightfield, reference_name: &str) {
                     panic!("C++ has a base span at [{x}, {z}] but Rust does not")
                 });
                 loop {
-                    println!("layer {layer}");
                     let span = heightfield.allocated_spans[span_key].clone();
-                    assert_eq!(span.min(), cpp_span.min, "[{x}, {z}] span min");
-                    assert_eq!(span.max(), cpp_span.max, "[{x}, {z}] span max");
+                    assert_eq!(span.min(), cpp_span.min, "[{x}, {z}, {layer}] span min");
+                    assert_eq!(span.max(), cpp_span.max, "[{x}, {z}, {layer}] span max");
                     let cpp_area = if cpp_span.area == 63 {
                         // We use u8::MAX currently, though this may change in the future.
                         AreaType::DEFAULT_WALKABLE
                     } else {
                         AreaType::from(cpp_span.area)
                     };
-                    assert_eq!(span.area(), cpp_area, "[{x}, {z}] span area");
+                    assert_eq!(span.area(), cpp_area, "[{x}, {z}, {layer}] span area");
                     if let EmptyOption::Some(next) = cpp_span.next {
                         span_key = span.next().unwrap();
                         cpp_span = *next;
