@@ -103,8 +103,8 @@ impl CompactHeightfield {
         }
 
         // Pass 2
-        for z in 0..self.height {
-            for x in 0..self.width {
+        for z in (0..self.height).rev() {
+            for x in (0..self.width).rev() {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
                 for i in cell.index() as usize..max_index {
