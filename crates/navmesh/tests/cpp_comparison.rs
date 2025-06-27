@@ -29,18 +29,9 @@ fn validate_navmesh_against_cpp_implementation() {
     .build()
     .unwrap();
 
-    // Find triangles which are walkable based on their slope and rasterize them.
-    for (i, triangle) in trimesh.indices.iter().enumerate() {
-        let triangle = [
-            trimesh.vertices[triangle[0] as usize],
-            trimesh.vertices[triangle[1] as usize],
-            trimesh.vertices[triangle[2] as usize],
-        ];
-        let area_type = trimesh.area_types[i];
-        heightfield
-            .rasterize_triangle(triangle, area_type, walkable_climb)
-            .unwrap();
-    }
+    heightfield
+        .rasterize_triangles(&trimesh, walkable_climb)
+        .unwrap();
     assert_eq_heightfield(&heightfield, "heightfield_initial");
 
     // Once all geometry is rasterized, we do initial pass of filtering to

@@ -6,12 +6,30 @@ use bevy::{math::bounding::IntersectsVolume as _, prelude::*};
 use thiserror::Error;
 
 use crate::{
+    TrimeshedCollider,
     heightfield::{Heightfield, SpanInsertion, SpanInsertionError},
     math::TriangleVertices as _,
     span::{AreaType, Span, SpanBuilder},
 };
 
 impl Heightfield {
+    /// Rasterizes the triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
+    pub fn rasterize_triangles(
+        &mut self,
+        trimesh: &TrimeshedCollider,
+        walkable_climb: u16,
+    ) -> Result<(), RasterizationError> {
+        for (i, triangle) in trimesh.indices.iter().enumerate() {
+            let triangle = [
+                trimesh.vertices[triangle[0] as usize],
+                trimesh.vertices[triangle[1] as usize],
+                trimesh.vertices[triangle[2] as usize],
+            ];
+            let area_type = trimesh.area_types[i];
+            self.rasterize_triangle(triangle, area_type, walkable_climb)?;
+        }
+        Ok(())
+    }
     /// Rasterizes a triangle into a [`Heightfield`].
     pub fn rasterize_triangle(
         &mut self,
