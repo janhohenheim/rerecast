@@ -95,8 +95,19 @@ impl CompactHeightfield {
             if s_id == 0 {
                 self.sort_cells_by_level(level, src_reg, NB_STACKS, &mut level_stacks, 1);
             } else {
-                todo!()
+                // copy left overs from last level
+                let (src, dst) = level_stacks.split_at_mut(s_id as usize);
+                append_stacks(&src[s_id as usize - 1], &mut dst[0], src_reg);
             }
+
+            self.expand_regions(
+                expand_iters,
+                level,
+                src_reg,
+                src_dist,
+                &mut level_stacks[s_id as usize],
+                false,
+            );
         }
     }
 
@@ -161,8 +172,37 @@ impl CompactHeightfield {
             }
         }
     }
+
+    fn expand_regions(
+        &mut self,
+        max_iter: u16,
+        level: u16,
+        src_reg: &mut [Region],
+        src_dist: &mut [Region],
+        stack: &mut Vec<LevelStackEntry>,
+        fill_stack: bool,
+    ) {
+        todo!()
+    }
 }
 
+fn append_stacks(
+    src_stack: &[LevelStackEntry],
+    dst_stack: &mut Vec<LevelStackEntry>,
+    src_region: &[Region],
+) {
+    for stack in src_stack.iter() {
+        let i = stack.index as usize;
+        // TODO: the original also checks if i < 0, hmm
+        // Is that a legit state?
+        if src_region[i] != Region::NONE {
+            continue;
+        }
+        dst_stack.push(stack.clone());
+    }
+}
+
+#[derive(Clone, Debug)]
 struct LevelStackEntry {
     x: u16,
     z: u16,
