@@ -12,7 +12,8 @@ mod rasterize;
 mod region;
 mod span;
 mod trimesh;
-mod watershed;
+mod watershed_build_regions;
+mod watershed_distance_field;
 
 pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;

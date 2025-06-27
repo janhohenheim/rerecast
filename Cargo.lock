@@ -4430,6 +4430,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy",
+ "bitflags 2.9.1",
  "glam",
  "serde",
  "serde_json",

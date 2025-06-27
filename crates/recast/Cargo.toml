@@ -15,13 +15,14 @@ slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 glam = { workspace = true }
+bitflags = { workspace = true }
 
 # Bevy integration
 bevy = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
 [features]

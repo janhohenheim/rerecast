@@ -163,8 +163,8 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         "compact_heightfield border size"
     );
     assert_eq!(
-        compact_heightfield.max_region,
-        Region(cpp_heightfield.max_regions),
+        compact_heightfield.max_region.bits(),
+        cpp_heightfield.max_regions,
         "compact_heightfield max region"
     );
     assert_eq!(
@@ -246,7 +246,7 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         assert_eq!(span.y, cpp_span.y, "compact_heightfield span y {i}");
         assert_eq!(
             span.region,
-            Region(cpp_span.reg),
+            Region::from(cpp_span.reg),
             "compact_heightfield span reg {i}"
         );
         let first_24_bits = span.data & 0x00FF_FFFF;
