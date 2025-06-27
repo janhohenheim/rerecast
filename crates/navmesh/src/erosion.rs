@@ -49,7 +49,7 @@ impl CompactHeightfield {
             }
         }
 
-        let mut new_distance = 0_u8;
+        let mut new_distance: u8;
 
         // Pass 1
         for z in 0..self.height {
@@ -165,6 +165,10 @@ impl CompactHeightfield {
 
         // Jan: This just wraps on overflow. Is that intentional???
         let min_boundary_distance = (erosion_radius * 2) as u8;
+        #[expect(
+            clippy::needless_range_loop,
+            reason = "lol the alternative suggestion is really unreadable"
+        )]
         for span_index in 0..self.spans.len() {
             if distance_to_boundary[span_index] < min_boundary_distance {
                 self.areas[span_index] = AreaType::NOT_WALKABLE;
