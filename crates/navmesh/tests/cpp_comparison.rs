@@ -3,7 +3,7 @@
 use std::env;
 
 use avian_navmesh::{
-    AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TrimeshedCollider,
+    AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TriMesh,
 };
 use bevy::prelude::*;
 use serde::{Deserialize, de::DeserializeOwned};
@@ -368,8 +368,8 @@ struct CppGeometry {
 }
 
 impl CppGeometry {
-    fn to_trimesh(&self) -> TrimeshedCollider {
-        TrimeshedCollider {
+    fn to_trimesh(&self) -> TriMesh {
+        TriMesh {
             vertices: self.verts.iter().map(|v| Vec3A::from(*v)).collect(),
             indices: self.tris.iter().map(|i| UVec3::from(*i)).collect(),
             area_types: vec![AreaType::NOT_WALKABLE; self.tris.len()],

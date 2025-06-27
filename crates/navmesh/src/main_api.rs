@@ -1,9 +1,9 @@
 use crate::{
     heightfield::Heightfield, math::TriangleIndices as _, rasterize::RasterizationError,
-    span::AreaType, trimesh::TrimeshedCollider,
+    span::AreaType, trimesh::TriMesh,
 };
 
-impl TrimeshedCollider {
+impl TriMesh {
     /// Marks the triangles as walkable or not based on the threshold angle.
     ///
     /// The triangles are marked as walkable if the normal angle is greater than the threshold angle.
@@ -35,7 +35,7 @@ impl Heightfield {
     ///
     pub fn populate_from_trimesh(
         &mut self,
-        trimesh: TrimeshedCollider,
+        trimesh: TriMesh,
         walkable_height: u16,
         walkable_climb: u16,
     ) -> Result<(), RasterizationError> {

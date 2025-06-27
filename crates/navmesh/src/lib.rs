@@ -24,7 +24,7 @@ pub use compact_span::CompactSpan;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use region::Region;
 pub use span::{AreaType, Span, SpanKey};
-pub use trimesh::TrimeshedCollider;
+pub use trimesh::TriMesh;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {

@@ -11,9 +11,9 @@ use wgpu_types::PrimitiveTopology;
 
 use crate::span::AreaType;
 
-/// A [`Collider`] rasterized into trimesh form.
+/// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct TrimeshedCollider {
+pub struct TriMesh {
     /// The vertices composing the collider.
     /// Follows the convention of [`PrimitiveTopology::TriangleList`](bevy::render::mesh::PrimitiveTopology::TriangleList).
     pub vertices: Vec<Vec3A>,
@@ -26,10 +26,10 @@ pub struct TrimeshedCollider {
     pub area_types: Vec<AreaType>,
 }
 
-impl TrimeshedCollider {
+impl TriMesh {
     /// Extends the trimesh with the vertices and indices of another trimesh.
     /// The indices of `other` will be offset by the number of vertices in `self`.
-    pub fn extend(&mut self, other: TrimeshedCollider) {
+    pub fn extend(&mut self, other: TriMesh) {
         if self.vertices.len() > u32::MAX as usize {
             panic!("Cannot extend a trimesh with more than 2^32 vertices");
         }
@@ -62,16 +62,16 @@ impl TrimeshedCollider {
     }
 }
 
-impl Mul<TrimeshedCollider> for Isometry3d {
-    type Output = TrimeshedCollider;
+impl Mul<TriMesh> for Isometry3d {
+    type Output = TriMesh;
 
-    fn mul(self, mut trimesh: TrimeshedCollider) -> Self::Output {
+    fn mul(self, mut trimesh: TriMesh) -> Self::Output {
         trimesh.apply_isometry(self);
         trimesh
     }
 }
 
-impl TrimeshedCollider {
+impl TriMesh {
     /// Converts the collider into a [`TrimeshedCollider`].
     ///
     /// # Arguments
@@ -94,17 +94,17 @@ impl TrimeshedCollider {
     /// - [`RoundConvexPolyhedron`](avian3d::parry::shape::RoundConvexPolyhedron)
     /// - [`RoundCylinder`](avian3d::parry::shape::RoundCylinder)
     /// - [`RoundCone`](avian3d::parry::shape::RoundCone)
-    pub fn from_collider(collider: &Collider, subdivisions: u32) -> Option<TrimeshedCollider> {
+    pub fn from_collider(collider: &Collider, subdivisions: u32) -> Option<TriMesh> {
         shape_to_trimesh(&collider.shape().as_typed_shape(), subdivisions)
     }
 
     /// Converts a [`Mesh`] into a [`TrimeshedCollider`].
-    pub fn from_mesh(mesh: &Mesh) -> Option<TrimeshedCollider> {
+    pub fn from_mesh(mesh: &Mesh) -> Option<TriMesh> {
         if mesh.primitive_topology() != PrimitiveTopology::TriangleList {
             return None;
         }
 
-        let mut trimesh = TrimeshedCollider::default();
+        let mut trimesh = TriMesh::default();
         let position = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
         let float = position.as_float3()?;
         trimesh.vertices = float.iter().map(|v| Vec3A::from(*v)).collect();
@@ -122,7 +122,7 @@ impl TrimeshedCollider {
     }
 }
 
-fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCollider> {
+fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TriMesh> {
     let (vertices, indices) = match shape {
         // Simple cases
         TypedShape::Cuboid(cuboid) => cuboid.to_trimesh(),
@@ -164,16 +164,16 @@ fn shape_to_trimesh(shape: &TypedShape, subdivisions: u32) -> Option<TrimeshedCo
         TypedShape::Custom(_shape) => return None,
     };
     let indices_len = indices.len();
-    Some(TrimeshedCollider {
+    Some(TriMesh {
         vertices: vertices.into_iter().map(|v| v.into()).collect(),
         indices: indices.into_iter().map(|i| i.into()).collect(),
         area_types: vec![AreaType::NOT_WALKABLE; indices_len],
     })
 }
 
-fn compound_trimesh(compound: &Compound, subdivisions: u32) -> TrimeshedCollider {
+fn compound_trimesh(compound: &Compound, subdivisions: u32) -> TriMesh {
     compound.shapes().iter().fold(
-        TrimeshedCollider::default(),
+        TriMesh::default(),
         |mut compound_trimesh, (isometry, shape)| {
             let Some(trimesh) =
                 // No need to track recursive compounds because parry panics on nested compounds anyways lol
@@ -200,7 +200,7 @@ mod tests {
     #[test]
     fn rasterizes_cuboid() {
         let collider = Collider::cuboid(1.0, 2.0, 3.0);
-        let trimesh = TrimeshedCollider::from_collider(&collider, 1).unwrap();
+        let trimesh = TriMesh::from_collider(&collider, 1).unwrap();
         assert_eq!(trimesh.vertices.len(), 8);
         assert_eq!(trimesh.indices.len(), 12);
     }
