@@ -10,12 +10,13 @@ use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
 #[test]
-fn heightfield() {
+fn validate_navmesh_against_cpp_implementation() {
     let geometry = load_json::<CppGeometry>("geometry");
     let mut trimesh = geometry.to_trimesh();
     let walkable_slope = 45.0_f32.to_radians();
     let walkable_height = 10;
     let walkable_climb = 4;
+    let walkable_radius = 2;
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
@@ -28,40 +29,36 @@ fn heightfield() {
     .build()
     .unwrap();
 
-    heightfield
-        .populate_from_trimesh(trimesh, walkable_height, walkable_climb)
-        .unwrap();
-
-    assert_eq_heightfield(&heightfield, "heightfield");
-}
-
-#[test]
-fn compact_heightfield_initial() {
-    let geometry = load_json::<CppGeometry>("geometry");
-    let mut trimesh = geometry.to_trimesh();
-    let walkable_slope = 45.0_f32.to_radians();
-    let walkable_height = 10;
-    let walkable_climb = 4;
-    trimesh.mark_walkable_triangles(walkable_slope);
-
-    let aabb = trimesh.compute_aabb().unwrap();
-
-    let mut heightfield = HeightfieldBuilder {
-        aabb,
-        cell_size: 0.3,
-        cell_height: 0.2,
+    // Find triangles which are walkable based on their slope and rasterize them.
+    for (i, triangle) in trimesh.indices.iter().enumerate() {
+        let triangle = [
+            trimesh.vertices[triangle[0] as usize],
+            trimesh.vertices[triangle[1] as usize],
+            trimesh.vertices[triangle[2] as usize],
+        ];
+        let area_type = trimesh.area_types[i];
+        heightfield
+            .rasterize_triangle(triangle, area_type, walkable_climb)
+            .unwrap();
     }
-    .build()
-    .unwrap();
+    assert_eq_heightfield(&heightfield, "heightfield_initial");
 
-    heightfield
-        .populate_from_trimesh(trimesh, walkable_height, walkable_climb)
-        .unwrap();
+    // Once all geometry is rasterized, we do initial pass of filtering to
+    // remove unwanted overhangs caused by the conservative rasterization
+    // as well as filter spans where the character cannot possibly stand.
+    heightfield.filter_low_hanging_walkable_obstacles(walkable_climb);
+    heightfield.filter_ledge_spans(walkable_height, walkable_climb);
+    heightfield.filter_walkable_low_height_spans(walkable_height);
 
-    let compact_heightfield =
+    assert_eq_heightfield(&heightfield, "heightfield_filtered");
+
+    let mut compact_heightfield =
         CompactHeightfield::from_heightfield(heightfield, walkable_height, walkable_climb).unwrap();
 
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_initial");
+
+    compact_heightfield.erode_walkable_area(walkable_radius);
+    assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_eroded");
 }
 
 #[track_caller]
