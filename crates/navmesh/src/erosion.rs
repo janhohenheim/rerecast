@@ -13,6 +13,10 @@ impl CompactHeightfield {
             for x in 0..self.width {
                 let cell = self.cell_at(x, z);
                 let max_span_index = cell.index() as usize + cell.count() as usize;
+                #[expect(
+                    clippy::needless_range_loop,
+                    reason = "lol the alternative suggestion is really unreadable"
+                )]
                 for span_index in cell.index() as usize..max_span_index {
                     if !self.areas[span_index].is_walkable() {
                         distance_to_boundary[span_index] = 0;
@@ -40,6 +44,64 @@ impl CompactHeightfield {
                     // At least one missing neighbour, so this is a boundary cell.
                     if neighbor_count != 4 {
                         distance_to_boundary[span_index] = 0;
+                    }
+                }
+            }
+        }
+
+        let mut new_distance = 0_u8;
+
+        // Pass 1
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let cell = self.cell_at(x, z);
+                let max_span_index = cell.index() as usize + cell.count() as usize;
+                for span_index in cell.index() as usize..max_span_index {
+                    let span = &self.spans[span_index];
+
+                    if let Some(con) = span.con(0) {
+                        // (-1,0)
+                        let a_x = (x as i32 + dir_offset_x(0) as i32) as u16;
+                        let a_z = (z as i32 + dir_offset_z(0) as i32) as u16;
+                        let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                        let a_span = &self.spans[a_index];
+                        new_distance = distance_to_boundary[a_index].saturating_add(2);
+                        if new_distance < distance_to_boundary[span_index] {
+                            distance_to_boundary[span_index] = new_distance;
+                        };
+
+                        // (-1,-1)
+                        if let Some(con) = a_span.con(3) {
+                            let b_x = (a_x as i32 + dir_offset_x(3) as i32) as u16;
+                            let b_z = (a_z as i32 + dir_offset_z(3) as i32) as u16;
+                            let b_index = self.cell_at(b_x, b_z).index() as usize + con as usize;
+                            new_distance = distance_to_boundary[b_index].saturating_add(3);
+                            if new_distance < distance_to_boundary[span_index] {
+                                distance_to_boundary[span_index] = new_distance;
+                            };
+                        }
+                    }
+                    if let Some(con) = span.con(3) {
+                        // (0,-1)
+                        let a_x = (x as i32 + dir_offset_x(3) as i32) as u16;
+                        let a_z = (z as i32 + dir_offset_z(3) as i32) as u16;
+                        let a_index = self.cell_at(a_x, a_z).index() as usize + con as usize;
+                        let a_span = &self.spans[a_index];
+                        new_distance = distance_to_boundary[a_index].saturating_add(2);
+                        if new_distance < distance_to_boundary[span_index] {
+                            distance_to_boundary[span_index] = new_distance;
+                        };
+
+                        // (1,-1)
+                        if let Some(con) = a_span.con(2) {
+                            let b_x = (a_x as i32 + dir_offset_x(2) as i32) as u16;
+                            let b_z = (a_z as i32 + dir_offset_z(2) as i32) as u16;
+                            let b_index = self.cell_at(b_x, b_z).index() as usize + con as usize;
+                            new_distance = distance_to_boundary[b_index].saturating_add(3);
+                            if new_distance < distance_to_boundary[span_index] {
+                                distance_to_boundary[span_index] = new_distance;
+                            };
+                        }
                     }
                 }
             }
