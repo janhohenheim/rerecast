@@ -13,25 +13,25 @@ use serde::{Deserialize, Serialize};
 
 /// Proxy of [`Mesh`](bevy::render::mesh::Mesh).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProxyMesh {
+pub struct SerializedMesh {
     /// Topology of the primitives.
-    pub primitive_topology: ProxyPrimitiveTopology,
+    pub primitive_topology: SerializedPrimitiveTopology,
     /// attributes in the form that [`Mesh::insert_attribute`] expects
     /// The key is the [`MeshVertexAttributeId`] of the attribute.
-    pub attributes: Vec<(ProxyMeshVertexAttributeId, ProxyVertexAttributeValues)>,
+    pub attributes: Vec<(
+        SerializedMeshVertexAttributeId,
+        SerializedVertexAttributeValues,
+    )>,
     /// Indices of the mesh.
-    pub indices: Option<ProxyIndices>,
+    pub indices: Option<SerializedIndices>,
 }
 
-pub(crate) trait CloneProxy {
-    fn clone_proxy(&self) -> ProxyMesh;
-}
-
-impl CloneProxy for Mesh {
-    fn clone_proxy(&self) -> ProxyMesh {
-        ProxyMesh {
-            primitive_topology: self.primitive_topology().into(),
-            attributes: self
+impl SerializedMesh {
+    /// Serializes a [`Mesh`] to a [`SerializedMesh`].
+    pub fn from_mesh(mesh: &Mesh) -> Self {
+        SerializedMesh {
+            primitive_topology: mesh.primitive_topology().into(),
+            attributes: mesh
                 .attributes()
                 .filter_map(|(attribute, values)| {
                     let Some(id) = attribute.id.try_into().ok() else {
@@ -44,17 +44,13 @@ impl CloneProxy for Mesh {
                     Some((id, values.clone().into()))
                 })
                 .collect(),
-            indices: self.indices().cloned().map(|indices| indices.into()),
+            indices: mesh.indices().cloned().map(|indices| indices.into()),
         }
     }
-}
 
-impl From<ProxyMesh> for Mesh {
-    fn from(proxy_mesh: ProxyMesh) -> Self {
-        let mut mesh = Mesh::new(
-            proxy_mesh.primitive_topology.into(),
-            RenderAssetUsages::all(),
-        );
+    /// Deserializes a [`SerializedMesh`] to a [`Mesh`].
+    pub fn into_mesh(self) -> Mesh {
+        let mut mesh = Mesh::new(self.primitive_topology.into(), RenderAssetUsages::all());
         let attributes = [
             Mesh::ATTRIBUTE_POSITION,
             Mesh::ATTRIBUTE_NORMAL,
@@ -65,7 +61,7 @@ impl From<ProxyMesh> for Mesh {
             Mesh::ATTRIBUTE_JOINT_WEIGHT,
             Mesh::ATTRIBUTE_JOINT_INDEX,
         ];
-        for (attribute, values) in proxy_mesh.attributes {
+        for (attribute, values) in self.attributes {
             // Safety: this is just a newtype wrapper around a u64, so we can safely transmute it
             let attribute_id: MeshVertexAttributeId = unsafe { std::mem::transmute(attribute) };
             let Some(attribute) = attributes
@@ -77,7 +73,7 @@ impl From<ProxyMesh> for Mesh {
             };
             mesh.insert_attribute(*attribute, values);
         }
-        if let Some(indices) = proxy_mesh.indices {
+        if let Some(indices) = self.indices {
             mesh.insert_indices(indices.into());
         }
         mesh
@@ -101,9 +97,9 @@ impl From<ProxyMesh> for Mesh {
     DerefMut,
 )]
 #[reflect(Serialize, Deserialize)]
-pub struct ProxyMeshVertexAttributeId(pub u64);
+pub struct SerializedMeshVertexAttributeId(pub u64);
 
-impl TryFrom<MeshVertexAttributeId> for ProxyMeshVertexAttributeId {
+impl TryFrom<MeshVertexAttributeId> for SerializedMeshVertexAttributeId {
     type Error = ();
 
     fn try_from(id: MeshVertexAttributeId) -> Result<Self, Self::Error> {
@@ -130,19 +126,19 @@ impl TryFrom<MeshVertexAttributeId> for ProxyMeshVertexAttributeId {
     }
 }
 
-impl TryFrom<ProxyMeshVertexAttributeId> for MeshVertexAttributeId {
+impl TryFrom<SerializedMeshVertexAttributeId> for MeshVertexAttributeId {
     type Error = ();
 
-    fn try_from(id: ProxyMeshVertexAttributeId) -> Result<Self, Self::Error> {
+    fn try_from(id: SerializedMeshVertexAttributeId) -> Result<Self, Self::Error> {
         match id {
-            ProxyMeshVertexAttributeId(0) => Ok(Mesh::ATTRIBUTE_POSITION.id),
-            ProxyMeshVertexAttributeId(1) => Ok(Mesh::ATTRIBUTE_NORMAL.id),
-            ProxyMeshVertexAttributeId(2) => Ok(Mesh::ATTRIBUTE_UV_0.id),
-            ProxyMeshVertexAttributeId(3) => Ok(Mesh::ATTRIBUTE_UV_1.id),
-            ProxyMeshVertexAttributeId(4) => Ok(Mesh::ATTRIBUTE_TANGENT.id),
-            ProxyMeshVertexAttributeId(5) => Ok(Mesh::ATTRIBUTE_COLOR.id),
-            ProxyMeshVertexAttributeId(6) => Ok(Mesh::ATTRIBUTE_JOINT_WEIGHT.id),
-            ProxyMeshVertexAttributeId(7) => Ok(Mesh::ATTRIBUTE_JOINT_INDEX.id),
+            SerializedMeshVertexAttributeId(0) => Ok(Mesh::ATTRIBUTE_POSITION.id),
+            SerializedMeshVertexAttributeId(1) => Ok(Mesh::ATTRIBUTE_NORMAL.id),
+            SerializedMeshVertexAttributeId(2) => Ok(Mesh::ATTRIBUTE_UV_0.id),
+            SerializedMeshVertexAttributeId(3) => Ok(Mesh::ATTRIBUTE_UV_1.id),
+            SerializedMeshVertexAttributeId(4) => Ok(Mesh::ATTRIBUTE_TANGENT.id),
+            SerializedMeshVertexAttributeId(5) => Ok(Mesh::ATTRIBUTE_COLOR.id),
+            SerializedMeshVertexAttributeId(6) => Ok(Mesh::ATTRIBUTE_JOINT_WEIGHT.id),
+            SerializedMeshVertexAttributeId(7) => Ok(Mesh::ATTRIBUTE_JOINT_INDEX.id),
             _ => Err(()),
         }
     }
@@ -150,20 +146,20 @@ impl TryFrom<ProxyMeshVertexAttributeId> for MeshVertexAttributeId {
 
 /// Proxy of [`MeshVertexAttribute`](bevy::render::mesh::MeshVertexAttribute).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProxyMeshVertexAttribute {
+pub struct SerializedMeshVertexAttribute {
     /// The friendly name of the vertex attribute
     pub name: String,
 
     /// The _unique_ id of the vertex attribute. This will also determine sort ordering
     /// when generating vertex buffers. Built-in / standard attributes will use "close to zero"
     /// indices. When in doubt, use a random / very large u64 to avoid conflicts.
-    pub id: ProxyMeshVertexAttributeId,
+    pub id: SerializedMeshVertexAttributeId,
 
     /// The format of the vertex attribute.
     pub format: VertexFormat,
 }
 
-impl TryFrom<MeshVertexAttribute> for ProxyMeshVertexAttribute {
+impl TryFrom<MeshVertexAttribute> for SerializedMeshVertexAttribute {
     type Error = ();
 
     fn try_from(attribute: MeshVertexAttribute) -> Result<Self, Self::Error> {
@@ -180,7 +176,7 @@ impl TryFrom<MeshVertexAttribute> for ProxyMeshVertexAttribute {
 /// Matches the [`VertexFormats`](VertexFormat).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(missing_docs)]
-pub enum ProxyVertexAttributeValues {
+pub enum SerializedVertexAttributeValues {
     Float32(Vec<f32>),
     Sint32(Vec<i32>),
     Uint32(Vec<u32>),
@@ -211,7 +207,7 @@ pub enum ProxyVertexAttributeValues {
     Unorm8x4(Vec<[u8; 4]>),
 }
 
-impl From<VertexAttributeValues> for ProxyVertexAttributeValues {
+impl From<VertexAttributeValues> for SerializedVertexAttributeValues {
     fn from(values: VertexAttributeValues) -> Self {
         match values {
             VertexAttributeValues::Float32(values) => Self::Float32(values),
@@ -246,37 +242,37 @@ impl From<VertexAttributeValues> for ProxyVertexAttributeValues {
     }
 }
 
-impl From<ProxyVertexAttributeValues> for VertexAttributeValues {
-    fn from(values: ProxyVertexAttributeValues) -> Self {
+impl From<SerializedVertexAttributeValues> for VertexAttributeValues {
+    fn from(values: SerializedVertexAttributeValues) -> Self {
         match values {
-            ProxyVertexAttributeValues::Float32(values) => Self::Float32(values),
-            ProxyVertexAttributeValues::Sint32(values) => Self::Sint32(values),
-            ProxyVertexAttributeValues::Uint32(values) => Self::Uint32(values),
-            ProxyVertexAttributeValues::Float32x2(values) => Self::Float32x2(values),
-            ProxyVertexAttributeValues::Sint32x2(values) => Self::Sint32x2(values),
-            ProxyVertexAttributeValues::Uint32x2(values) => Self::Uint32x2(values),
-            ProxyVertexAttributeValues::Float32x3(values) => Self::Float32x3(values),
-            ProxyVertexAttributeValues::Sint32x3(values) => Self::Sint32x3(values),
-            ProxyVertexAttributeValues::Uint32x3(values) => Self::Uint32x3(values),
-            ProxyVertexAttributeValues::Float32x4(values) => Self::Float32x4(values),
-            ProxyVertexAttributeValues::Sint32x4(values) => Self::Sint32x4(values),
-            ProxyVertexAttributeValues::Uint32x4(values) => Self::Uint32x4(values),
-            ProxyVertexAttributeValues::Sint16x2(values) => Self::Sint16x2(values),
-            ProxyVertexAttributeValues::Snorm16x2(values) => Self::Snorm16x2(values),
-            ProxyVertexAttributeValues::Uint16x2(values) => Self::Uint16x2(values),
-            ProxyVertexAttributeValues::Unorm16x2(values) => Self::Unorm16x2(values),
-            ProxyVertexAttributeValues::Sint16x4(values) => Self::Sint16x4(values),
-            ProxyVertexAttributeValues::Snorm16x4(values) => Self::Snorm16x4(values),
-            ProxyVertexAttributeValues::Uint16x4(values) => Self::Uint16x4(values),
-            ProxyVertexAttributeValues::Unorm16x4(values) => Self::Unorm16x4(values),
-            ProxyVertexAttributeValues::Sint8x2(values) => Self::Sint8x2(values),
-            ProxyVertexAttributeValues::Snorm8x2(values) => Self::Snorm8x2(values),
-            ProxyVertexAttributeValues::Uint8x2(values) => Self::Uint8x2(values),
-            ProxyVertexAttributeValues::Unorm8x2(values) => Self::Unorm8x2(values),
-            ProxyVertexAttributeValues::Sint8x4(values) => Self::Sint8x4(values),
-            ProxyVertexAttributeValues::Snorm8x4(values) => Self::Snorm8x4(values),
-            ProxyVertexAttributeValues::Uint8x4(values) => Self::Uint8x4(values),
-            ProxyVertexAttributeValues::Unorm8x4(values) => Self::Unorm8x4(values),
+            SerializedVertexAttributeValues::Float32(values) => Self::Float32(values),
+            SerializedVertexAttributeValues::Sint32(values) => Self::Sint32(values),
+            SerializedVertexAttributeValues::Uint32(values) => Self::Uint32(values),
+            SerializedVertexAttributeValues::Float32x2(values) => Self::Float32x2(values),
+            SerializedVertexAttributeValues::Sint32x2(values) => Self::Sint32x2(values),
+            SerializedVertexAttributeValues::Uint32x2(values) => Self::Uint32x2(values),
+            SerializedVertexAttributeValues::Float32x3(values) => Self::Float32x3(values),
+            SerializedVertexAttributeValues::Sint32x3(values) => Self::Sint32x3(values),
+            SerializedVertexAttributeValues::Uint32x3(values) => Self::Uint32x3(values),
+            SerializedVertexAttributeValues::Float32x4(values) => Self::Float32x4(values),
+            SerializedVertexAttributeValues::Sint32x4(values) => Self::Sint32x4(values),
+            SerializedVertexAttributeValues::Uint32x4(values) => Self::Uint32x4(values),
+            SerializedVertexAttributeValues::Sint16x2(values) => Self::Sint16x2(values),
+            SerializedVertexAttributeValues::Snorm16x2(values) => Self::Snorm16x2(values),
+            SerializedVertexAttributeValues::Uint16x2(values) => Self::Uint16x2(values),
+            SerializedVertexAttributeValues::Unorm16x2(values) => Self::Unorm16x2(values),
+            SerializedVertexAttributeValues::Sint16x4(values) => Self::Sint16x4(values),
+            SerializedVertexAttributeValues::Snorm16x4(values) => Self::Snorm16x4(values),
+            SerializedVertexAttributeValues::Uint16x4(values) => Self::Uint16x4(values),
+            SerializedVertexAttributeValues::Unorm16x4(values) => Self::Unorm16x4(values),
+            SerializedVertexAttributeValues::Sint8x2(values) => Self::Sint8x2(values),
+            SerializedVertexAttributeValues::Snorm8x2(values) => Self::Snorm8x2(values),
+            SerializedVertexAttributeValues::Uint8x2(values) => Self::Uint8x2(values),
+            SerializedVertexAttributeValues::Unorm8x2(values) => Self::Unorm8x2(values),
+            SerializedVertexAttributeValues::Sint8x4(values) => Self::Sint8x4(values),
+            SerializedVertexAttributeValues::Snorm8x4(values) => Self::Snorm8x4(values),
+            SerializedVertexAttributeValues::Uint8x4(values) => Self::Uint8x4(values),
+            SerializedVertexAttributeValues::Unorm8x4(values) => Self::Unorm8x4(values),
         }
     }
 }
@@ -287,12 +283,12 @@ impl From<ProxyVertexAttributeValues> for VertexAttributeValues {
 /// It describes the order in which the vertex attributes should be joined into faces.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(missing_docs)]
-pub enum ProxyIndices {
+pub enum SerializedIndices {
     U16(Vec<u16>),
     U32(Vec<u32>),
 }
 
-impl From<Indices> for ProxyIndices {
+impl From<Indices> for SerializedIndices {
     fn from(indices: Indices) -> Self {
         match indices {
             Indices::U16(indices) => Self::U16(indices),
@@ -301,11 +297,11 @@ impl From<Indices> for ProxyIndices {
     }
 }
 
-impl From<ProxyIndices> for Indices {
-    fn from(indices: ProxyIndices) -> Self {
+impl From<SerializedIndices> for Indices {
+    fn from(indices: SerializedIndices) -> Self {
         match indices {
-            ProxyIndices::U16(indices) => Self::U16(indices),
-            ProxyIndices::U32(indices) => Self::U32(indices),
+            SerializedIndices::U16(indices) => Self::U16(indices),
+            SerializedIndices::U32(indices) => Self::U32(indices),
         }
     }
 }
@@ -317,7 +313,7 @@ impl From<ProxyIndices> for Indices {
 /// https://gpuweb.github.io/gpuweb/#enumdef-gpuprimitivetopology).
 #[derive(Reflect, Copy, Clone, Debug, Default, Hash, Eq, PartialEq, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
-pub enum ProxyPrimitiveTopology {
+pub enum SerializedPrimitiveTopology {
     /// Vertex data is a list of points. Each vertex is a new point.
     PointList = 0,
     /// Vertex data is a list of lines. Each pair of vertices composes a new line.
@@ -339,7 +335,7 @@ pub enum ProxyPrimitiveTopology {
     TriangleStrip = 4,
 }
 
-impl From<PrimitiveTopology> for ProxyPrimitiveTopology {
+impl From<PrimitiveTopology> for SerializedPrimitiveTopology {
     fn from(topology: PrimitiveTopology) -> Self {
         match topology {
             PrimitiveTopology::PointList => Self::PointList,
@@ -351,14 +347,14 @@ impl From<PrimitiveTopology> for ProxyPrimitiveTopology {
     }
 }
 
-impl From<ProxyPrimitiveTopology> for PrimitiveTopology {
-    fn from(topology: ProxyPrimitiveTopology) -> Self {
+impl From<SerializedPrimitiveTopology> for PrimitiveTopology {
+    fn from(topology: SerializedPrimitiveTopology) -> Self {
         match topology {
-            ProxyPrimitiveTopology::PointList => PrimitiveTopology::PointList,
-            ProxyPrimitiveTopology::LineList => PrimitiveTopology::LineList,
-            ProxyPrimitiveTopology::LineStrip => PrimitiveTopology::LineStrip,
-            ProxyPrimitiveTopology::TriangleList => PrimitiveTopology::TriangleList,
-            ProxyPrimitiveTopology::TriangleStrip => PrimitiveTopology::TriangleStrip,
+            SerializedPrimitiveTopology::PointList => PrimitiveTopology::PointList,
+            SerializedPrimitiveTopology::LineList => PrimitiveTopology::LineList,
+            SerializedPrimitiveTopology::LineStrip => PrimitiveTopology::LineStrip,
+            SerializedPrimitiveTopology::TriangleList => PrimitiveTopology::TriangleList,
+            SerializedPrimitiveTopology::TriangleStrip => PrimitiveTopology::TriangleStrip,
         }
     }
 }

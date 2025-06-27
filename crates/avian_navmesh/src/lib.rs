@@ -2,10 +2,10 @@
 
 use bevy::prelude::*;
 
+mod collider_to_trimesh;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
-mod trimesh;
-pub use trimesh::ToTriMesh;
+pub use collider_to_trimesh::ToTriMesh;
 
 pub use recast;
 

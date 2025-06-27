@@ -1,5 +1,6 @@
 //! The optional editor integration for authoring the navmesh.
 
+use avian_navmesh_editor_transmission::{SerializedMesh, serialize};
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
@@ -7,14 +8,6 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::editor_integration::{
-    input_data::{CloneProxy as _, ProxyMesh},
-    serialization::serialize,
-};
-
-pub mod input_data;
-pub mod serialization;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -51,7 +44,7 @@ fn get_navmesh_input(
         .filter_map(|(transform, mesh)| {
             let transform = *transform;
             let mesh = meshes.get(mesh)?;
-            let proxy_mesh = mesh.clone_proxy();
+            let proxy_mesh = SerializedMesh::from_mesh(mesh);
             Some((transform, proxy_mesh))
         })
         .collect::<Vec<_>>();
@@ -87,7 +80,7 @@ pub const BRP_GET_NAVMESH_INPUT_METHOD: &str = "avian_navmesh/get_navmesh_input"
 #[derive(Serialize, Deserialize)]
 pub struct NavmeshInputResponse {
     /// All meshes of the current scene.
-    pub meshes: Vec<(GlobalTransform, ProxyMesh)>,
+    pub meshes: Vec<(GlobalTransform, SerializedMesh)>,
     /// The static rigid bodies of the current scene.
     /// The inner vector is all the colliders of a given rigid body.
     pub rigid_bodies: Vec<Vec<(GlobalTransform, Collider)>>,

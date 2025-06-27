@@ -375,18 +375,14 @@ name = "avian_navmesh"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "approx",
  "avian3d",
- "base64 0.22.1",
+ "avian_navmesh_editor_transmission",
  "bevy",
- "bevy_math",
- "bincode",
  "recast",
  "serde",
  "serde_json",
  "slotmap",
  "thiserror 2.0.12",
- "wgpu-types",
 ]
 
 [[package]]
@@ -396,11 +392,26 @@ dependencies = [
  "anyhow",
  "avian3d",
  "avian_navmesh",
+ "avian_navmesh_editor_transmission",
  "bevy",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
  "ureq",
+]
+
+[[package]]
+name = "avian_navmesh_editor_transmission"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "bevy",
+ "bincode",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "wgpu-types",
 ]
 
 [[package]]
@@ -2645,7 +2656,6 @@ version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8babf46d4c1c9d92deac9f7be466f76dfc4482b6452fc5024b5e8daf6ffeb3ee"
 dependencies = [
- "approx",
  "bytemuck",
  "libm",
  "rand",

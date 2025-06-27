@@ -1,7 +1,6 @@
 use anyhow::Context as _;
-use avian_navmesh::editor_integration::{
-    BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse, serialization::deserialize,
-};
+use avian_navmesh::editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse};
+use avian_navmesh_editor_transmission::deserialize;
 use avian3d::prelude::*;
 use bevy::{prelude::*, remote::BrpRequest};
 
@@ -42,7 +41,7 @@ fn fetch_navmesh_input(
         commands.entity(entity).despawn();
     }
     for (transform, mesh) in response.meshes {
-        let mesh: Mesh = mesh.into();
+        let mesh: Mesh = mesh.into_mesh();
         let mesh = meshes.add(mesh);
 
         commands.spawn((
