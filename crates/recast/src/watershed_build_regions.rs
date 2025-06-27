@@ -22,8 +22,6 @@ impl CompactHeightfield {
     ///
     /// @see rcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, rcConfig
     pub fn build_regions(&mut self, border_size: u16, min_region_area: u16, max_region_area: u16) {
-        let mut buf = vec![Region::NONE; self.spans.len() * 2];
-
         const LOG_NB_STACKS: usize = 3;
         const NB_STACKS: usize = 1 << LOG_NB_STACKS;
         let mut level_stacks: [Vec<LevelStackEntry>; NB_STACKS] = [const { Vec::new() }; NB_STACKS];
@@ -33,7 +31,8 @@ impl CompactHeightfield {
 
         let mut stack: Vec<LevelStackEntry> = Vec::with_capacity(256);
 
-        let (mut src_reg, mut src_dist) = buf.split_at_mut(self.spans.len());
+        let mut src_reg = vec![Region::NONE; self.spans.len()];
+        let mut src_dist = vec![0_u16; self.spans.len()];
 
         let mut region_id = Region::from(1);
         let mut level = (self.max_distance + 1) & !1;
@@ -57,7 +56,7 @@ impl CompactHeightfield {
                 0,
                 self.height,
                 region_id | Region::BORDER,
-                src_reg,
+                &mut src_reg,
             );
             region_id += 1;
             self.paint_rect_region(
@@ -66,7 +65,7 @@ impl CompactHeightfield {
                 0,
                 self.height,
                 region_id | Region::BORDER,
-                src_reg,
+                &mut src_reg,
             );
             region_id += 1;
             self.paint_rect_region(
@@ -75,7 +74,7 @@ impl CompactHeightfield {
                 0,
                 border_height,
                 region_id | Region::BORDER,
-                src_reg,
+                &mut src_reg,
             );
             region_id += 1;
             self.paint_rect_region(
@@ -84,7 +83,7 @@ impl CompactHeightfield {
                 self.height - border_height,
                 self.height,
                 region_id | Region::BORDER,
-                src_reg,
+                &mut src_reg,
             );
             region_id += 1;
         }
@@ -96,18 +95,18 @@ impl CompactHeightfield {
             s_id = (s_id + 1) & (NB_STACKS as i32 - 1);
 
             if s_id == 0 {
-                self.sort_cells_by_level(level, src_reg, NB_STACKS, &mut level_stacks, 1);
+                self.sort_cells_by_level(level, &mut src_reg, NB_STACKS, &mut level_stacks, 1);
             } else {
                 // copy left overs from last level
                 let (src, dst) = level_stacks.split_at_mut(s_id as usize);
-                append_stacks(&src[s_id as usize - 1], &mut dst[0], src_reg);
+                append_stacks(&src[s_id as usize - 1], &mut dst[0], &src_reg);
             }
 
             self.expand_regions(
                 expand_iters,
                 level,
-                src_reg,
-                src_dist,
+                &mut src_reg,
+                &mut src_dist,
                 &mut level_stacks[s_id as usize],
                 false,
             );
@@ -181,7 +180,7 @@ impl CompactHeightfield {
         max_iter: u16,
         level: u16,
         src_reg: &mut [Region],
-        src_dist: &mut [Region],
+        src_dist: &mut [u16],
         stack: &mut Vec<LevelStackEntry>,
         fill_stack: bool,
     ) {
@@ -251,12 +250,10 @@ impl CompactHeightfield {
                     }
                     let a_region = src_reg[a_index];
                     let a_dist = src_dist[a_index] + 2;
-                    if a_region != Region::NONE
-                        && a_region.contains(Region::BORDER)
-                        && a_dist.bits() < d2
+                    if a_region != Region::NONE && a_region.contains(Region::BORDER) && a_dist < d2
                     {
                         r = a_region;
-                        d2 = a_dist.bits();
+                        d2 = a_dist;
                     }
                 }
                 if r != Region::NONE {
@@ -275,7 +272,7 @@ impl CompactHeightfield {
             for dirty_entry in dirty_entries.iter() {
                 let index = dirty_entry.index;
                 src_reg[index] = dirty_entry.region;
-                src_dist[index] = Region::from(dirty_entry.distance2);
+                src_dist[index] = dirty_entry.distance2;
             }
 
             if failed == stack.len() {
@@ -320,12 +317,4 @@ struct DirtyEntry {
     index: usize,
     region: Region,
     distance2: u16,
-}
-
-impl LevelStackEntry {
-    const EMPTY: Self = Self {
-        x: 0,
-        z: 0,
-        index: Some(0),
-    };
 }
