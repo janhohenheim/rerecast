@@ -2,10 +2,8 @@
 
 use std::env;
 
-use avian_navmesh::{
-    AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TriMesh,
-};
 use bevy::prelude::*;
+use recast::{AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TriMesh};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 

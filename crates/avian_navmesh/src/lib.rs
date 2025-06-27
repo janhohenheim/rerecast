@@ -2,29 +2,12 @@
 
 use bevy::prelude::*;
 
-mod compact_cell;
-mod compact_heightfield;
-mod compact_span;
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
-mod erosion;
-mod heightfield;
-mod main_api;
-pub(crate) mod math;
-mod pre_filter;
-mod rasterize;
-mod region;
-mod span;
 mod trimesh;
-mod watershed;
+pub use trimesh::ToTriMesh;
 
-pub use compact_cell::CompactCell;
-pub use compact_heightfield::CompactHeightfield;
-pub use compact_span::CompactSpan;
-pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
-pub use region::Region;
-pub use span::{AreaType, Span, SpanKey};
-pub use trimesh::TriMesh;
+pub use recast;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {

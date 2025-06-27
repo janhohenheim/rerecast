@@ -15,7 +15,7 @@ bevy = { workspace = true, default-features = true, features = [
     "bevy_remote",
     "configurable_error_handler",
 ] }
-avian_navmesh = { version = "0.1.0", path = "../navmesh", features = [
+avian_navmesh = { version = "0.1.0", path = "../avian_navmesh", features = [
     "editor_integration",
     "serialize",
 ] }

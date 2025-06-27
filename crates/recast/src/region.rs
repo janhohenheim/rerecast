@@ -1,9 +1,22 @@
-use bevy::prelude::*;
+use std::ops::{Deref, DerefMut};
 
 /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deref, DerefMut)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Region(pub u16);
+
+impl Deref for Region {
+    type Target = u16;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Region {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Default for Region {
     fn default() -> Self {

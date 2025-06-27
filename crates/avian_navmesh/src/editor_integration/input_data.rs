@@ -5,11 +5,11 @@ use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
     render::mesh::{
-        Indices, MeshVertexAttribute, MeshVertexAttributeId, VertexAttributeValues, VertexFormat,
+        Indices, MeshVertexAttribute, MeshVertexAttributeId, PrimitiveTopology,
+        VertexAttributeValues, VertexFormat,
     },
 };
 use serde::{Deserialize, Serialize};
-use wgpu_types::PrimitiveTopology;
 
 /// Proxy of [`Mesh`](bevy::render::mesh::Mesh).
 #[derive(Debug, Clone, Serialize, Deserialize)]

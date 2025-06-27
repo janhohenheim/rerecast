@@ -1,4 +1,7 @@
-use avian_navmesh::{HeightfieldBuilder, HeightfieldBuilderError, TriMesh};
+use avian_navmesh::{
+    ToTriMesh as _,
+    recast::{HeightfieldBuilder, HeightfieldBuilderError, TriMesh},
+};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use thiserror::Error;
@@ -41,7 +44,7 @@ fn build_navmesh(
 ) -> Result {
     let mut trimesh = TriMesh::default();
     for collider in colliders.iter() {
-        let Some(collider) = TriMesh::from_collider(collider, config.subdivisions) else {
+        let Some(collider) = collider.to_trimesh(config.subdivisions) else {
             warn!("Failed to convert collider to trimesh. Skipping.");
             continue;
         };

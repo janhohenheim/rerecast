@@ -381,6 +381,7 @@ dependencies = [
  "bevy",
  "bevy_math",
  "bincode",
+ "recast",
  "serde",
  "serde_json",
  "slotmap",
@@ -4411,6 +4412,20 @@ checksum = "04ca636dac446b5664bd16c069c00a9621806895b8bb02c2dc68542b23b8f25d"
 dependencies = [
  "bytemuck",
  "font-types",
+]
+
+[[package]]
+name = "recast"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "approx",
+ "bevy",
+ "bevy_math",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
