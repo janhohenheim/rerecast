@@ -16,6 +16,7 @@ mod rasterize;
 mod region;
 mod span;
 mod trimesh;
+mod watershed;
 
 pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;

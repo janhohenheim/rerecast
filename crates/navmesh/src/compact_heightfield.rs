@@ -77,7 +77,7 @@ impl CompactHeightfield {
                 heightfield.width as usize * heightfield.height as usize
             ],
             spans: vec![CompactSpan::default(); walkable_span_count],
-            dist: vec![0; walkable_span_count],
+            dist: vec![],
             areas: vec![AreaType::NOT_WALKABLE; walkable_span_count],
         };
         compact_heightfield.aabb.max.y += walkable_height as f32 * compact_heightfield.cell_height;

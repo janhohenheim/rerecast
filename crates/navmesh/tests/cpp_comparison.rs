@@ -208,14 +208,11 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         cpp_heightfield.spans.len(),
         "compact_heightfield spans length"
     );
-    if !cpp_heightfield.dist.is_empty() {
-        // we preallocate the dist array to the maximum possible size, so an empty array will be full of 0s for us
-        assert_eq!(
-            compact_heightfield.dist.len(),
-            cpp_heightfield.dist.len(),
-            "compact_heightfield dist length"
-        );
-    }
+    assert_eq!(
+        compact_heightfield.dist.len(),
+        cpp_heightfield.dist.len(),
+        "compact_heightfield dist length"
+    );
     assert_eq!(
         compact_heightfield.areas.len(),
         cpp_heightfield.areas.len(),
