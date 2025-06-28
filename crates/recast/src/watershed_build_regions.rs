@@ -302,7 +302,7 @@ impl CompactHeightfield {
         loop {
             let mut merge_count = 0;
             for i in 0..nreg as usize {
-                let reg = &regions[i];
+                let reg = regions[i].clone();
                 if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER) {
                     continue;
                 }
@@ -328,7 +328,7 @@ impl CompactHeightfield {
                     if connection.contains(RegionId::BORDER) {
                         continue;
                     }
-                    let mreg = &regions[connection.bits() as usize];
+                    let mreg = regions[connection.bits() as usize].clone();
                     if mreg.id == RegionId::NONE
                         || mreg.id.contains(RegionId::BORDER)
                         || mreg.overlap
@@ -336,8 +336,8 @@ impl CompactHeightfield {
                         continue;
                     }
                     if mreg.span_count < smallest
-                        && reg.can_merge_with(mreg)
-                        && mreg.can_merge_with(reg)
+                        && reg.can_merge_with(&mreg)
+                        && mreg.can_merge_with(&reg)
                     {
                         smallest = mreg.span_count;
                         merge_id = mreg.id;
@@ -346,9 +346,10 @@ impl CompactHeightfield {
                 // Found new id.
                 if merge_id != reg.id {
                     let old_id = reg.id;
-                    let target = &regions[merge_id.bits() as usize];
                     // Merge neighbours.
-                    if target.merge_regions(reg) {
+                    if regions[merge_id.bits() as usize].merge_regions(&reg) {
+                        regions[i].span_count = 0;
+                        regions[i].connections.clear();
                         // Fixup regions pointing to current region.
                         #[expect(clippy::needless_range_loop)]
                         for j in 0..nreg as usize {
@@ -926,23 +927,28 @@ impl Region {
         }
     }
 
-    fn merge_regions(&mut self, other: &mut Self) -> bool {
+    /// Implementation note: due to mutability rules, do the following outside the function when it returns `true`:
+    /// ```ignore
+    /// other.span_count = 0;
+    /// other.connections.clear();
+    /// ```
+    fn merge_regions(&mut self, other: &Self) -> bool {
         let a_id = self.id;
         let b_id = other.id;
 
         // Duplicate current neighbourhood.
-        let mut a_con = self.connections.clone();
-        let b_con = &mut other.connections;
+        let a_con = self.connections.clone();
+        let b_con = &other.connections;
 
         // Find insertion point on A.
-        let ins_a = a_con.iter().position(|con| *con == &b_id);
+        let ins_a = a_con.iter().position(|con| *con == b_id);
 
         let Some(ins_a) = ins_a else {
             return false;
         };
 
         // Find insertion point on B.
-        let ins_b = b_con.iter().position(|con| *con == &a_id);
+        let ins_b = b_con.iter().position(|con| *con == a_id);
 
         let Some(ins_b) = ins_b else {
             return false;
@@ -967,8 +973,6 @@ impl Region {
             self.add_unique_floor_region(*floor);
         }
         self.span_count += other.span_count;
-        other.span_count = 0;
-        other.connections.clear();
 
         true
     }
