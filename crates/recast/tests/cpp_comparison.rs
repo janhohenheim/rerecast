@@ -2,7 +2,7 @@
 
 use std::env;
 
-use glam::{UVec3, Vec3, Vec3A};
+use glam::{UVec3, Vec2, Vec3A};
 use recast::{
     AreaType, CompactHeightfield, ConvexVolume, Heightfield, HeightfieldBuilder, RegionId, TriMesh,
 };
@@ -60,7 +60,7 @@ fn validate_navmesh_against_cpp_implementation() {
             vertices: volume
                 .verts
                 .iter()
-                .map(|[x, y, z]| Vec3A::new(*x, *y, *z))
+                .map(|[x, _y, z]| Vec2::new(*x, *z))
                 .collect(),
             min_y: volume.hmin,
             max_y: volume.hmax,

@@ -1,17 +1,16 @@
-use glam::{IVec3, Vec3A};
+use glam::{IVec3, Vec2, Vec3A};
 
-use crate::{Aabb3d, AreaType, CompactHeightfield};
+use crate::{Aabb2d, Aabb3d, AreaType, CompactHeightfield};
 
 impl CompactHeightfield {
     /// Sets the [`AreaType`] of the spans within the given convex volume.
     pub fn mark_convex_poly_area(&mut self, volume: ConvexVolume) {
         // Compute the bounding box of the polygon
-        let Some(mut aabb) = Aabb3d::from_verts(&volume.vertices) else {
+        let Some(mut aabb) = Aabb2d::from_verts(&volume.vertices) else {
             // The volume is empty
             return;
         };
-        aabb.min.y = volume.min_y;
-        aabb.max.y = volume.max_y;
+        let aabb = aabb.extend_y(volume.min_y, volume.max_y);
 
         // Compute the grid footprint of the polygon
         let mut min = aabb.min - self.aabb.min;
@@ -43,7 +42,6 @@ impl CompactHeightfield {
                 let cell_index = (x + z * self.width as i32) as usize;
                 let cell = &self.cells[cell_index];
                 let max_index = cell.index() as usize + cell.count() as usize;
-                #[expect(clippy::needless_range_loop)]
                 for i in cell.index() as usize..max_index {
                     let span = &self.spans[i];
 
@@ -57,9 +55,8 @@ impl CompactHeightfield {
                         continue;
                     }
 
-                    let point = Vec3A::new(
+                    let point = Vec2::new(
                         self.aabb.min.x + (x as f32 + 0.5) * self.cell_size,
-                        0.0,
                         self.aabb.min.z + (z as f32 + 0.5) * self.cell_size,
                     );
                     if point_in_poly(&point, &volume.vertices) {
@@ -71,16 +68,16 @@ impl CompactHeightfield {
     }
 }
 
-fn point_in_poly(point: &Vec3A, vertices: &[Vec3A]) -> bool {
+fn point_in_poly(point: &Vec2, vertices: &[Vec2]) -> bool {
     let mut inside = false;
     let mut j = vertices.len() - 1;
     for i in 0..vertices.len() {
         let xi = vertices[i].x;
-        let yi = vertices[i].z;
+        let yi = vertices[i].y;
         let xj = vertices[j].x;
-        let yj = vertices[j].z;
-        if ((yi > point.z) != (yj > point.z))
-            && (point.x < (xj - xi) * (point.z - yi) / (yj - yi) + xi)
+        let yj = vertices[j].y;
+        if ((yi > point.y) != (yj > point.y))
+            && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
         {
             inside = !inside;
         }
@@ -89,9 +86,14 @@ fn point_in_poly(point: &Vec3A, vertices: &[Vec3A]) -> bool {
     inside
 }
 
+/// A convex volume that marks an area within a [`CompactHeightfield`] as belonging to a specific [`AreaType`] through [`CompactHeightfield::mark_convex_poly_area`].
 pub struct ConvexVolume {
-    pub vertices: Vec<Vec3A>,
+    /// The vertices of the convex volume. In 3D, these represent the X and Z coordinates of the vertices.
+    pub vertices: Vec<Vec2>,
+    /// The lower Y coordinate of the convex volume.
     pub min_y: f32,
+    /// The upper Y coordinate of the convex volume.
     pub max_y: f32,
+    /// The area type of the convex volume.
     pub area: AreaType,
 }

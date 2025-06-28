@@ -1,4 +1,4 @@
-use glam::{UVec3, Vec3A};
+use glam::{UVec3, Vec2, Vec3A};
 
 /// A 3D axis-aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -25,7 +25,7 @@ impl Aabb3d {
     ///
     /// Returns `None` if the list of vertices is empty.
     #[inline]
-    pub fn from_verts(verts: &[Vec3A]) -> Option<Self> {
+    pub(crate) fn from_verts(verts: &[Vec3A]) -> Option<Self> {
         if verts.is_empty() {
             return None;
         }
@@ -40,8 +40,46 @@ impl Aabb3d {
 
     /// Checks if this AABB intersects with another AABB.
     #[inline]
-    pub fn intersects(&self, other: &Aabb3d) -> bool {
+    pub(crate) fn intersects(&self, other: &Aabb3d) -> bool {
         self.min.cmple(other.max).all() && self.max.cmpge(other.min).all()
+    }
+}
+
+/// A 2D axis-aligned bounding box
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Aabb2d {
+    /// The minimum point of the box
+    pub min: Vec2,
+    /// The maximum point of the box
+    pub max: Vec2,
+}
+
+impl Aabb2d {
+    /// Creates a new AABB from a list of 2D points.
+    ///
+    /// Returns `None` if the list of vertices is empty.
+    #[inline]
+    pub(crate) fn from_verts(verts: &[Vec2]) -> Option<Self> {
+        if verts.is_empty() {
+            return None;
+        }
+        let min = verts
+            .iter()
+            .fold(Vec2::splat(f32::MAX), |acc, &v| acc.min(v));
+        let max = verts
+            .iter()
+            .fold(Vec2::splat(f32::MIN), |acc, &v| acc.max(v));
+        Some(Self { min, max })
+    }
+
+    /// Extends the AABB into an [`Aabb3d`] by treating the existing coordinates as X and Z values,
+    /// and `y_min` and `y_max` are the new minimum and maximum Y values.
+    #[inline]
+    pub(crate) fn extend_y(self, y_min: f32, y_max: f32) -> Aabb3d {
+        Aabb3d {
+            min: Vec3A::new(self.min.x, y_min, self.min.y),
+            max: Vec3A::new(self.max.x, y_max, self.max.y),
+        }
     }
 }
 
