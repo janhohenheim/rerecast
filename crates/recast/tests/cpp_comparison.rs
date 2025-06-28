@@ -17,7 +17,7 @@ fn validate_navmesh_against_cpp_implementation() {
     let walkable_radius = 2;
     let min_region_area = 64;
     let merge_region_area = 400;
-    let border_size = 0;
+    let border_size = 5;
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
