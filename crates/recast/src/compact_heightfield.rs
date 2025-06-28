@@ -125,7 +125,7 @@ impl CompactHeightfield {
                 let column_index = x as usize + z as usize * heightfield.width as usize;
                 let cell = &mut compact_heightfield.cells[column_index];
                 let index_count = cell.index() as usize + cell.count() as usize;
-                for i in cell.index() as usize..index_count as usize {
+                for i in cell.index() as usize..index_count {
                     for dir in 0..4_u8 {
                         compact_heightfield.spans[i].set_con(dir, None);
                         let neighbor_x = x as i32 + dir_offset_x(dir) as i32;
