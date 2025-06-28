@@ -4,3 +4,4 @@
 .cargo/config.toml
 
 /bruno
+autosaves/*.map
