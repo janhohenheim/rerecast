@@ -1,12 +1,12 @@
-use glam::{IVec3, Vec2, Vec3A};
+use glam::{IVec3, Vec2};
 
-use crate::{Aabb2d, Aabb3d, AreaType, CompactHeightfield};
+use crate::{Aabb2d, AreaType, CompactHeightfield};
 
 impl CompactHeightfield {
     /// Sets the [`AreaType`] of the spans within the given convex volume.
     pub fn mark_convex_poly_area(&mut self, volume: ConvexVolume) {
         // Compute the bounding box of the polygon
-        let Some(mut aabb) = Aabb2d::from_verts(&volume.vertices) else {
+        let Some(aabb) = Aabb2d::from_verts(&volume.vertices) else {
             // The volume is empty
             return;
         };
