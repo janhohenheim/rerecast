@@ -1,13 +1,10 @@
-use std::{
-    cmp::Ordering,
-    ops::{Add, AddAssign},
-};
+use std::ops::{Add, AddAssign};
 
 bitflags::bitflags! {
     /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     #[repr(transparent)]
-    pub struct Region: u16 {
+    pub struct RegionId: u16 {
         /// The default region, which is used for spans that are not in a region, i.e. not walkable.
         const NONE = 0;
         /// Heightfield border flag.
@@ -15,37 +12,32 @@ bitflags::bitflags! {
         /// region and its spans are considered un-walkable.
         /// (Used during the region and contour build process.)
         const BORDER = 0x8000;
+        /// The maximum region ID.
         const MAX = u16::MAX;
     }
 }
 
-impl Add<u16> for Region {
+impl Add<u16> for RegionId {
     type Output = Self;
     fn add(self, other: u16) -> Self::Output {
-        Region::from(self.bits() + other)
+        RegionId::from(self.bits() + other)
     }
 }
 
-impl AddAssign<u16> for Region {
+impl AddAssign<u16> for RegionId {
     fn add_assign(&mut self, other: u16) {
-        *self = Region::from(self.bits() + other);
+        *self = RegionId::from(self.bits() + other);
     }
 }
 
-impl Ord for Region {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.bits().cmp(&other.bits())
-    }
-}
-
-impl Default for Region {
+impl Default for RegionId {
     fn default() -> Self {
         Self::NONE
     }
 }
 
-impl From<u16> for Region {
+impl From<u16> for RegionId {
     fn from(value: u16) -> Self {
-        Region::from_bits_truncate(value)
+        RegionId::from_bits_truncate(value)
     }
 }

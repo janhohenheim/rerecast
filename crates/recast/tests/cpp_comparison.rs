@@ -3,7 +3,7 @@
 use std::env;
 
 use glam::{UVec3, Vec3A};
-use recast::{AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, Region, TriMesh};
+use recast::{AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, RegionId, TriMesh};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
@@ -246,7 +246,7 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
         assert_eq!(span.y, cpp_span.y, "compact_heightfield span y {i}");
         assert_eq!(
             span.region,
-            Region::from(cpp_span.reg),
+            RegionId::from(cpp_span.reg),
             "compact_heightfield span reg {i}"
         );
         let first_24_bits = span.data & 0x00FF_FFFF;

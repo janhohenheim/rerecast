@@ -1,4 +1,4 @@
-use crate::region::Region;
+use crate::region::RegionId;
 
 /// A span in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
 /// Packed for memory efficiency.
@@ -7,7 +7,7 @@ pub struct CompactSpan {
     /// The lower extent of the span. (Measured from the heightfield's base.)
     pub y: u16,
     /// The id of the region the span belongs to. (Or [`Region::None`] if not in a region.)
-    pub region: Region,
+    pub region: RegionId,
     /// 24 bits: packed neighbor connection data
     /// 8 bits: the height of the span
     pub data: u32,

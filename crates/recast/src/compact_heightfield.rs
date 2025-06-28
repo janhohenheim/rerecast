@@ -4,7 +4,7 @@ use crate::{
     compact_span::CompactSpan,
     heightfield::Heightfield,
     math::{dir_offset_x, dir_offset_z},
-    region::Region,
+    region::RegionId,
     span::AreaType,
 };
 
@@ -24,7 +24,7 @@ pub struct CompactHeightfield {
     /// The maximum distance value of any span within the field.
     pub max_distance: u16,
     /// The maximum region id of any span within the field.
-    pub max_region: Region,
+    pub max_region: RegionId,
     /// The AABB of the heightfield
     pub aabb: Aabb3d,
     /// The size of each cell on the xz-plane
@@ -68,7 +68,7 @@ impl CompactHeightfield {
             border_size: 0,
             aabb: heightfield.aabb,
             max_distance: 0,
-            max_region: Region::NONE,
+            max_region: RegionId::NONE,
             cell_size: heightfield.cell_size,
             cell_height: heightfield.cell_height,
             cells: vec![

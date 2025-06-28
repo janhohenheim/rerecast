@@ -20,6 +20,6 @@ pub use compact_heightfield::CompactHeightfield;
 pub use compact_span::CompactSpan;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use math::Aabb3d;
-pub use region::Region;
+pub use region::RegionId;
 pub use span::{AreaType, Span, SpanKey};
 pub use trimesh::TriMesh;
