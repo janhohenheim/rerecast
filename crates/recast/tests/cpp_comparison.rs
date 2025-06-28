@@ -17,6 +17,7 @@ fn validate_navmesh_against_cpp_implementation() {
     let walkable_radius = 2;
     let min_region_area = 64;
     let merge_region_area = 400;
+    let border_size = 0;
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
@@ -55,7 +56,7 @@ fn validate_navmesh_against_cpp_implementation() {
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_distance_field");
 
     compact_heightfield
-        .build_regions(walkable_radius, min_region_area, merge_region_area)
+        .build_regions(border_size, min_region_area, merge_region_area)
         .unwrap();
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_regions");
 }

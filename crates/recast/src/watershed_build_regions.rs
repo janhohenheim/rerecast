@@ -84,7 +84,7 @@ impl CompactHeightfield {
             region_id += 1;
             self.paint_rect_region(
                 0,
-                border_width,
+                self.width,
                 self.height - border_height,
                 self.height,
                 region_id | RegionId::BORDER,
