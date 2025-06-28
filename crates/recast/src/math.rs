@@ -1,7 +1,7 @@
 use glam::{UVec3, Vec2, Vec3A};
 
 /// A 3D axis-aligned bounding box
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Aabb3d {
     /// The minimum point of the box
     pub min: Vec3A,
@@ -118,6 +118,7 @@ impl TriangleVertices for [Vec3A; 3] {
 /// # Returns
 ///
 /// The width offset to apply to the current cell position to move in the direction.
+#[inline]
 pub(crate) fn dir_offset_x(direction: u8) -> i8 {
     const OFFSET: [i8; 4] = [-1, 0, 1, 0];
     OFFSET[direction as usize & 0x03]
@@ -129,6 +130,7 @@ pub(crate) fn dir_offset_x(direction: u8) -> i8 {
 /// # Returns
 ///
 /// The height offset to apply to the current cell position to move in the direction.
+#[inline]
 pub(crate) fn dir_offset_z(direction: u8) -> i8 {
     const OFFSET: [i8; 4] = [0, 1, 0, -1];
     OFFSET[direction as usize & 0x03]

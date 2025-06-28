@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 /// Provides information on the content of a cell column in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CompactCell {
@@ -33,5 +35,9 @@ impl CompactCell {
     /// Increments the number of spans in the column by 1.
     pub fn inc_count(&mut self) {
         self.count += 1;
+    }
+
+    pub(crate) fn index_range(&self) -> Range<usize> {
+        self.index as usize..self.index as usize + self.count as usize
     }
 }

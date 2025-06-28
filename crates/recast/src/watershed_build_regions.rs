@@ -58,7 +58,7 @@ impl CompactHeightfield {
                 border_width,
                 0,
                 self.height,
-                region_id | RegionId::BORDER,
+                region_id | RegionId::BORDER_REGION,
                 &mut src_reg,
             );
             region_id += 1;
@@ -67,7 +67,7 @@ impl CompactHeightfield {
                 self.width,
                 0,
                 self.height,
-                region_id | RegionId::BORDER,
+                region_id | RegionId::BORDER_REGION,
                 &mut src_reg,
             );
             region_id += 1;
@@ -76,7 +76,7 @@ impl CompactHeightfield {
                 self.width,
                 0,
                 border_height,
-                region_id | RegionId::BORDER,
+                region_id | RegionId::BORDER_REGION,
                 &mut src_reg,
             );
             region_id += 1;
@@ -85,7 +85,7 @@ impl CompactHeightfield {
                 self.width,
                 self.height - border_height,
                 self.height,
-                region_id | RegionId::BORDER,
+                region_id | RegionId::BORDER_REGION,
                 &mut src_reg,
             );
             region_id += 1;
@@ -240,7 +240,7 @@ impl CompactHeightfield {
         let mut trace = Vec::with_capacity(32);
         for i in 0..nreg as usize {
             let reg: &mut Region = &mut regions[i];
-            if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER) {
+            if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER_REGION) {
                 continue;
             }
             if reg.span_count == 0 {
@@ -266,7 +266,7 @@ impl CompactHeightfield {
                 trace.push(ri);
 
                 for connection in c_reg.connections.iter() {
-                    if connection.contains(RegionId::BORDER) {
+                    if connection.contains(RegionId::BORDER_REGION) {
                         connects_to_border = true;
                         continue;
                     }
@@ -274,7 +274,8 @@ impl CompactHeightfield {
                     if nei_reg.visited {
                         continue;
                     }
-                    if nei_reg.id == RegionId::NONE || nei_reg.id.contains(RegionId::BORDER) {
+                    if nei_reg.id == RegionId::NONE || nei_reg.id.contains(RegionId::BORDER_REGION)
+                    {
                         continue;
                     }
                     // Visit
@@ -301,7 +302,7 @@ impl CompactHeightfield {
             let mut merge_count = 0;
             for i in 0..nreg as usize {
                 let reg = regions[i].clone();
-                if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER) {
+                if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER_REGION) {
                     continue;
                 }
                 if reg.overlap {
@@ -323,12 +324,12 @@ impl CompactHeightfield {
                 let mut smallest = usize::MAX;
                 let mut merge_id = reg.id;
                 for connection in reg.connections.iter() {
-                    if connection.contains(RegionId::BORDER) {
+                    if connection.contains(RegionId::BORDER_REGION) {
                         continue;
                     }
                     let mreg = regions[connection.bits() as usize].clone();
                     if mreg.id == RegionId::NONE
-                        || mreg.id.contains(RegionId::BORDER)
+                        || mreg.id.contains(RegionId::BORDER_REGION)
                         || mreg.overlap
                     {
                         continue;
@@ -352,7 +353,8 @@ impl CompactHeightfield {
                         #[expect(clippy::needless_range_loop)]
                         for j in 0..nreg as usize {
                             let reg = &mut regions[j];
-                            if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER) {
+                            if reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER_REGION)
+                            {
                                 continue;
                             }
                             // If another region was already merged into current region
@@ -379,7 +381,7 @@ impl CompactHeightfield {
         for i in 0..nreg as usize {
             let reg = &mut regions[i];
             // Skip nil regions and external regions.
-            reg.remap = !(reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER));
+            reg.remap = !(reg.id == RegionId::NONE || reg.id.contains(RegionId::BORDER_REGION));
         }
 
         let mut reg_id_gen = 0;
@@ -402,7 +404,7 @@ impl CompactHeightfield {
 
         // Remap regions
         for reg in src_reg.iter_mut() {
-            if !reg.contains(RegionId::BORDER) {
+            if !reg.contains(RegionId::BORDER_REGION) {
                 *reg = regions[reg.bits() as usize].id;
             }
         }
@@ -557,7 +559,7 @@ impl CompactHeightfield {
                         continue;
                     }
                     let nr = src_reg[a_index];
-                    if nr.contains(RegionId::BORDER) {
+                    if nr.contains(RegionId::BORDER_REGION) {
                         // Do not take borders into account.
                         break;
                     }
@@ -755,7 +757,7 @@ impl CompactHeightfield {
                     let a_region = src_reg[a_index];
                     let a_dist = src_dist[a_index] + 2;
                     if a_region != RegionId::NONE
-                        && !a_region.contains(RegionId::BORDER)
+                        && !a_region.contains(RegionId::BORDER_REGION)
                         && a_dist < d2
                     {
                         r = a_region;

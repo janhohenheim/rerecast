@@ -11,7 +11,20 @@ bitflags::bitflags! {
         /// If a heightfield region ID has this bit set, then the region is a border
         /// region and its spans are considered un-walkable.
         /// (Used during the region and contour build process.)
-        const BORDER = 0x8000;
+        const BORDER_REGION = 0x8000;
+        /// Border vertex flag.
+        /// If a region ID has this bit set, then the associated element lies on
+        /// a tile border. If a contour vertex's region ID has this bit set, the
+        /// vertex will later be removed in order to match the segments and vertices
+        /// at tile boundaries.
+        /// (Used during the build process.)
+        const BORDER_VERTEX = 0x10_000;
+
+        /// Area border flag.
+        /// If a region ID has this bit set, then the associated element lies on
+        /// the border of an area.
+        /// (Used during the region and contour build process.)
+        const AREA_BORDER = 0x20_000;
         /// The maximum region ID.
         const MAX = u16::MAX;
     }

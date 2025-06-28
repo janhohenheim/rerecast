@@ -1,0 +1,285 @@
+use glam::{U16Vec3, U16Vec4, UVec4, Vec4};
+
+use crate::{
+    Aabb3d, AreaType, CompactHeightfield, RegionId,
+    math::{dir_offset_x, dir_offset_z},
+};
+
+impl CompactHeightfield {
+    /// The raw contours will match the region outlines exactly. The `max_error` and `max_edge_len`
+    /// parameters control how closely the simplified contours will match the raw contours.
+    ///
+    /// Simplified contours are generated such that the vertices for portals between areas match up.
+    /// (They are considered mandatory vertices.)
+    ///
+    /// Setting `max_edge_length` to zero will disabled the edge length feature.
+    pub fn build_contours(
+        &mut self,
+        max_error: f32,
+        max_edge_len: u16,
+        flags: BuildContoursFlags,
+    ) -> ContourSet {
+        let mut cset = ContourSet {
+            contours: Vec::new(),
+            aabb: self.aabb,
+            cell_size: self.cell_size,
+            cell_height: self.cell_height,
+            width: self.width - self.border_size * 2,
+            height: self.height - self.border_size * 2,
+            border_size: self.border_size,
+            max_error,
+        };
+        if self.border_size > 0 {
+            // If the heightfield was built with border_size, remove the offset
+            let pad = self.border_size as f32 + self.cell_size;
+            cset.aabb.min.x += pad;
+            cset.aabb.min.z += pad;
+            cset.aabb.max.x -= pad;
+            cset.aabb.max.z -= pad;
+        }
+
+        let max_contours = self.max_region.bits().max(8);
+
+        cset.contours = vec![Contour::default(); max_contours as usize];
+        // We will shrink contours to this value later
+        let mut contour_count = 0;
+        let mut flags = vec![0_u8; self.spans.len()];
+
+        // Mark boundaries
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let cell = &self.cell_at(x, z);
+                for i in cell.index_range() {
+                    let mut res = 0;
+                    let span = &self.spans[i];
+                    if span.region == RegionId::NONE
+                        || span.region.contains(RegionId::BORDER_REGION)
+                    {
+                        flags[i] = 0;
+                        continue;
+                    }
+                    for dir in 0..4 {
+                        let mut r = RegionId::NONE;
+                        if let Some(con) = span.con(dir) {
+                            let a_x = x as i32 + dir_offset_x(dir) as i32;
+                            let a_z = z as i32 + dir_offset_z(dir) as i32;
+                            let cell_index = (a_x + a_z * self.width as i32) as usize;
+                            let a_i = self.cells[cell_index].index() as usize + con as usize;
+                            r = self.spans[a_i].region;
+                        }
+                        if r == self.spans[i].region {
+                            res |= 1 << dir;
+                        }
+                    }
+                    // Inverse, mark non connected edges.
+                    flags[i] = res & 0xf;
+                }
+            }
+        }
+
+        let mut verts = Vec::with_capacity(256);
+        let mut simplified = Vec::with_capacity(64);
+
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let c = self.cell_at(x, z);
+                for i in c.index_range() {
+                    if flags[i] == 0 || flags[i] == 0xf {
+                        flags[i] = 0;
+                        continue;
+                    }
+                    let reg = self.spans[i].region;
+                    if reg == RegionId::NONE || reg.contains(RegionId::BORDER_REGION) {
+                        continue;
+                    }
+                    let area = self.areas[i];
+
+                    verts.clear();
+                    simplified.clear();
+
+                    self.walk_contour_build(x, z, i, &mut flags, &mut verts);
+                }
+            }
+        }
+        cset
+    }
+
+    fn walk_contour_build(
+        &self,
+        x: u16,
+        z: u16,
+        i: usize,
+        flags: &mut [u8],
+        points: &mut Vec<U16Vec4>,
+    ) {
+        // Choose the first non-connected edge
+        let mut dir = 0;
+        while flags[i] != 0 && (1 << dir) != 0 {
+            dir += 1;
+        }
+
+        let start_dir = dir;
+        let start_i = i;
+        let area = self.areas[i];
+
+        for _ in 0..40_000 {
+            if flags[i] != 0 && (1 << dir) != 0 {
+                // Choose the edge corner
+                let mut is_area_border = false;
+                let mut p_x = x;
+                let (p_y, is_border_vertex) = self.get_corner_height(x, z, i, dir);
+                let mut p_z = z;
+                match dir {
+                    0 => {
+                        p_z += 1;
+                    }
+                    1 => {
+                        p_x += 1;
+                        p_z += 1;
+                    }
+                    2 => {
+                        p_x += 1;
+                    }
+                    _ => {}
+                }
+                let mut r = RegionId::NONE;
+                let s = &self.spans[i];
+                if let Some(con) = s.con(dir) {
+                    let (a_x, a_y, a_i) = self.con_indices(x as i32, z as i32, dir, con);
+                    r = self.spans[a_i].region;
+                    if area != self.areas[a_i] {
+                        is_area_border = true;
+                    }
+                }
+                if is_border_vertex {
+                    r |= RegionId::BORDER_REGION;
+                }
+                if is_area_border {
+                    r |= RegionId::AREA_BORDER;
+                }
+                points.push(U16Vec4::new(p_x, p_y, p_z, r.bits()));
+
+                todo!()
+            }
+        }
+    }
+
+    fn get_corner_height(&self, x: u16, z: u16, i: usize, dir: u8) -> (u16, bool) {
+        let s = &self.spans[i];
+        let mut ch = s.y;
+        let dir_p = (dir + 1) % 0x3;
+
+        let mut regs = [RegionId::NONE; 4];
+
+        // Combine region and area codes in order to prevent
+        // border vertices which are in between two areas to be removed.
+        let get_reg = |i: usize| {
+            RegionId::from(self.spans[i].region.bits() | ((self.areas[i].0 as u16) << 16))
+        };
+        regs[0] = get_reg(i);
+
+        if let Some(con) = s.con(dir) {
+            let (a_x, a_z, a_i) = self.con_indices(x as i32, z as i32, dir, con);
+            let a_s = &self.spans[a_i];
+            ch = ch.max(a_s.y);
+            regs[1] = get_reg(a_i);
+            if let Some(con) = a_s.con(dir_p) {
+                let (b_x, b_z, b_i) = self.con_indices(a_x, a_z, dir_p, con);
+                let b_s = &self.spans[b_i];
+                ch = ch.max(b_s.y);
+                regs[2] = get_reg(b_i);
+            }
+        }
+        if let Some(con) = s.con(dir_p) {
+            let (a_x, a_z, a_i) = self.con_indices(x as i32, z as i32, dir_p, con);
+            let a_s = &self.spans[a_i];
+            ch = ch.max(a_s.y);
+            regs[3] = get_reg(a_i);
+            if let Some(con) = a_s.con(dir) {
+                let (b_x, b_z, b_i) = self.con_indices(a_x, a_z, dir, con);
+                let b_s = &self.spans[b_i];
+                ch = ch.max(b_s.y);
+                regs[2] = get_reg(b_i);
+            }
+        }
+
+        // Check if the vertex is special edge vertex, these vertices will be removed later.
+        let mut is_border_vertex = false;
+        for dir in 0..4 {
+            let a = dir;
+            let b = (dir + 1) & 0x3;
+            let c = (dir + 2) & 0x3;
+            let d = (dir + 3) & 0x3;
+
+            // The vertex is a border vertex there are two same exterior cells in a row,
+            // followed by two interior cells and none of the regions are out of bounds.
+            let two_same_exts = regs[a] == regs[b] && regs[a].contains(RegionId::BORDER_REGION);
+            let two_ints = !(regs[c] | regs[d]).contains(RegionId::BORDER_REGION);
+            let ints_same_area = (regs[c].bits() >> 16) == (regs[d].bits() >> 16);
+            let no_zeros = regs[a] != RegionId::NONE
+                && regs[b] != RegionId::NONE
+                && regs[c] != RegionId::NONE
+                && regs[d] != RegionId::NONE;
+            if two_same_exts && two_ints && no_zeros && ints_same_area {
+                is_border_vertex = true;
+                break;
+            }
+        }
+        (ch, is_border_vertex)
+    }
+}
+
+/// Represents a group of related contours.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContourSet {
+    /// An array of the contours in the set.
+    contours: Vec<Contour>,
+    /// The AABB in world space
+    aabb: Aabb3d,
+    /// The size of each cell. (On the xz-plane.)
+    cell_size: f32,
+    /// The height of each cell. (The minimum increment along the y-axis.)
+    cell_height: f32,
+    /// The width of the set. (Along the x-axis in cell units.)
+    width: u16,
+    /// The height of the set. (Along the z-axis in cell units.)
+    height: u16,
+    /// The AABB border size used to generate the source data from which the contours were derived.
+    border_size: u16,
+    /// The max edge error that this contour set was simplified with.
+    max_error: f32,
+}
+
+/// Represents a simple, non-overlapping contour in field space.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Contour {
+    /// Simplified contour vertex and connection data.
+    vertices: Vec<UVec4>,
+    /// Raw contour vertex and connection data.
+    raw_vertices: Vec<UVec4>,
+    /// Region ID of the contour.
+    region: RegionId,
+    /// Area type of the contour.
+    area: AreaType,
+}
+
+bitflags::bitflags! {
+    /// Contour build flags used in [`CompactHeightfield::build_contours`]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    #[repr(transparent)]
+    pub struct BuildContoursFlags: u8 {
+        /// Tessellate solid (impassable) edges during contour simplification.
+        const TESSELLATE_SOLID_WALL_EDGES = 1;
+        /// Tessellate edges between areas during contour simplification.
+        const TESSELLATE_AREA_EDGES = 2;
+
+        /// Default flags for building contours.
+        const DEFAULT = Self::TESSELLATE_SOLID_WALL_EDGES.bits();
+    }
+}
+
+impl Default for BuildContoursFlags {
+    fn default() -> Self {
+        Self::DEFAULT
+    }
+}

@@ -3,6 +3,7 @@
 mod compact_cell;
 mod compact_heightfield;
 mod compact_span;
+mod contours;
 mod erosion;
 mod heightfield;
 mod main_api;

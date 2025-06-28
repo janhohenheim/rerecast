@@ -219,6 +219,15 @@ impl CompactHeightfield {
         let index = self.column_index(x, z);
         &mut self.cells[index]
     }
+
+    #[inline]
+    pub(crate) fn con_indices(&self, x: i32, z: i32, dir: u8, con: u8) -> (i32, i32, usize) {
+        let a_x = x + dir_offset_x(dir) as i32;
+        let a_z = z + dir_offset_z(dir) as i32;
+        let cell_index = (a_x + a_z * self.width as i32) as usize;
+        let a_i = self.cells[cell_index].index() as usize + con as usize;
+        (a_x, a_z, a_i)
+    }
 }
 
 /// Errors that can occur when building a compact heightfield.
