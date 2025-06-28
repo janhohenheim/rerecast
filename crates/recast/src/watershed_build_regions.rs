@@ -377,6 +377,7 @@ impl CompactHeightfield {
         }
 
         // Compress region IDs
+        #[expect(clippy::needless_range_loop)]
         for i in 0..nreg as usize {
             let reg = &mut regions[i];
             // Skip nil regions and external regions.
@@ -391,6 +392,7 @@ impl CompactHeightfield {
             let old_id = regions[i].id;
             reg_id_gen += 1;
             let new_id = RegionId::from(reg_id_gen);
+            #[expect(clippy::needless_range_loop)]
             for j in i..nreg as usize {
                 if regions[j].id == old_id {
                     regions[j].id = new_id;
@@ -408,6 +410,7 @@ impl CompactHeightfield {
         }
 
         // Return regions that we found to be overlapping.
+        #[expect(clippy::needless_range_loop)]
         for i in 0..nreg as usize {
             if regions[i].overlap {
                 overlaps.push(regions[i].id);
