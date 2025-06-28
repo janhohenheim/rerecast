@@ -25,11 +25,11 @@ impl TriMesh {
 }
 
 impl Heightfield {
-    /// Rasterizes the triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
+    /// Rasterizes the triangles of a [`TriMesh`] into a [`Heightfield`].
     ///
     /// # Arguments
     ///
-    /// - `trimesh` - The [`TrimeshedCollider`] to rasterize.
+    /// - `trimesh` - The [`TriMesh`] to rasterize.
     /// - `walkable_height` Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
     /// - `walkable_climb` - Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
     ///

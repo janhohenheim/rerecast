@@ -65,7 +65,6 @@ impl From<SpanBuilder> for Span {
 }
 
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L294>
-/// Build with [`SpanBuilder`]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Span {
     /// Height of the floor.
@@ -137,7 +136,7 @@ impl Span {
 }
 
 /// An identifier for the area type of a span.
-/// The values 0 ([`AreaType::NOT_WALKABLE`]) and [`u8::MAX`] ([`AreaType::WALKABLE`]) are reserved.
+/// The values 0 ([`AreaType::NOT_WALKABLE`]) and [`u8::MAX`] ([`AreaType::DEFAULT_WALKABLE`]) are reserved.
 /// The rest can be used for custom area types to e.g. assign different costs to different areas.
 /// When two spans are merged, the area type of the merged span is the maximum of the two area types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

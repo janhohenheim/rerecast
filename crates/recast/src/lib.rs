@@ -23,5 +23,5 @@ pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;
 pub use math::{Aabb2d, Aabb3d};
 pub use region::RegionId;
-pub use span::{AreaType, Span, SpanKey};
+pub use span::{AreaType, Span, SpanKey, Spans};
 pub use trimesh::TriMesh;

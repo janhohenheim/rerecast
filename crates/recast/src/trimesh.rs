@@ -17,7 +17,7 @@ pub struct TriMesh {
     /// Follows the convention of a triangle list.
     pub indices: Vec<UVec3>,
 
-    /// The area types of the trimesh. Each index corresponds 1:1 to the [`TrimeshedCollider::indices`].
+    /// The area types of the trimesh. Each index corresponds 1:1 to the [`TriMesh::indices`].
     pub area_types: Vec<AreaType>,
 }
 

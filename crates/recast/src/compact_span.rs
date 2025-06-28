@@ -6,7 +6,7 @@ use crate::region::RegionId;
 pub struct CompactSpan {
     /// The lower extent of the span. (Measured from the heightfield's base.)
     pub y: u16,
-    /// The id of the region the span belongs to. (Or [`Region::None`] if not in a region.)
+    /// The id of the region the span belongs to. (Or [`RegionId::NONE`] if not in a region.)
     pub region: RegionId,
     /// 24 bits: packed neighbor connection data
     /// 8 bits: the height of the span

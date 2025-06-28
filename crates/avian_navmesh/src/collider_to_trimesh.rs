@@ -11,7 +11,7 @@ use recast::AreaType;
 
 /// Convenience trait that allows a [`Collider`] to be converted into a [`TriMesh`].
 pub trait ToTriMesh {
-    /// Converts the collider into a [`TrimeshedCollider`].
+    /// Converts the collider into a [`TriMesh`].
     ///
     /// # Arguments
     ///
@@ -19,7 +19,7 @@ pub trait ToTriMesh {
     ///
     /// # Returns
     ///
-    /// A [`TrimeshedCollider`] if the collider is supported, otherwise `None`
+    /// A [`TriMesh`] if the collider is supported, otherwise `None`
     ///
     /// The following shapes are not supported:
     /// - [`Segment`](avian3d::parry::shape::Segment)

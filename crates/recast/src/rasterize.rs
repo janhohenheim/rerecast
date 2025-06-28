@@ -12,7 +12,7 @@ use crate::{
 };
 
 impl Heightfield {
-    /// Rasterizes the triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
+    /// Rasterizes the triangles of a [`TriMesh`] into a [`Heightfield`].
     pub fn rasterize_triangles(
         &mut self,
         trimesh: &TriMesh,

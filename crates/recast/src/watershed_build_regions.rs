@@ -8,7 +8,7 @@ impl CompactHeightfield {
     /// Contours will form simple polygons.
     ///
     /// If multiple regions form an area that is smaller than `min_region_area`, then all spans will be
-    /// re-assigned to [`AreaType::NotWalkable`].
+    /// re-assigned to [`AreaType::NOT_WALKABLE`].
     ///
     /// Watershed partitioning can result in smaller than necessary regions, especially in diagonal corridors.
     /// `merge_region_area` helps reduce unnecessarily small regions.
@@ -16,11 +16,9 @@ impl CompactHeightfield {
     /// See the #rcConfig documentation for more information on the configuration parameters.
     ///
     /// The region data will be available via the [`CompactHeightfield::max_region`]
-    /// and [`CompactSpan::regions`] fields.
+    /// and [`CompactSpan::region`](crate::CompactSpan::region) fields.
     ///
-    /// @warning The distance field must be created using [`CompactHeightfield::build_distance_field`] before attempting to build regions.
-    ///
-    /// @see rcCompactHeightfield, rcCompactSpan, rcBuildDistanceField, rcBuildRegionsMonotone, rcConfig
+    /// Warning: The distance field must be created using [`CompactHeightfield::build_distance_field`] before attempting to build regions.
     pub fn build_regions(
         &mut self,
         border_size: u16,

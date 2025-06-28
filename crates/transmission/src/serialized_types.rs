@@ -278,7 +278,7 @@ impl From<SerializedVertexAttributeValues> for VertexAttributeValues {
 }
 
 /// Proxy of [`Indices`](bevy::render::mesh::Indices).
-/// An array of indices into the [`VertexAttributeValues`](super::VertexAttributeValues) for a mesh.
+/// An array of indices into the [`VertexAttributeValues`] for a mesh.
 ///
 /// It describes the order in which the vertex attributes should be joined into faces.
 #[derive(Debug, Clone, Serialize, Deserialize)]
