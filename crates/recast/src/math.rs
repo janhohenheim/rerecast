@@ -21,6 +21,23 @@ impl Aabb3d {
         }
     }
 
+    /// Constructs an AABB from a list of vertices.
+    ///
+    /// Returns `None` if the list of vertices is empty.
+    #[inline]
+    pub fn from_verts(verts: &[Vec3A]) -> Option<Self> {
+        if verts.is_empty() {
+            return None;
+        }
+        let min = verts
+            .iter()
+            .fold(Vec3A::splat(f32::MAX), |acc, &v| acc.min(v));
+        let max = verts
+            .iter()
+            .fold(Vec3A::splat(f32::MIN), |acc, &v| acc.max(v));
+        Some(Self { min, max })
+    }
+
     /// Checks if this AABB intersects with another AABB.
     #[inline]
     pub fn intersects(&self, other: &Aabb3d) -> bool {

@@ -38,15 +38,7 @@ impl TriMesh {
     /// Computes the AABB of the trimesh.
     /// Returns `None` if the trimesh is empty.
     pub fn compute_aabb(&self) -> Option<Aabb3d> {
-        let mut iter = self.vertices.iter();
-
-        let first = iter.next()?;
-
-        let (min, max) = iter.fold((*first, *first), |(prev_min, prev_max), point| {
-            (point.min(prev_min), point.max(prev_max))
-        });
-
-        Some(Aabb3d { min, max })
+        Aabb3d::from_verts(&self.vertices)
     }
 }
 

@@ -2,8 +2,10 @@
 
 use std::env;
 
-use glam::{UVec3, Vec3A};
-use recast::{AreaType, CompactHeightfield, Heightfield, HeightfieldBuilder, RegionId, TriMesh};
+use glam::{UVec3, Vec3, Vec3A};
+use recast::{
+    AreaType, CompactHeightfield, ConvexVolume, Heightfield, HeightfieldBuilder, RegionId, TriMesh,
+};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
@@ -51,6 +53,21 @@ fn validate_navmesh_against_cpp_implementation() {
 
     compact_heightfield.erode_walkable_area(walkable_radius);
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_eroded");
+
+    let volumes = load_json::<CppVolumes>("convex_volumes");
+    for volume in volumes.volumes {
+        let volume = ConvexVolume {
+            vertices: volume
+                .verts
+                .iter()
+                .map(|[x, y, z]| Vec3A::new(*x, *y, *z))
+                .collect(),
+            min_y: volume.hmin,
+            max_y: volume.hmax,
+            area: AreaType::from(volume.area),
+        };
+        compact_heightfield.mark_convex_poly_area(volume);
+    }
 
     compact_heightfield.build_distance_field();
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_distance_field");
@@ -348,6 +365,19 @@ struct CppCompactSpan {
     reg: u16,
     con: u32,
     h: u8,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppVolumes {
+    volumes: Vec<CppVolumeArea>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppVolumeArea {
+    verts: Vec<[f32; 3]>,
+    hmin: f32,
+    hmax: f32,
+    area: u8,
 }
 
 #[derive(Debug, Deserialize)]
