@@ -26,6 +26,7 @@ bitflags::bitflags! {
         /// (Used during the region and contour build process.)
         const AREA_BORDER = 0x20_000;
         /// The maximum region ID.
+        /// Used as a
         const MAX = u16::MAX;
     }
 }

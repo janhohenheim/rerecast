@@ -17,7 +17,7 @@ impl CompactHeightfield {
         &mut self,
         max_error: f32,
         max_edge_len: u16,
-        flags: BuildContoursFlags,
+        build_flags: BuildContoursFlags,
     ) -> ContourSet {
         let mut cset = ContourSet {
             contours: Vec::new(),
@@ -98,6 +98,15 @@ impl CompactHeightfield {
                     simplified.clear();
 
                     self.walk_contour_build(x, z, i, &mut flags, &mut verts);
+
+                    simplify_contour(
+                        &verts,
+                        &mut simplified,
+                        max_error,
+                        max_edge_len,
+                        build_flags,
+                    );
+                    todo!();
                 }
             }
         }
@@ -106,11 +115,11 @@ impl CompactHeightfield {
 
     fn walk_contour_build(
         &self,
-        x: u16,
-        z: u16,
-        i: usize,
+        mut x: u16,
+        mut z: u16,
+        mut i: usize,
         flags: &mut [u8],
-        points: &mut Vec<U16Vec4>,
+        points: &mut Vec<(U16Vec3, RegionId)>,
     ) {
         // Choose the first non-connected edge
         let mut dir = 0;
@@ -157,9 +166,33 @@ impl CompactHeightfield {
                 if is_area_border {
                     r |= RegionId::AREA_BORDER;
                 }
-                points.push(U16Vec4::new(p_x, p_y, p_z, r.bits()));
+                points.push((U16Vec3::new(p_x, p_y, p_z), r));
 
-                todo!()
+                flags[i] &= !(1 << dir);
+                dir = (dir + 1) % 0x3;
+            } else {
+                let mut n_i = None;
+                let n_x = x + dir_offset_x(dir) as u16;
+                let n_z = z + dir_offset_z(dir) as u16;
+                let s = &self.spans[i];
+                if let Some(con) = s.con(dir) {
+                    let cell_index = n_x as usize + n_z as usize * self.width as usize;
+                    let n_c = &self.cells[cell_index];
+                    n_i = Some(n_c.index() + con as u32);
+                }
+                let Some(n_i) = n_i else {
+                    // Should not happen.
+                    // Jan: Should this not be an error?
+                    return;
+                };
+                x = n_x;
+                z = n_z;
+                i = n_i as usize;
+                // Rotate counterclockwise
+                dir = (dir + 3) % 0x3;
+            }
+            if start_i == i && start_dir == dir {
+                break;
             }
         }
     }
@@ -184,7 +217,7 @@ impl CompactHeightfield {
             ch = ch.max(a_s.y);
             regs[1] = get_reg(a_i);
             if let Some(con) = a_s.con(dir_p) {
-                let (b_x, b_z, b_i) = self.con_indices(a_x, a_z, dir_p, con);
+                let (_b_x, _b_z, b_i) = self.con_indices(a_x, a_z, dir_p, con);
                 let b_s = &self.spans[b_i];
                 ch = ch.max(b_s.y);
                 regs[2] = get_reg(b_i);
@@ -196,7 +229,7 @@ impl CompactHeightfield {
             ch = ch.max(a_s.y);
             regs[3] = get_reg(a_i);
             if let Some(con) = a_s.con(dir) {
-                let (b_x, b_z, b_i) = self.con_indices(a_x, a_z, dir, con);
+                let (_b_x, _b_z, b_i) = self.con_indices(a_x, a_z, dir, con);
                 let b_s = &self.spans[b_i];
                 ch = ch.max(b_s.y);
                 regs[2] = get_reg(b_i);
@@ -227,6 +260,18 @@ impl CompactHeightfield {
         }
         (ch, is_border_vertex)
     }
+}
+
+fn simplify_contour(
+    points: &[(U16Vec3, RegionId)],
+    simplified: &mut Vec<(U16Vec3, RegionId)>,
+    max_error: f32,
+    max_edge_len: u16,
+    flags: BuildContoursFlags,
+) {
+    // Add initial points.
+    let has_connections = points.iter().any(|&(p, r)| r.intersects(RegionId::MAX));
+    todo!();
 }
 
 /// Represents a group of related contours.
