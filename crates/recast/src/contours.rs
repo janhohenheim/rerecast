@@ -119,7 +119,7 @@ impl CompactHeightfield {
         mut z: u16,
         mut i: usize,
         flags: &mut [u8],
-        points: &mut Vec<(U16Vec3, RegionId)>,
+        points: &mut Vec<(U16Vec3, RegionVertexId)>,
     ) {
         // Choose the first non-connected edge
         let mut dir = 0;
@@ -151,20 +151,20 @@ impl CompactHeightfield {
                     }
                     _ => {}
                 }
-                let mut r = RegionId::NONE;
+                let mut r = RegionVertexId::NONE;
                 let s = &self.spans[i];
                 if let Some(con) = s.con(dir) {
                     let (_a_x, _a_z, a_i) = self.con_indices(x as i32, z as i32, dir, con);
-                    r = self.spans[a_i].region;
+                    r = RegionVertexId::from(self.spans[a_i].region);
                     if area != self.areas[a_i] {
                         is_area_border = true;
                     }
                 }
                 if is_border_vertex {
-                    r |= RegionId::BORDER_REGION;
+                    r |= RegionVertexId::BORDER_VERTEX;
                 }
                 if is_area_border {
-                    r |= RegionId::AREA_BORDER;
+                    r |= RegionVertexId::AREA_BORDER;
                 }
                 points.push((U16Vec3::new(p_x, p_y, p_z), r));
 
@@ -202,12 +202,17 @@ impl CompactHeightfield {
         let mut ch = s.y;
         let dir_p = (dir + 1) % 0x3;
 
-        let mut regs = [RegionId::NONE; 4];
+        let mut regs = [RegionVertexId::NONE; 4];
 
         // Combine region and area codes in order to prevent
         // border vertices which are in between two areas to be removed.
+        // Jan: `RegionVertexId` is not *quite* the correct thing semantically,
+        // rather this is a combination of region and area codes in a single u32.
+        // But eh, this was fast to implement.
         let get_reg = |i: usize| {
-            RegionId::from(self.spans[i].region.bits() | ((self.areas[i].0 as u32) << 16))
+            RegionVertexId::from(
+                self.spans[i].region.bits() as u32 | ((self.areas[i].0 as u32) << 16),
+            )
         };
         regs[0] = get_reg(i);
 
@@ -246,13 +251,14 @@ impl CompactHeightfield {
 
             // The vertex is a border vertex there are two same exterior cells in a row,
             // followed by two interior cells and none of the regions are out of bounds.
-            let two_same_exts = regs[a] == regs[b] && regs[a].contains(RegionId::BORDER_REGION);
-            let two_ints = !(regs[c] | regs[d]).contains(RegionId::BORDER_REGION);
+            let two_same_exts =
+                regs[a] == regs[b] && regs[a].contains(RegionId::BORDER_REGION.into());
+            let two_ints = !(regs[c] | regs[d]).contains(RegionId::BORDER_REGION.into());
             let ints_same_area = (regs[c].bits() >> 16) == (regs[d].bits() >> 16);
-            let no_zeros = regs[a] != RegionId::NONE
-                && regs[b] != RegionId::NONE
-                && regs[c] != RegionId::NONE
-                && regs[d] != RegionId::NONE;
+            let no_zeros = regs[a] != RegionVertexId::NONE
+                && regs[b] != RegionVertexId::NONE
+                && regs[c] != RegionVertexId::NONE
+                && regs[d] != RegionVertexId::NONE;
             if two_same_exts && two_ints && no_zeros && ints_same_area {
                 is_border_vertex = true;
                 break;
@@ -263,14 +269,39 @@ impl CompactHeightfield {
 }
 
 fn simplify_contour(
-    points: &[(U16Vec3, RegionId)],
-    simplified: &mut Vec<(U16Vec3, RegionId)>,
+    points: &[(U16Vec3, RegionVertexId)],
+    simplified: &mut Vec<(U16Vec3, usize)>,
     max_error: f32,
     max_edge_len: u16,
     flags: BuildContoursFlags,
 ) {
     // Add initial points.
-    let has_connections = points.iter().any(|&(p, r)| r.intersects(RegionId::MAX));
+    let has_connections = points
+        .iter()
+        .any(|(_p, r)| r.intersects(RegionVertexId::REGION_MASK));
+
+    if has_connections {
+        // The contour has some portals to other regions.
+        // Add a new point to every location where the region changes.
+        let ni = points.len();
+        for (i, (point, region)) in points.iter().enumerate() {
+            let ii = (i + 1) % ni;
+            let region = RegionId::from(*region);
+            let next_region = RegionId::from(points[ii].1);
+            let different_regs = region != next_region;
+            let area_borders = region.contains(RegionId::BORDER_REGION)
+                != next_region.contains(RegionId::BORDER_REGION);
+            if different_regs || area_borders {
+                simplified.push((*point, i));
+            };
+        }
+        if simplified.is_empty() {
+            // If there is no connections at all,
+            // create some initial points for the simplification process.
+            // Find lower-left and upper-right vertices of the contour.
+            todo!();
+        }
+    }
     todo!();
 }
 
@@ -293,6 +324,52 @@ pub struct ContourSet {
     border_size: u16,
     /// The max edge error that this contour set was simplified with.
     max_error: f32,
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    struct RegionVertexId: u32 {
+        const NONE = 0;
+
+        /// Applied to the region id field of contour vertices in order to extract the region id.
+        /// The region id field of a vertex may have several flags applied to it.  So the
+        /// fields value can't be used directly.
+        const REGION_MASK = RegionId::MAX.bits() as u32;
+
+        /// Border vertex flag.
+        /// If a region ID has this bit set, then the associated element lies on
+        /// a tile border. If a contour vertex's region ID has this bit set, the
+        /// vertex will later be removed in order to match the segments and vertices
+        /// at tile boundaries.
+        /// (Used during the build process.)
+        const BORDER_VERTEX = 0x10_000;
+
+        /// Area border flag.
+        /// If a region ID has this bit set, then the associated element lies on
+        /// the border of an area.
+        /// (Used during the region and contour build process.)
+        const AREA_BORDER = 0x20_000;
+    }
+}
+
+impl From<u32> for RegionVertexId {
+    fn from(bits: u32) -> Self {
+        RegionVertexId::from_bits_retain(bits)
+    }
+}
+
+impl From<RegionId> for RegionVertexId {
+    fn from(region_id: RegionId) -> Self {
+        RegionVertexId::from_bits_retain(region_id.bits() as u32)
+    }
+}
+
+impl From<RegionVertexId> for RegionId {
+    fn from(region_vertex_id: RegionVertexId) -> Self {
+        let bits = region_vertex_id.bits() & RegionVertexId::REGION_MASK.bits();
+        assert!(bits <= Self::MAX.bits() as u32);
+        RegionId::from_bits_retain(bits as u16)
+    }
 }
 
 /// Represents a simple, non-overlapping contour in field space.

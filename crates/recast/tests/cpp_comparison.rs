@@ -342,7 +342,7 @@ struct CppCompactHeightfield {
     #[serde(rename = "maxDistance")]
     max_distance: u16,
     #[serde(rename = "maxRegions")]
-    max_regions: u32,
+    max_regions: u16,
     bmin: [f32; 3],
     bmax: [f32; 3],
     cs: f32,
@@ -362,7 +362,7 @@ struct CppCompactCell {
 #[derive(Debug, Deserialize, Clone)]
 struct CppCompactSpan {
     y: u16,
-    reg: u32,
+    reg: u16,
     con: u32,
     h: u8,
 }
