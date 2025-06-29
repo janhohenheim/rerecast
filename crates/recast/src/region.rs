@@ -4,7 +4,7 @@ bitflags::bitflags! {
     /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     #[repr(transparent)]
-    pub struct RegionId: u16 {
+    pub struct RegionId: u32 {
         /// The default region, which is used for spans that are not in a region, i.e. not walkable.
         const NONE = 0;
         /// Heightfield border flag.
@@ -26,20 +26,19 @@ bitflags::bitflags! {
         /// (Used during the region and contour build process.)
         const AREA_BORDER = 0x20_000;
         /// The maximum region ID.
-        /// Used as a
-        const MAX = u16::MAX;
+        const MAX = u32::MAX;
     }
 }
 
-impl Add<u16> for RegionId {
+impl Add<u32> for RegionId {
     type Output = Self;
-    fn add(self, other: u16) -> Self::Output {
+    fn add(self, other: u32) -> Self::Output {
         RegionId::from(self.bits() + other)
     }
 }
 
-impl AddAssign<u16> for RegionId {
-    fn add_assign(&mut self, other: u16) {
+impl AddAssign<u32> for RegionId {
+    fn add_assign(&mut self, other: u32) {
         *self = RegionId::from(self.bits() + other);
     }
 }
@@ -50,8 +49,8 @@ impl Default for RegionId {
     }
 }
 
-impl From<u16> for RegionId {
-    fn from(value: u16) -> Self {
-        RegionId::from_bits_truncate(value)
+impl From<u32> for RegionId {
+    fn from(value: u32) -> Self {
+        RegionId::from_bits_retain(value)
     }
 }

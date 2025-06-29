@@ -207,7 +207,7 @@ impl CompactHeightfield {
         // Combine region and area codes in order to prevent
         // border vertices which are in between two areas to be removed.
         let get_reg = |i: usize| {
-            RegionId::from(self.spans[i].region.bits() | ((self.areas[i].0 as u16) << 16))
+            RegionId::from(self.spans[i].region.bits() | ((self.areas[i].0 as u32) << 16))
         };
         regs[0] = get_reg(i);
 
