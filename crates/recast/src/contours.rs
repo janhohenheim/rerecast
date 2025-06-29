@@ -1,4 +1,4 @@
-use glam::{U16Vec3, U16Vec4, UVec4, Vec4};
+use glam::{U16Vec3, UVec4};
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
@@ -42,7 +42,7 @@ impl CompactHeightfield {
 
         cset.contours = vec![Contour::default(); max_contours as usize];
         // We will shrink contours to this value later
-        let mut contour_count = 0;
+        let contour_count = 0;
         let mut flags = vec![0_u8; self.spans.len()];
 
         // Mark boundaries
@@ -154,7 +154,7 @@ impl CompactHeightfield {
                 let mut r = RegionId::NONE;
                 let s = &self.spans[i];
                 if let Some(con) = s.con(dir) {
-                    let (a_x, a_y, a_i) = self.con_indices(x as i32, z as i32, dir, con);
+                    let (_a_x, _a_z, a_i) = self.con_indices(x as i32, z as i32, dir, con);
                     r = self.spans[a_i].region;
                     if area != self.areas[a_i] {
                         is_area_border = true;
