@@ -42,7 +42,7 @@ impl CompactHeightfield {
 
         cset.contours = vec![Contour::default(); max_contours as usize];
         // We will shrink contours to this value later
-        let contour_count = 0;
+        let mut contour_count = 0;
         let mut flags = vec![0_u8; self.spans.len()];
 
         // Mark boundaries
@@ -116,14 +116,38 @@ impl CompactHeightfield {
                             // This happens when a region has holes.
                             let old_max = max_contours;
                             max_contours *= 2;
-                            todo!();
+                            cset.contours.truncate(max_contours as usize);
+
+                            tracing::warn!(
+                                "Region has holes. Expanding contour set from max {old_max} to max {max_contours}"
+                            );
                         }
-                        todo!();
+                        let cont = &mut cset.contours[contour_count];
+                        contour_count += 1;
+
+                        cont.vertices = simplified;
+                        if self.border_size > 0 {
+                            // If the heightfield was build with bordersize, remove the offset.
+                            for (vert, _) in &mut cont.vertices {
+                                vert.x = vert.x.saturating_sub(self.border_size);
+                                vert.z = vert.z.saturating_sub(self.border_size);
+                            }
+                        }
+                        cont.raw_vertices = verts;
+                        if self.border_size > 0 {
+                            // If the heightfield was build with bordersize, remove the offset.
+                            for (vert, _) in &mut cont.raw_vertices {
+                                vert.x = vert.x.saturating_sub(self.border_size);
+                                vert.z = vert.z.saturating_sub(self.border_size);
+                            }
+                        }
+                        cont.region = reg;
+                        cont.area = area;
                     }
-                    todo!();
                 }
             }
         }
+        cset.contours.truncate(contour_count);
         cset
     }
 
@@ -573,9 +597,9 @@ impl From<RegionVertexId> for RegionId {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Contour {
     /// Simplified contour vertex and connection data.
-    vertices: Vec<UVec4>,
+    vertices: Vec<(U16Vec3, usize)>,
     /// Raw contour vertex and connection data.
-    raw_vertices: Vec<UVec4>,
+    raw_vertices: Vec<(U16Vec3, RegionVertexId)>,
     /// Region ID of the contour.
     region: RegionId,
     /// Area type of the contour.
