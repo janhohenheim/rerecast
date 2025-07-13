@@ -534,21 +534,21 @@ fn distance_squared_between_point_and_line(point: U16Vec2, (p, q): (U16Vec2, U16
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContourSet {
     /// An array of the contours in the set.
-    contours: Vec<Contour>,
+    pub contours: Vec<Contour>,
     /// The AABB in world space
-    aabb: Aabb3d,
+    pub aabb: Aabb3d,
     /// The size of each cell. (On the xz-plane.)
-    cell_size: f32,
+    pub cell_size: f32,
     /// The height of each cell. (The minimum increment along the y-axis.)
-    cell_height: f32,
+    pub cell_height: f32,
     /// The width of the set. (Along the x-axis in cell units.)
-    width: u16,
+    pub width: u16,
     /// The height of the set. (Along the z-axis in cell units.)
-    height: u16,
+    pub height: u16,
     /// The AABB border size used to generate the source data from which the contours were derived.
-    border_size: u16,
+    pub border_size: u16,
     /// The max edge error that this contour set was simplified with.
-    max_error: f32,
+    pub max_error: f32,
 }
 
 bitflags::bitflags! {

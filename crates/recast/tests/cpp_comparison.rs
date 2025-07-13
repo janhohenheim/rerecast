@@ -81,8 +81,10 @@ fn validate_navmesh_against_cpp_implementation() {
         .unwrap();
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_regions");
 
-    compact_heightfield.build_contours(max_simplification_error, max_edge_len, contour_flags);
+    let contours =
+        compact_heightfield.build_contours(max_simplification_error, max_edge_len, contour_flags);
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_contours");
+    todo!("assert contours")
 }
 
 #[track_caller]
