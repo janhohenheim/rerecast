@@ -20,6 +20,7 @@ mod watershed_distance_field;
 pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;
 pub use compact_span::CompactSpan;
+pub use contours::BuildContoursFlags;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;
 pub use math::{Aabb2d, Aabb3d};

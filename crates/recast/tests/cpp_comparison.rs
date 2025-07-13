@@ -4,7 +4,8 @@ use std::env;
 
 use glam::{UVec3, Vec2, Vec3A};
 use recast::{
-    AreaType, CompactHeightfield, ConvexVolume, Heightfield, HeightfieldBuilder, RegionId, TriMesh,
+    AreaType, BuildContoursFlags, CompactHeightfield, ConvexVolume, Heightfield,
+    HeightfieldBuilder, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -20,6 +21,9 @@ fn validate_navmesh_against_cpp_implementation() {
     let min_region_area = 64;
     let merge_region_area = 400;
     let border_size = 5;
+    let max_simplification_error = 1.3;
+    let max_edge_len = 40;
+    let contour_flags = BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES;
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
@@ -76,6 +80,9 @@ fn validate_navmesh_against_cpp_implementation() {
         .build_regions(border_size, min_region_area, merge_region_area)
         .unwrap();
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_regions");
+
+    compact_heightfield.build_contours(max_simplification_error, max_edge_len, contour_flags);
+    assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_contours");
 }
 
 #[track_caller]
