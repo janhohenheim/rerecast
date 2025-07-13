@@ -20,14 +20,13 @@ impl Heightfield {
 
                     // If current span is not walkable, but there is walkable span just below it and the height difference
                     // is small enough for the agent to walk over, mark the current span as walkable too.
-                    if let Some(previous_span) = previous_span.as_ref() {
-                        if !walkable
-                            && previous_was_walkable
-                            && (current_span.max() as i32 - previous_span.max() as i32)
-                                <= walkable_climb as i32
-                        {
-                            current_span.set_area(previous_area_id);
-                        }
+                    if let Some(previous_span) = previous_span.as_ref()
+                        && !walkable
+                        && previous_was_walkable
+                        && (current_span.max() as i32 - previous_span.max() as i32)
+                            <= walkable_climb as i32
+                    {
+                        current_span.set_area(previous_area_id);
                     }
 
                     // Copy the original walkable value regardless of whether we changed it.

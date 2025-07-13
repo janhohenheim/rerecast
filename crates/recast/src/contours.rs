@@ -1,4 +1,4 @@
-use glam::{U16Vec2, U16Vec3, UVec4, Vec2, Vec3Swizzles};
+use glam::{U16Vec2, U16Vec3, Vec3Swizzles};
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
@@ -456,7 +456,7 @@ fn simplify_contour(
                         maxi = if b.x > a.x || (b.x == a.x && b.z > a.z) {
                             Some((ai + n / 2) % points.len())
                         } else {
-                            Some((ai + (n + 1) / 2) % points.len())
+                            Some((ai + n.div_ceil(2)) % points.len())
                         };
                     }
                 }
