@@ -79,6 +79,7 @@ impl CompactHeightfield {
 
         let mut verts = Vec::with_capacity(256);
         let mut simplified = Vec::with_capacity(64);
+        let mut first = true;
 
         for z in 0..self.height {
             for x in 0..self.width {
@@ -98,6 +99,9 @@ impl CompactHeightfield {
                     simplified.clear();
 
                     self.walk_contour_build(x, z, i, &mut flags, &mut verts);
+                    if first {
+                        println!("verts: {:?}", verts);
+                    }
 
                     simplify_contour(
                         &verts,
@@ -106,8 +110,15 @@ impl CompactHeightfield {
                         max_edge_len,
                         build_flags,
                     );
+                    if first {
+                        println!("simplified_len a: {}", simplified.len());
+                    }
                     remove_degenerate_segments(&mut simplified);
 
+                    if first {
+                        println!("simplified_len b: {}", simplified.len());
+                        first = false;
+                    }
                     // Store region->contour remap info.
                     // Create contour.
                     if simplified.len() >= 3 {
@@ -207,7 +218,7 @@ impl CompactHeightfield {
                 points.push((U16Vec3::new(p_x, p_y, p_z), r));
 
                 flags[i] &= !(1 << dir);
-                dir = (dir + 1) % 0x3;
+                dir = (dir + 1) & 0x3;
             } else {
                 let mut n_i = None;
                 let n_x = (x as i32 + dir_offset_x(dir) as i32) as u16;
@@ -227,7 +238,7 @@ impl CompactHeightfield {
                 z = n_z;
                 i = n_i as usize;
                 // Rotate counterclockwise
-                dir = (dir + 3) % 0x3;
+                dir = (dir + 3) & 0x3;
             }
             if start_i == i && start_dir == dir {
                 break;
@@ -238,7 +249,7 @@ impl CompactHeightfield {
     fn get_corner_height(&self, x: u16, z: u16, i: usize, dir: u8) -> (u16, bool) {
         let s = &self.spans[i];
         let mut ch = s.y;
-        let dir_p = (dir + 1) % 0x3;
+        let dir_p = (dir + 1) & 0x3;
 
         let mut regs = [RegionVertexId::NONE; 4];
 
