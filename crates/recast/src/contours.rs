@@ -125,7 +125,7 @@ impl CompactHeightfield {
                         let cont = &mut cset.contours[contour_count];
                         contour_count += 1;
 
-                        cont.vertices = simplified;
+                        cont.vertices = simplified.clone();
                         if self.border_size > 0 {
                             // If the heightfield was build with bordersize, remove the offset.
                             for (vert, _) in &mut cont.vertices {
@@ -133,7 +133,7 @@ impl CompactHeightfield {
                                 vert.z = vert.z.saturating_sub(self.border_size);
                             }
                         }
-                        cont.raw_vertices = verts;
+                        cont.raw_vertices = verts.clone();
                         if self.border_size > 0 {
                             // If the heightfield was build with bordersize, remove the offset.
                             for (vert, _) in &mut cont.raw_vertices {
