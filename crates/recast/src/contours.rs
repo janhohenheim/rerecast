@@ -442,8 +442,8 @@ fn simplify_contour(
                 && area.intersects(RegionVertexId::AREA_BORDER);
             let should_tesselate = is_wall_edge || is_edge_between_areas;
             if should_tesselate {
-                let d = b.xz() - a.xz();
-                if d.length_squared() > max_edge_len * max_edge_len {
+                let d = b.xz().as_ivec2() - a.xz().as_ivec2();
+                if d.length_squared() > (max_edge_len * max_edge_len) as i32 {
                     // Round based on the segments in lexilogical order so that the
                     // max tesselation is consistent regardless in which direction
                     // segments are traversed.
