@@ -72,7 +72,7 @@ impl CompactHeightfield {
                         }
                     }
                     // Inverse, mark non connected edges.
-                    flags[i] = res & 0xf;
+                    flags[i] = res ^ 0xf;
                 }
             }
         }
