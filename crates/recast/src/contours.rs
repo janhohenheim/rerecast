@@ -210,8 +210,8 @@ impl CompactHeightfield {
                 dir = (dir + 1) % 0x3;
             } else {
                 let mut n_i = None;
-                let n_x = x + dir_offset_x(dir) as u16;
-                let n_z = z + dir_offset_z(dir) as u16;
+                let n_x = (x as i32 + dir_offset_x(dir) as i32) as u16;
+                let n_z = (z as i32 + dir_offset_z(dir) as i32) as u16;
                 let s = &self.spans[i];
                 if let Some(con) = s.con(dir) {
                     let cell_index = n_x as usize + n_z as usize * self.width as usize;
