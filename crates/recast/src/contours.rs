@@ -147,7 +147,7 @@ impl CompactHeightfield {
                 }
             }
         }
-        cset.contours.truncate(contour_count);
+        cset.contours.resize_with(contour_count, Contour::default);
         cset
     }
 
@@ -376,7 +376,7 @@ fn simplify_contour(
         if b.x > a.x || b.x == a.x && b.z > a.z {
             cinc = 1;
             ci = (ai + cinc) % points.len();
-            endi = ci;
+            endi = bi;
         } else {
             cinc = points.len() - 1;
             ci = (bi + cinc) % points.len();
