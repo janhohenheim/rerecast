@@ -492,7 +492,10 @@ fn simplify_contour(
 fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
     // Remove adjacent vertices which are equal on xz-plane,
     // or else the triangulator will get confused.
-    for i in 0..simplified.len() {
+
+    // Jan: for using a range / for loop because we are changing the collection's length in the loop
+    let mut i = 0;
+    while i < simplified.len() {
         let ni = (i + 1) % simplified.len();
         if simplified[i].0.xz() == simplified[ni].0.xz() {
             // Degenerate segment, remove.
@@ -501,6 +504,7 @@ fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
             }
             simplified.pop();
         }
+        i += 1;
     }
 }
 
