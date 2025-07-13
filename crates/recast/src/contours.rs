@@ -1,4 +1,4 @@
-use glam::{U16Vec3, UVec4};
+use glam::{U16Vec2, U16Vec3, UVec4, Vec2, Vec3Swizzles};
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
@@ -38,7 +38,7 @@ impl CompactHeightfield {
             cset.aabb.max.z -= pad;
         }
 
-        let max_contours = self.max_region.bits().max(8);
+        let mut max_contours = self.max_region.bits().max(8);
 
         cset.contours = vec![Contour::default(); max_contours as usize];
         // We will shrink contours to this value later
@@ -106,6 +106,20 @@ impl CompactHeightfield {
                         max_edge_len,
                         build_flags,
                     );
+                    remove_degenerate_segments(&mut simplified);
+
+                    // Store region->contour remap info.
+                    // Create contour.
+                    if simplified.len() >= 3 {
+                        if contour_count >= max_contours as usize {
+                            // Allocate more contours.
+                            // This happens when a region has holes.
+                            let old_max = max_contours;
+                            max_contours *= 2;
+                            todo!();
+                        }
+                        todo!();
+                    }
                     todo!();
                 }
             }
@@ -295,14 +309,197 @@ fn simplify_contour(
                 simplified.push((*point, i));
             };
         }
-        if simplified.is_empty() {
-            // If there is no connections at all,
-            // create some initial points for the simplification process.
-            // Find lower-left and upper-right vertices of the contour.
-            todo!();
+    }
+    if simplified.is_empty() {
+        // If there is no connections at all,
+        // create some initial points for the simplification process.
+        // Find lower-left and upper-right vertices of the contour.
+        let mut ll = &points[0].0;
+        let mut lli = 0;
+        let mut ur = &points[0].0;
+        let mut uri = 0;
+        for (i, point) in points.iter().map(|(p, _)| p).enumerate() {
+            if point.x < ll.x || (point.x == ll.x && point.z < ll.z) {
+                ll = point;
+                lli = i;
+            }
+            if point.x > ur.x || (point.x == ur.x && point.z > ur.z) {
+                ur = point;
+                uri = i;
+            }
+        }
+        simplified.push((*ll, lli));
+        simplified.push((*ur, uri));
+    }
+    // Add points until all raw points are within
+    // error tolerance to the simplified shape.
+    let mut i = 0;
+    while i < simplified.len() {
+        let ii = (i + 1) % simplified.len();
+        let (mut a, ai) = simplified[i];
+        let (mut b, bi) = simplified[ii];
+
+        // Find maximum deviation from the segment.
+        let mut maxd = 0.0;
+        let mut maxi = None;
+        let mut ci: usize;
+        let cinc: usize;
+        let endi: usize;
+
+        // Traverse the segment in lexilogical order so that the
+        // max deviation is calculated similarly when traversing
+        // opposite segments.
+        if b.x > a.x || b.x == a.x && b.z > a.z {
+            cinc = 1;
+            ci = (ai + cinc) % points.len();
+            endi = ci;
+        } else {
+            cinc = points.len() - 1;
+            ci = (bi + cinc) % points.len();
+            endi = ai;
+            std::mem::swap(&mut a.x, &mut b.x);
+            std::mem::swap(&mut a.z, &mut b.z);
+        }
+        // Tessellate only outer edges or edges between areas.
+        let region = points[ci].1;
+        if !region.intersects(RegionVertexId::REGION_MASK)
+            || region.intersects(RegionVertexId::AREA_BORDER)
+        {
+            while ci != endi {
+                let point = points[ci].0;
+                let d = distance_squared_between_point_and_line(point.xz(), (a.xz(), b.xz()));
+                if d > maxd {
+                    maxd = d;
+                    maxi = Some(ci);
+                }
+                ci = (ci + cinc) % points.len();
+            }
+        }
+
+        // If the max deviation is larger than accepted error,
+        // add new point, else continue to next segment.
+        if let Some(maxi) = maxi
+            && maxd > max_error * max_error
+        {
+            // Add space for the new point.
+            simplified.resize(simplified.len() + 1, Default::default());
+            for j in ((i + 1)..simplified.len()).rev() {
+                simplified[j] = simplified[j - 1];
+            }
+            // Add the point.
+            simplified[i + 1].0 = points[maxi].0;
+            simplified[i + 1].1 = maxi;
+        } else {
+            i += 1;
         }
     }
-    todo!();
+
+    // Split too long edges.
+    if max_edge_len > 0
+        && flags.intersects(
+            BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES
+                | BuildContoursFlags::TESSELLATE_AREA_EDGES,
+        )
+    {
+        let mut i = 0;
+        while i < simplified.len() {
+            let ii = (i + 1) % simplified.len();
+            let (a, ai) = simplified[i];
+            let (b, bi) = simplified[ii];
+            // Find maximum deviation from the segment.
+            let mut maxi = None;
+            let ci = (ai + 1) % points.len();
+
+            // Tessellate only outer edges or edges between areas.
+            let area = points[ci].1;
+            let is_wall_edge = flags.intersects(BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES)
+                && area.intersects(RegionVertexId::REGION_MASK);
+            let is_edge_between_areas = flags.intersects(BuildContoursFlags::TESSELLATE_AREA_EDGES)
+                && area.intersects(RegionVertexId::AREA_BORDER);
+            let should_tesselate = is_wall_edge || is_edge_between_areas;
+            if should_tesselate {
+                let d = b.xz() - a.xz();
+                if d.length_squared() > max_edge_len * max_edge_len {
+                    // Round based on the segments in lexilogical order so that the
+                    // max tesselation is consistent regardless in which direction
+                    // segments are traversed.
+                    let n = if bi < ai {
+                        bi + points.len() - ai
+                    } else {
+                        bi - ai
+                    };
+                    if n > 1 {
+                        maxi = if b.x > a.x || (b.x == a.x && b.z > a.z) {
+                            Some((ai + n / 2) % points.len())
+                        } else {
+                            Some((ai + (n + 1) / 2) % points.len())
+                        };
+                    }
+                }
+            }
+            // If the max deviation is larger than accepted error,
+            // add new point, else continue to next segment.
+            if let Some(maxi) = maxi {
+                // Add space for the new point.
+                simplified.resize(simplified.len() + 1, Default::default());
+                for j in ((i + 1)..simplified.len()).rev() {
+                    simplified[j] = simplified[j - 1];
+                }
+                // Add the point.
+                simplified[i + 1].0 = points[maxi].0;
+                simplified[i + 1].1 = maxi;
+            } else {
+                i += 1;
+            }
+        }
+    }
+    for (_point, index) in simplified {
+        // The edge vertex flag is taken from the current raw point,
+        // and the neighbour region is take from the next raw point.
+        let ai = (*index + 1) % points.len();
+        let bi = *index;
+        let a = points[ai].1;
+        let b = points[bi].1;
+        *index = ((a.bits() & (RegionVertexId::REGION_MASK | RegionVertexId::AREA_BORDER).bits())
+            | (b.bits() & RegionVertexId::BORDER_VERTEX.bits())) as usize;
+    }
+}
+
+fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
+    // Remove adjacent vertices which are equal on xz-plane,
+    // or else the triangulator will get confused.
+    for i in 0..simplified.len() {
+        let ni = (i + 1) % simplified.len();
+        if simplified[i].0.xz() == simplified[ni].0.xz() {
+            // Degenerate segment, remove.
+            for j in i..simplified.len() - 1 {
+                simplified[j] = simplified[j + 1];
+            }
+            simplified.pop();
+        }
+    }
+}
+
+fn distance_squared_between_point_and_line(point: U16Vec2, (p, q): (U16Vec2, U16Vec2)) -> f32 {
+    let p = p.as_vec2();
+    let q = q.as_vec2();
+    let pt = point.as_vec2();
+
+    let pq = q - p;
+    let dt = pt - p;
+    let d = pq.length_squared();
+    let mut t = dt.dot(pq);
+    if d > 0.0 {
+        t /= d;
+    } else {
+        tracing::error!(
+            "distance_squared_between_point_and_line was called with identical points as a line segment. The result might be unexpected."
+        );
+    }
+    let t = t.clamp(0.0, 1.0);
+
+    let result = p + t * pq - pt;
+    result.length_squared()
 }
 
 /// Represents a group of related contours.
