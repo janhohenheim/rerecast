@@ -79,7 +79,6 @@ impl CompactHeightfield {
 
         let mut verts = Vec::with_capacity(256);
         let mut simplified = Vec::with_capacity(64);
-        let mut first = true;
 
         for z in 0..self.height {
             for x in 0..self.width {
@@ -99,9 +98,6 @@ impl CompactHeightfield {
                     simplified.clear();
 
                     self.walk_contour_build(x, z, i, &mut flags, &mut verts);
-                    if first {
-                        println!("verts: {:?}", verts);
-                    }
 
                     simplify_contour(
                         &verts,
@@ -110,15 +106,8 @@ impl CompactHeightfield {
                         max_edge_len,
                         build_flags,
                     );
-                    if first {
-                        println!("simplified_len a: {}", simplified.len());
-                    }
                     remove_degenerate_segments(&mut simplified);
 
-                    if first {
-                        println!("simplified_len b: {}", simplified.len());
-                        first = false;
-                    }
                     // Store region->contour remap info.
                     // Create contour.
                     if simplified.len() >= 3 {
