@@ -161,7 +161,7 @@ impl CompactHeightfield {
     ) {
         // Choose the first non-connected edge
         let mut dir = 0;
-        while flags[i] != 0 && (1 << dir) != 0 {
+        while (flags[i] & (1 << dir)) == 0 {
             dir += 1;
         }
 
