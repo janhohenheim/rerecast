@@ -181,7 +181,7 @@ impl CompactHeightfield {
         let area = self.areas[i];
 
         for _ in 0..40_000 {
-            if flags[i] != 0 && (1 << dir) != 0 {
+            if (flags[i] & (1 << dir)) != 0 {
                 // Choose the edge corner
                 let mut is_area_border = false;
                 let mut p_x = x;
