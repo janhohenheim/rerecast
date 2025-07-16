@@ -4,7 +4,7 @@ use std::env;
 
 use glam::{UVec3, Vec2, Vec3A};
 use recast::{
-    AreaType, BuildContoursFlags, CompactHeightfield, ConvexVolume, Heightfield,
+    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, Heightfield,
     HeightfieldBuilder, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
@@ -84,6 +84,7 @@ fn validate_navmesh_against_cpp_implementation() {
     let contours =
         compact_heightfield.build_contours(max_simplification_error, max_edge_len, contour_flags);
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_contours");
+    assert_eq_contours(&contours, "contour_set");
     todo!("assert contours")
 }
 
@@ -319,6 +320,71 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
     }
 }
 
+#[track_caller]
+fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
+    let cpp_contours = load_json::<CppContourSet>(reference_name);
+    assert_eq!(
+        cpp_contours.bmin,
+        contours.aabb.min.to_array(),
+        "contour aabb min"
+    );
+    assert_eq!(
+        cpp_contours.bmax,
+        contours.aabb.max.to_array(),
+        "contour aabb max"
+    );
+    assert_eq!(cpp_contours.cs, contours.cell_size, "contour cell size");
+    assert_eq!(cpp_contours.ch, contours.cell_height, "contour cell height");
+    assert_eq!(cpp_contours.width, contours.width, "contour width");
+    assert_eq!(cpp_contours.height, contours.height, "contour height");
+    assert_eq!(
+        cpp_contours.border_size, contours.border_size,
+        "contour border size"
+    );
+    assert_eq!(
+        cpp_contours.max_error, contours.max_error,
+        "contour max error"
+    );
+    assert_eq!(
+        cpp_contours.contours.len(),
+        contours.contours.len(),
+        "contour count"
+    );
+    for (cpp_contour, contour) in cpp_contours.contours.iter().zip(contours.contours.iter()) {
+        assert_eq!(cpp_contour.reg, contour.region.bits(), "contour region id");
+        assert_eq!(cpp_contour.area, contour.area.0, "contour region area");
+        assert_eq!(
+            cpp_contour.verts.len(),
+            contour.vertices.len(),
+            "contour vertex count"
+        );
+        assert_eq!(
+            cpp_contour.rverts.len(),
+            contour.raw_vertices.len(),
+            "contour raw vertex count"
+        );
+        for (cpp_vert, (coord, data)) in cpp_contour.verts.iter().zip(contour.vertices.iter()) {
+            let cpp_coords = &cpp_vert[..3];
+            assert_eq!(
+                cpp_coords,
+                coord.as_uvec3().to_array(),
+                "contour vertex coordinates"
+            );
+            assert_eq!(cpp_vert[3] as usize, *data, "contour vertex data");
+        }
+        for (cpp_vert, (coord, data)) in cpp_contour.rverts.iter().zip(contour.raw_vertices.iter())
+        {
+            let cpp_coords = &cpp_vert[..3];
+            assert_eq!(
+                cpp_coords,
+                coord.as_uvec3().to_array(),
+                "contour raw vertex coordinates"
+            );
+            assert_eq!(cpp_vert[3] as u32, data.bits(), "contour raw vertex data");
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct CppHeightfield {
     width: u16,
@@ -420,6 +486,29 @@ impl CppGeometry {
             area_types: vec![AreaType::NOT_WALKABLE; self.tris.len()],
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppContourSet {
+    bmin: [f32; 3],
+    bmax: [f32; 3],
+    cs: f32,
+    ch: f32,
+    width: u16,
+    height: u16,
+    #[serde(rename = "borderSize")]
+    border_size: u16,
+    #[serde(rename = "maxError")]
+    max_error: f32,
+    contours: Vec<CppContour>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppContour {
+    reg: u16,
+    area: u8,
+    verts: Vec<[u32; 4]>,
+    rverts: Vec<[u32; 4]>,
 }
 
 #[track_caller]

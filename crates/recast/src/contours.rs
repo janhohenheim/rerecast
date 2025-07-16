@@ -553,7 +553,7 @@ pub struct ContourSet {
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    struct RegionVertexId: u32 {
+    pub struct RegionVertexId: u32 {
         const NONE = 0;
 
         /// Applied to the region id field of contour vertices in order to extract the region id.
@@ -601,13 +601,13 @@ impl From<RegionVertexId> for RegionId {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Contour {
     /// Simplified contour vertex and connection data.
-    vertices: Vec<(U16Vec3, usize)>,
+    pub vertices: Vec<(U16Vec3, usize)>,
     /// Raw contour vertex and connection data.
-    raw_vertices: Vec<(U16Vec3, RegionVertexId)>,
+    pub raw_vertices: Vec<(U16Vec3, RegionVertexId)>,
     /// Region ID of the contour.
-    region: RegionId,
+    pub region: RegionId,
     /// Area type of the contour.
-    area: AreaType,
+    pub area: AreaType,
 }
 
 bitflags::bitflags! {
