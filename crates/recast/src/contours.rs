@@ -324,11 +324,12 @@ fn simplify_contour(
         let ni = points.len();
         for (i, (point, region)) in points.iter().enumerate() {
             let ii = (i + 1) % ni;
-            let region = RegionId::from(*region);
-            let next_region = RegionId::from(points[ii].1);
-            let different_regs = region != next_region;
-            let area_borders = region.contains(RegionId::BORDER_REGION)
-                != next_region.contains(RegionId::BORDER_REGION);
+            let region = *region;
+            let next_region = points[ii].1;
+            let different_regs =
+                region & RegionVertexId::REGION_MASK != next_region & RegionVertexId::REGION_MASK;
+            let area_borders =
+                region & RegionVertexId::AREA_BORDER != next_region & RegionVertexId::AREA_BORDER;
             if different_regs || area_borders {
                 simplified.push((*point, i));
             };
@@ -437,7 +438,7 @@ fn simplify_contour(
             // Tessellate only outer edges or edges between areas.
             let area = points[ci].1;
             let is_wall_edge = flags.intersects(BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES)
-                && area.intersects(RegionVertexId::REGION_MASK);
+                && !area.intersects(RegionVertexId::REGION_MASK);
             let is_edge_between_areas = flags.intersects(BuildContoursFlags::TESSELLATE_AREA_EDGES)
                 && area.intersects(RegionVertexId::AREA_BORDER);
             let should_tesselate = is_wall_edge || is_edge_between_areas;
