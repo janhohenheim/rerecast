@@ -31,7 +31,7 @@ impl CompactHeightfield {
         };
         if self.border_size > 0 {
             // If the heightfield was built with border_size, remove the offset
-            let pad = self.border_size as f32 + self.cell_size;
+            let pad = self.border_size as f32 * self.cell_size;
             cset.aabb.min.x += pad;
             cset.aabb.min.z += pad;
             cset.aabb.max.x -= pad;
