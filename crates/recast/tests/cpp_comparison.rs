@@ -350,27 +350,41 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
         contours.contours.len(),
         "contour count"
     );
-    for (cpp_contour, contour) in cpp_contours.contours.iter().zip(contours.contours.iter()) {
-        assert_eq!(cpp_contour.reg, contour.region.bits(), "contour region id");
-        assert_eq!(cpp_contour.area, contour.area.0, "contour region area");
+    for (i, (cpp_contour, contour)) in cpp_contours
+        .contours
+        .iter()
+        .zip(contours.contours.iter())
+        .enumerate()
+    {
+        assert_eq!(
+            cpp_contour.reg,
+            contour.region.bits(),
+            "contour {i} region id"
+        );
+        let cpp_area = if cpp_contour.area == 63 {
+            AreaType::DEFAULT_WALKABLE
+        } else {
+            AreaType::from(cpp_contour.area)
+        };
+        assert_eq!(cpp_area, contour.area, "contour {i} region area");
         assert_eq!(
             cpp_contour.verts.len(),
             contour.vertices.len(),
-            "contour vertex count"
+            "contour {i} vertex count"
         );
         assert_eq!(
             cpp_contour.rverts.len(),
             contour.raw_vertices.len(),
-            "contour raw vertex count"
+            "contour {i} raw vertex count"
         );
         for (cpp_vert, (coord, data)) in cpp_contour.verts.iter().zip(contour.vertices.iter()) {
             let cpp_coords = &cpp_vert[..3];
             assert_eq!(
                 cpp_coords,
                 coord.as_uvec3().to_array(),
-                "contour vertex coordinates"
+                "contour {i} vertex coordinates"
             );
-            assert_eq!(cpp_vert[3] as usize, *data, "contour vertex data");
+            assert_eq!(cpp_vert[3] as usize, *data, "contour {i} vertex data");
         }
         for (cpp_vert, (coord, data)) in cpp_contour.rverts.iter().zip(contour.raw_vertices.iter())
         {
@@ -378,9 +392,13 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
             assert_eq!(
                 cpp_coords,
                 coord.as_uvec3().to_array(),
-                "contour raw vertex coordinates"
+                "contour {i} raw vertex coordinates"
             );
-            assert_eq!(cpp_vert[3] as u32, data.bits(), "contour raw vertex data");
+            assert_eq!(
+                cpp_vert[3] as u32,
+                data.bits(),
+                "contour {i} raw vertex data"
+            );
         }
     }
 }
