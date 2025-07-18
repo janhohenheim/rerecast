@@ -1,4 +1,4 @@
-use glam::{U16Vec3, Vec3Swizzles as _};
+use glam::{U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
 use crate::{
@@ -13,7 +13,7 @@ pub struct PolygonMesh {
     /// The mesh vertices.
     vertices: Vec<U16Vec3>,
     /// Polygon and neighbor data. [Length: [`Self::max_polygons`] * 2 * [`Self::vertices_per_polygon`]
-    polygons: Vec<u8>,
+    polygons: Vec<u16>,
     /// The region id assigned to each polygon.
     regions: Vec<RegionId>,
     /// The flags assigned to each polygon.
@@ -51,6 +51,7 @@ impl ContourSet {
             vertices_per_polygon: max_vertices_per_polygon,
             ..Default::default()
         };
+        let nvp = max_vertices_per_polygon;
 
         let mut max_vertices = 0;
         let mut max_tris = 0;
@@ -74,17 +75,23 @@ impl ContourSet {
         }
 
         let mut vflags = vec![false; max_vertices];
+        // We will later resize `mesh.vertices` to this length
+        let mut nverts = 0;
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
-        mesh.polygons = vec![u8::MAX; max_tris * max_vertices_per_polygon * 2];
+        // We will later resize `mesh.polygons` to this length
+        let mut npolys = 0;
+        // Jan: no clue why this might be initialized to 255 specifically??????
+        mesh.polygons = vec![u8::MAX as u16; max_tris * nvp * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
         mesh.areas = vec![AreaType::default(); max_tris];
 
-        let mut next_vert = vec![0; max_vertices / 3];
-        let mut first_vec: [Option<u16>; 1 << 12] = [None; 1 << 12];
+        let mut next_vert = vec![Some(0); max_vertices / 3];
+        let mut first_vert = [None; VERTEX_BUCKET_COUNT];
         let mut indices = vec![0; max_verts_per_cont];
         let mut tris = vec![U16Vec3::ZERO; max_verts_per_cont];
-        let mut polys = vec![0; (max_verts_per_cont + 1) * max_vertices_per_polygon];
-        let mut temp_poly = &mut polys[max_verts_per_cont * max_vertices_per_polygon];
+        // Jan: the original code initializes this later, but there's not really a reason to do so.
+        let mut polys = vec![u8::MAX as u16; (max_verts_per_cont + 1) * nvp];
+        let mut temp_poly = &mut polys[max_verts_per_cont * nvp];
 
         for cont in &self.contours {
             // Skip null contours.
@@ -101,14 +108,67 @@ impl ContourSet {
             let ntris = triangulate(&cont.vertices, &mut indices, &mut tris)?;
 
             // Add and merge vertices.
-            for j in 0..cont.vertices.len() {
+            for j in 0..(nverts as usize) {
                 let (v, region) = &cont.vertices[j];
-                indices[j] = todo!();
+                indices[j] = add_vertex(
+                    *v,
+                    &mut mesh.vertices,
+                    &mut first_vert,
+                    &mut next_vert,
+                    &mut nverts,
+                ) as usize;
                 if (region & RegionVertexId::BORDER_VERTEX.bits() as usize) != 0 {
                     // This vertex should be removed.
                     vflags[indices[j]] = true;
                 }
             }
+            // Build initial polygons.
+            for j in 0..ntris {
+                let t = tris[j];
+                if t.x != t.y && t.x != t.z && t.x != t.y {
+                    polys[npolys * nvp] = indices[t.x as usize] as u16;
+                    polys[npolys * nvp + 1] = indices[t.y as usize] as u16;
+                    polys[npolys * nvp + 2] = indices[t.z as usize] as u16;
+                    npolys += 1;
+                }
+            }
+            if npolys == 0 {
+                continue;
+            }
+
+            // Merge polygons.
+            if nvp > 3 {
+                loop {
+                    // Find best polygons to merge.
+                    let mut best_merge_val = 0;
+                    let mut best_pa = 0;
+                    let mut best_pb = 0;
+                    let mut best_ea = 0;
+                    let mut best_eb = 0;
+                    for j in 0..(npolys - 1) {
+                        let pj = &polys[(j * nvp)..];
+                        for k in (j + 1)..npolys {
+                            let pk = &polys[(k * nvp)..];
+                            let result = get_poly_merge_value(pj, pk, &mesh.vertices, nvp);
+                            if let Some(PolyMergeValue {
+                                value: v,
+                                edge_a: ea,
+                                edge_b: eb,
+                            }) = result
+                                && v > best_merge_val
+                            {
+                                best_merge_val = v;
+                                best_pa = j;
+                                best_pb = k;
+                                best_ea = ea;
+                                best_eb = eb;
+                            };
+                        }
+                    }
+                    todo!();
+                }
+            }
+
             todo!();
         }
         todo!();
@@ -116,6 +176,109 @@ impl ContourSet {
         Ok(mesh)
     }
 }
+
+fn get_poly_merge_value(
+    pa: &[u16],
+    pb: &[u16],
+    verts: &[U16Vec3],
+    nvp: usize,
+) -> Option<PolyMergeValue> {
+    let na = count_poly_verts(pa, nvp);
+    let nb = count_poly_verts(pb, nvp);
+
+    // If the merged polygon would be too big, do not merge.
+    if na + nb - 2 > nvp {
+        return None;
+    }
+
+    // Check if the polygons share an edge.
+    let mut ea = None;
+    let mut eb = None;
+
+    for i in 0..na {
+        let va0 = pa[i];
+        let va1 = pa[next(i, na)];
+        let (va0, va1) = if va0 <= va1 { (va0, va1) } else { (va1, va0) };
+        for j in 0..nb {
+            let vb0 = pb[j];
+            let vb1 = pb[next(j, nb)];
+            let (vb0, vb1) = if vb0 <= vb1 { (vb0, vb1) } else { (vb1, vb0) };
+            if va0 == vb0 && va1 == vb1 {
+                ea = Some(i);
+                eb = Some(j);
+                break;
+            }
+        }
+    }
+
+    // No common edge, cannot merge.
+    let (ea, eb) = (ea?, eb?);
+
+    // Check to see if the merged polygon would be convex.
+    let mut va = pa[(ea + na - 1) % na];
+    let mut vb = pa[ea];
+    let mut cv = pb[(eb + 2) % nb];
+    todo!()
+}
+
+fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
+    for i in 0..nvp {
+        if p[i] == RC_MESH_NULL_IDX {
+            return i;
+        }
+    }
+    nvp
+}
+
+/// A value which indicates an invalid index within a mesh.
+/// This does not necessarily indicate an error.
+const RC_MESH_NULL_IDX: u16 = 0xffff;
+
+struct PolyMergeValue {
+    value: u32,
+    edge_a: u32,
+    edge_b: u32,
+}
+
+fn add_vertex(
+    vertex: U16Vec3,
+    verts: &mut [U16Vec3],
+    first_vert: &mut [Option<u16>],
+    next_vert: &mut [Option<u16>],
+    nverts: &mut u16,
+) -> u16 {
+    let bucket = compute_vertex_hash(u16vec3(vertex.x, 0, vertex.z));
+    let mut i_iter = first_vert[bucket];
+
+    while let Some(i) = i_iter {
+        let v = verts[i as usize];
+        if v.x == vertex.x && (v.y as i32 - vertex.y as i32).abs() <= 2 && v.z == vertex.z {
+            return i;
+        }
+        i_iter = next_vert[i as usize];
+    }
+
+    // Could not find, create new.
+    let i = *nverts;
+    *nverts += 1;
+    verts[i as usize] = vertex;
+    next_vert[i as usize] = first_vert[bucket];
+    first_vert[bucket] = Some(i);
+
+    i
+}
+
+fn compute_vertex_hash(vertex: U16Vec3) -> usize {
+    let h = uvec3(
+        0x8da6b343, // Large multiplicative constants;
+        0xd8163841, // here arbitrarily chosen primes
+        0xcb1ab31f,
+    );
+    let n = h.dot(vertex.as_uvec3());
+    n as usize & (VERTEX_BUCKET_COUNT - 1)
+}
+
+const VERTEX_BUCKET_COUNT: usize = 1 << 12;
 
 fn triangulate(
     verts: &[(U16Vec3, usize)],
