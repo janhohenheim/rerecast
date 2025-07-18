@@ -120,6 +120,45 @@ fn triangulate(verts: &[(U16Vec3, usize)], indices: &mut [usize], tris: &mut [U1
         }
     }
     while n > 3 {
+        let mut min_len = None;
+        let mut mini = None;
+        for i in 0..n {
+            let i1 = next(i, n);
+            if (indices[i1] & CAN_REMOVE) != 0 {
+                let p0 = verts[indices[i] & INDEX_MASK].0;
+                let p2 = verts[indices[next(i1, n)] & INDEX_MASK].0;
+
+                let d = p2 - p0;
+                let len = d.xz().length_squared();
+                if min_len.is_none() || !min_len.is_some_and(|min| len >= min) {
+                    min_len = Some(len);
+                    mini = Some(i);
+                }
+            }
+        }
+        if mini.is_none() {
+            // We might get here because the contour has overlapping segments, like this:
+            //
+            //  A o-o=====o---o B
+            //   /  |C   D|    \.
+            //  o   o     o     o
+            //  :   :     :     :
+            // We'll try to recover by loosing up the inCone test a bit so that a diagonal
+            // like A-B or C-D can be found and we can continue.
+            min_len = None;
+            for i in 0..n {
+                let i1 = next(i, n);
+                let i2 = next(i1, n);
+                if is_diagonal_loose(i, i2, &verts, &indices) {
+                    todo!()
+                }
+            }
+            if mini.is_none() {
+                // The contour is messed up. This sometimes happens
+                // if the contour simplification is too aggressive.
+                todo!()
+            }
+        }
         todo!()
     }
     ntris
@@ -258,6 +297,24 @@ fn between(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
     } else {
         (a.z <= c.z && c.z <= b.z) || (a.z >= c.z && c.z >= b.z)
     }
+}
+
+fn is_diagonal_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
+    in_cone_loose(i, j, verts, indices)
+        && is_diagonal_internal_or_external_loose(i, j, verts, indices)
+}
+
+fn in_cone_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
+    todo!();
+}
+
+fn is_diagonal_internal_or_external_loose(
+    i: usize,
+    j: usize,
+    verts: &[(U16Vec3, usize)],
+    indices: &[usize],
+) -> bool {
+    todo!();
 }
 
 #[derive(Error, Debug)]
