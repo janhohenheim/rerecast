@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
-    contours::ContourSet,
+    contours::{ContourSet, RegionVertexId},
     math::{next, prev},
 };
 
@@ -73,7 +73,7 @@ impl ContourSet {
             });
         }
 
-        let mut vflags = vec![0; max_vertices];
+        let mut vflags = vec![false; max_vertices];
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
         mesh.polygons = vec![u8::MAX; max_tris * max_vertices_per_polygon * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
@@ -97,7 +97,18 @@ impl ContourSet {
                 indices[j] = j;
             }
 
-            let ntris = triangulate(&cont.vertices, &mut indices, &mut tris);
+            // Jan: we treat an invalid triangulation as an error instead of a warning.
+            let ntris = triangulate(&cont.vertices, &mut indices, &mut tris)?;
+
+            // Add and merge vertices.
+            for j in 0..cont.vertices.len() {
+                let (v, region) = &cont.vertices[j];
+                indices[j] = todo!();
+                if (region & RegionVertexId::BORDER_VERTEX.bits() as usize) != 0 {
+                    // This vertex should be removed.
+                    vflags[indices[j]] = true;
+                }
+            }
             todo!();
         }
         todo!();
@@ -106,10 +117,13 @@ impl ContourSet {
     }
 }
 
-fn triangulate(verts: &[(U16Vec3, usize)], indices: &mut [usize], tris: &mut [U16Vec3]) -> usize {
+fn triangulate(
+    verts: &[(U16Vec3, usize)],
+    indices: &mut [usize],
+    tris: &mut [U16Vec3],
+) -> Result<usize, PolygonMeshError> {
     let mut n = verts.len();
     let mut ntris = 0;
-    let mut dst_index = 0;
 
     // The last bit of the index is used to indicate if the vertex can be removed.
     for i in 0..n {
@@ -150,18 +164,63 @@ fn triangulate(verts: &[(U16Vec3, usize)], indices: &mut [usize], tris: &mut [U1
                 let i1 = next(i, n);
                 let i2 = next(i1, n);
                 if is_diagonal_loose(i, i2, &verts, &indices) {
-                    todo!()
+                    let p0 = verts[indices[i] & INDEX_MASK].0;
+                    let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
+                    let d = p2 - p0;
+                    let len = d.xz().length_squared();
+                    if min_len.is_none() || !min_len.is_some_and(|min| len >= min) {
+                        min_len = Some(len);
+                        mini = Some(i);
+                    }
                 }
             }
-            if mini.is_none() {
-                // The contour is messed up. This sometimes happens
-                // if the contour simplification is too aggressive.
-                todo!()
-            }
         }
-        todo!()
+
+        let Some(mini) = mini else {
+            // The contour is messed up. This sometimes happens
+            // if the contour simplification is too aggressive.
+            return Err(PolygonMeshError::InvalidContour);
+        };
+
+        let mut i = mini;
+        let mut i1 = next(i, n);
+        let i2 = next(i1, n);
+
+        tris[ntris].x = (indices[i] & CAN_REMOVE) as u16;
+        tris[ntris].y = (indices[i1] & CAN_REMOVE) as u16;
+        tris[ntris].z = (indices[i2] & CAN_REMOVE) as u16;
+        ntris += 1;
+
+        // Removes P[i1] by copying P[i+1]...P[n-1] left one index.
+        n -= 1;
+        for k in i1..n {
+            indices[k] = indices[k + 1];
+        }
+
+        if i1 >= n {
+            i1 = 0;
+        }
+        i = prev(i1, n);
+        // Update diagonal flags.
+        if is_diagonal(prev(i, n), i1, verts, indices) {
+            indices[i] |= CAN_REMOVE;
+        } else {
+            indices[i] &= INDEX_MASK;
+        }
+
+        if is_diagonal(i, next(i1, n), verts, indices) {
+            indices[i1] |= CAN_REMOVE;
+        } else {
+            indices[i1] &= INDEX_MASK;
+        }
     }
-    ntris
+    // Append the remaining triangle.
+    tris[ntris].x = (indices[0] & INDEX_MASK) as u16;
+    tris[ntris].y = (indices[1] & INDEX_MASK) as u16;
+    tris[ntris].z = (indices[2] & INDEX_MASK) as u16;
+    ntris += 1;
+
+    Ok(ntris)
 }
 
 const CAN_REMOVE: usize = 0x80000000;
@@ -305,7 +364,18 @@ fn is_diagonal_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[
 }
 
 fn in_cone_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
-    todo!();
+    let n = verts.len();
+    let pi = verts[indices[i] & INDEX_MASK].0;
+    let pj = verts[indices[j] & INDEX_MASK].0;
+    let pi1 = verts[indices[next(i, n)] & INDEX_MASK].0;
+    let pin1 = verts[indices[prev(i, n)] & INDEX_MASK].0;
+
+    // If P[i] is a convex vertex [ i+1 left or on (i-1,i) ].
+    if left_on(pin1, pi, pi1) {
+        left_on(pi, pj, pin1) && left_on(pj, pi, pi1)
+    } else {
+        !(left_on(pi, pj, pi1) && left_on(pj, pi, pin1))
+    }
 }
 
 fn is_diagonal_internal_or_external_loose(
@@ -314,11 +384,35 @@ fn is_diagonal_internal_or_external_loose(
     verts: &[(U16Vec3, usize)],
     indices: &[usize],
 ) -> bool {
-    todo!();
+    let n = verts.len();
+    let d0 = verts[indices[i] & INDEX_MASK].0;
+    let d1 = verts[indices[j] & INDEX_MASK].0;
+
+    // For each edge (k,k+1) of P
+    for k in 0..n {
+        let k1 = next(k, n);
+        // Skip edges incident to i or j
+        if !(k == i || k1 == i || k == j || k1 == j) {
+            let p0 = verts[indices[k] & INDEX_MASK].0;
+            let p1 = verts[indices[k1] & INDEX_MASK].0;
+            if vequal(d0, p0) || vequal(d1, p0) || vequal(d0, p1) || vequal(d1, p1) {
+                continue;
+            }
+            if intersect_prop(d0, d1, p0, p1) {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 #[derive(Error, Debug)]
 pub enum PolygonMeshError {
     #[error("Too many vertices: {actual} > {max}")]
     TooManyVertices { actual: usize, max: usize },
+
+    #[error(
+        "Invalid contour. This sometimes happens if the contour simplification is too aggressive."
+    )]
+    InvalidContour,
 }
