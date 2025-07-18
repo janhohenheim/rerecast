@@ -375,6 +375,32 @@ impl InternalPolygonMesh {
         }
         self.nvertices -= 1;
 
+        // Adjust indices to match the removed vertex layout.
+        for i in 0..self.npolys {
+            let p = &mut self.polygons[i * nvp * 2..];
+            let nv = count_poly_verts(p, nvp);
+            for j in 0..nv {
+                if p[j] > rem {
+                    p[j] -= 1;
+                }
+            }
+        }
+        for i in 0..nedges {
+            let edge = &mut edges[i];
+            if edge.polygon1 > rem {
+                edge.polygon1 -= 1;
+            }
+            if edge.polygon2 > rem {
+                edge.polygon2 -= 1;
+            }
+        }
+
+        if nedges == 0 {
+            return Ok(());
+        }
+
+        // Start with one vertex, keep appending connected
+        // segments to the start and end of the hole.
         todo!()
     }
 
