@@ -12,7 +12,7 @@ use crate::{
 pub struct PolygonMesh {
     /// The mesh vertices.
     vertices: Vec<U16Vec3>,
-    /// Polygon and neighbor data. [Length: [`Self::max_polygons`] * 2 * [`Self::vertices_per_polygon`]
+    /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
     polygons: Vec<u16>,
     /// The region id assigned to each polygon.
     regions: Vec<RegionId>,
@@ -80,6 +80,7 @@ impl ContourSet {
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
         // We will later resize `mesh.polygons` to this length
         let mut npolys = 0;
+        let mut mesh_npolys = 0;
         // Jan: no clue why this might be initialized to 255 specifically??????
         mesh.polygons = vec![u8::MAX as u16; max_tris * nvp * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
@@ -195,7 +196,6 @@ impl ContourSet {
             }
 
             // Store polygons.
-            let mut mesh_npolys = 0;
             for j in 0..npolys {
                 let p = &mut mesh.polygons[mesh_npolys * nvp * 2..];
                 let q = &polys[j * nvp..];
@@ -214,16 +214,123 @@ impl ContourSet {
                 }
             }
         }
+        mesh.polygons.truncate(mesh_npolys * nvp * 2);
         // Remove edge vertices.
-        for i in 0..nverts as usize {
+        let mut i = 0;
+        while i < nverts as usize {
+            i += 1;
             if !vflags[i] {
                 continue;
             };
-            todo!();
+            if !mesh.can_remove_vertex(i as u16) {
+                continue;
+            }
+            mesh.remove_vertex(i as u16, &mut nverts, max_tris)?;
+            // Remove vertex
+            // Note: nverts is already decremented inside removeVertex()!
+            // Fixup vertex flags
+            for j in i..nverts as usize {
+                vflags[j] = vflags[j + 1];
+            }
+            i -= 1;
         }
         todo!();
 
         Ok(mesh)
+    }
+}
+
+impl PolygonMesh {
+    /// The amount of polygons in the mesh. Note that this is not the same as `polygons.len()`, as [`Self::polygons`] also contains metadata.
+    #[inline]
+    pub fn polygon_count(&self) -> usize {
+        self.polygons.len() / (self.vertices_per_polygon * 2)
+    }
+
+    fn remove_vertex(
+        &mut self,
+        rem: u16,
+        nverts: &mut u16,
+        max_tris: usize,
+    ) -> Result<(), PolygonMeshError> {
+        todo!()
+    }
+
+    fn can_remove_vertex(&self, rem: u16) -> bool {
+        let nvp = self.vertices_per_polygon;
+
+        // Count number of polygons to remove.
+        let mut num_touched_verts = 0;
+        let mut num_remaining_edges = 0;
+        for i in 0..self.polygon_count() {
+            let p = &self.polygons[i * nvp * 2..];
+            let nv = count_poly_verts(p, nvp);
+            let mut num_removed = 0;
+            let mut num_verts = 0;
+            for j in 0..nv {
+                if p[j] == rem {
+                    num_touched_verts += 1;
+                    num_removed += 1;
+                }
+                num_verts += 1;
+            }
+            if num_removed != 0 {
+                num_remaining_edges += num_verts - (num_removed + 1);
+            }
+        }
+
+        // There would be too few edges remaining to create a polygon.
+        // This can happen for example when a tip of a triangle is marked
+        // as deletion, but there are no other polys that share the vertex.
+        // In this case, the vertex should not be removed.
+        if num_remaining_edges <= 2 {
+            return false;
+        }
+        // Find edges which share the removed vertex.
+        let max_edges = num_touched_verts * 2;
+        let mut nedges = 0;
+        // Format: [poly1, poly2, vertex share count]
+        let mut edges = vec![U16Vec3::ZERO; max_edges];
+        for i in 0..self.polygon_count() {
+            let p = &self.polygons[i * nvp * 2..];
+            let nv = count_poly_verts(p, nvp);
+
+            // Collect edges which touches the removed vertex.
+            for (j, k) in (0..nv).zip((nv - 1)..) {
+                if !(p[j] == rem || p[k] == rem) {
+                    continue;
+                }
+                // Arrange edge so that a=rem.
+                let a = p[j];
+                let b = p[k];
+                let (a, b) = if b != rem { (a, b) } else { (b, a) };
+
+                // Check if the edge exists
+                let mut exists = false;
+                for m in 0..nedges {
+                    let e = &mut edges[m];
+                    if e[1] == b {
+                        // Exists, increment vertex share count.
+                        e[2] += 1;
+                        exists = true;
+                    }
+                }
+                // Add new edge
+                if !exists {
+                    let e = &mut edges[nedges];
+                    e[0] = a;
+                    e[1] = b;
+                    e[2] = 1;
+                    nedges += 1;
+                }
+            }
+        }
+
+        // There should be no more than 2 open edges.
+        // This catches the case that two non-adjacent polygons
+        // share the removed vertex. In that case, do not remove the vertex.
+        let num_open_edges = edges.iter().filter(|e| e[2] < 2).count();
+        num_open_edges <= 2
     }
 }
 
