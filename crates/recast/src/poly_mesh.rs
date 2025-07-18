@@ -57,7 +57,7 @@ impl ContourSet {
         let mut max_tris = 0;
         let mut max_verts_per_cont = 0;
         for contour in &self.contours {
-            /// Skip null contours.
+            // Skip null contours.
             if contour.vertices.len() < 3 {
                 continue;
             }
@@ -91,7 +91,8 @@ impl ContourSet {
         let mut tris = vec![U16Vec3::ZERO; max_verts_per_cont];
         // Jan: the original code initializes this later, but there's not really a reason to do so.
         let mut polys = vec![u8::MAX as u16; (max_verts_per_cont + 1) * nvp];
-        let mut temp_poly = &mut polys[max_verts_per_cont * nvp];
+
+        let temp_poly_index = max_verts_per_cont * nvp;
 
         for cont in &self.contours {
             // Skip null contours.
@@ -151,7 +152,7 @@ impl ContourSet {
                             let pk = &polys[(k * nvp)..];
                             let result = get_poly_merge_value(pj, pk, &mesh.vertices, nvp);
                             if let Some(PolyMergeValue {
-                                value: v,
+                                length_squared: v,
                                 edge_a: ea,
                                 edge_b: eb,
                             }) = result
@@ -165,16 +166,98 @@ impl ContourSet {
                             };
                         }
                     }
-                    todo!();
+                    if best_merge_val > 0 {
+                        // Found best, merge.
+                        let pa_index = best_pa * nvp;
+                        let pb_index = best_pb * nvp;
+                        merge_poly_verts(
+                            &mut polys,
+                            pa_index,
+                            pb_index,
+                            best_ea,
+                            best_eb,
+                            temp_poly_index,
+                            nvp,
+                        );
+                        let last_poly = (npolys - 1) * nvp;
+                        if pb_index != last_poly {
+                            // Implicit assumption of the original code
+                            assert!(pb_index <= last_poly);
+                            let (dst, src) = polys.split_at_mut(last_poly);
+                            dst[pb_index..(pb_index + nvp)].copy_from_slice(&src[0..nvp]);
+                        }
+                        npolys -= 1;
+                    } else {
+                        // Could not merge any polygons, stop.
+                        break;
+                    }
                 }
             }
 
+            // Store polygons.
+            let mut mesh_npolys = 0;
+            for j in 0..npolys {
+                let p = &mut mesh.polygons[mesh_npolys * nvp * 2..];
+                let q = &polys[j * nvp..];
+                for k in 0..nvp {
+                    p[k] = q[k];
+                }
+                mesh.regions[mesh_npolys] = cont.region;
+                mesh.areas[mesh_npolys] = cont.area;
+                mesh_npolys += 1;
+                if mesh_npolys > max_tris {
+                    // Jan: we are comparing polys with tris. Why? Shouldn't we compare polys with polys?
+                    return Err(PolygonMeshError::TooManyPolygons {
+                        actual: mesh_npolys,
+                        max: max_tris,
+                    });
+                }
+            }
+        }
+        // Remove edge vertices.
+        for i in 0..nverts as usize {
+            if !vflags[i] {
+                continue;
+            };
             todo!();
         }
         todo!();
 
         Ok(mesh)
     }
+}
+
+// Jan: signature changed to align with the borrow checker :)
+fn merge_poly_verts(
+    polys: &mut [u16],
+    pa_index: usize,
+    pb_index: usize,
+    ea: usize,
+    eb: usize,
+    tmp_index: usize,
+    nvp: usize,
+) {
+    let na = count_poly_verts(&polys[pa_index..], nvp);
+    let nb = count_poly_verts(&polys[pb_index..], nvp);
+
+    // Merge polygons.
+    polys[tmp_index..tmp_index + nvp].fill(u8::MAX as u16);
+    let mut n = 0;
+    // Add pa
+    for i in 0..na - 1 {
+        polys[tmp_index + n] = polys[pa_index + (ea + 1 + i) % na];
+        n += 1;
+    }
+    // Add pb
+    for i in 0..nb - 1 {
+        polys[tmp_index + n] = polys[pb_index + (eb + 1 + i) % nb];
+        n += 1;
+    }
+
+    // Implicit assumption of the original code
+    assert!(pa_index + nvp <= tmp_index);
+    let (dst, src) = polys.split_at_mut(tmp_index);
+    dst[pa_index..(pa_index + nvp)].copy_from_slice(&src[..nvp]);
 }
 
 fn get_poly_merge_value(
@@ -215,10 +298,37 @@ fn get_poly_merge_value(
     let (ea, eb) = (ea?, eb?);
 
     // Check to see if the merged polygon would be convex.
-    let mut va = pa[(ea + na - 1) % na];
-    let mut vb = pa[ea];
-    let mut cv = pb[(eb + 2) % nb];
-    todo!()
+    let mut va = pa[(ea + na - 1) % na] as usize;
+    let mut vb = pa[ea] as usize;
+    let mut vc = pb[(eb + 2) % nb] as usize;
+    if !uleft(verts[va], verts[vb], verts[vc]) {
+        return None;
+    }
+
+    va = pb[(eb + nb - 1) % nb] as usize;
+    vb = pb[eb] as usize;
+    vc = pa[(ea + 2) % na] as usize;
+    if !uleft(verts[va], verts[vb], verts[vc]) {
+        return None;
+    };
+
+    va = pa[ea] as usize;
+    vb = pa[(ea + 1) % na] as usize;
+
+    let d = verts[va] - verts[vb];
+    let length_squared = d.xz().as_uvec2().length_squared();
+    Some(PolyMergeValue {
+        length_squared,
+        edge_a: ea,
+        edge_b: eb,
+    })
+}
+
+#[inline]
+fn uleft(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
+    let cross = (b.x as i32 - a.x as i32) * (c.z as i32 - a.z as i32)
+        - (c.x as i32 - a.x as i32) * (b.z as i32 - a.z as i32);
+    cross < 0
 }
 
 fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
@@ -235,9 +345,9 @@ fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
 const RC_MESH_NULL_IDX: u16 = 0xffff;
 
 struct PolyMergeValue {
-    value: u32,
-    edge_a: u32,
-    edge_b: u32,
+    length_squared: u32,
+    edge_a: usize,
+    edge_b: usize,
 }
 
 fn add_vertex(
@@ -573,7 +683,8 @@ fn is_diagonal_internal_or_external_loose(
 pub enum PolygonMeshError {
     #[error("Too many vertices: {actual} > {max}")]
     TooManyVertices { actual: usize, max: usize },
-
+    #[error("Too many polygons: {actual} > {max}")]
+    TooManyPolygons { actual: usize, max: usize },
     #[error(
         "Invalid contour. This sometimes happens if the contour simplification is too aggressive."
     )]
