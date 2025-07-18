@@ -9,7 +9,7 @@ use crate::{
 
 /// Represents a polygon mesh suitable for use in building a navigation mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct PolygonMesh {
+struct InternalPolygonMesh {
     /// The mesh vertices.
     vertices: Vec<U16Vec3>,
     /// The number of vertices
@@ -40,13 +40,70 @@ pub struct PolygonMesh {
     max_edge_error: f32,
 }
 
+/// Represents a polygon mesh suitable for use in building a navigation mesh.
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct PolygonMesh {
+    /// The mesh vertices.
+    vertices: Vec<U16Vec3>,
+    /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
+    polygons: Vec<u16>,
+    /// The region id assigned to each polygon.
+    regions: Vec<RegionId>,
+    /// The flags assigned to each polygon.
+    flags: Vec<u16>,
+    /// The area id assigned to each polygon.
+    areas: Vec<AreaType>,
+    /// The number of allocated polygons
+    max_polygons: usize,
+    /// The maximum number of vertices per polygon
+    vertices_per_polygon: usize,
+    /// The bounding box of the mesh in world space.
+    aabb: Aabb3d,
+    /// The size of each cell. (On the xz-plane.)
+    cell_size: f32,
+    /// The height of each cell. (The minimum increment along the y-axis.)
+    cell_height: f32,
+    /// The AABB border size used to generate the source data from which the mesh was derived.
+    border_size: u16,
+    /// The max error of the polygon edges in the mesh.
+    max_edge_error: f32,
+}
+
+impl PolygonMesh {
+    /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
+    pub fn polygon_count(&self) -> usize {
+        self.polygons.len() / (2 * self.vertices_per_polygon)
+    }
+}
+
+impl From<InternalPolygonMesh> for PolygonMesh {
+    fn from(mut value: InternalPolygonMesh) -> Self {
+        value.polygons.truncate(value.npolys);
+        value.vertices.truncate(value.nvertices as usize);
+        PolygonMesh {
+            vertices: value.vertices,
+            polygons: value.polygons,
+            regions: value.regions,
+            flags: value.flags,
+            areas: value.areas,
+            max_polygons: value.max_polygons,
+            vertices_per_polygon: value.vertices_per_polygon,
+            aabb: value.aabb,
+            cell_size: value.cell_size,
+            cell_height: value.cell_height,
+            border_size: value.border_size,
+            max_edge_error: value.max_edge_error,
+        }
+    }
+}
+
 impl ContourSet {
     /// Builds a polygon mesh from the provided contours.
     pub fn into_polygon_mesh(
         self,
         max_vertices_per_polygon: usize,
     ) -> Result<PolygonMesh, PolygonMeshError> {
-        let mut mesh = PolygonMesh {
+        let mut mesh = InternalPolygonMesh {
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
@@ -236,11 +293,11 @@ impl ContourSet {
         }
         todo!();
 
-        Ok(mesh)
+        Ok(mesh.into())
     }
 }
 
-impl PolygonMesh {
+impl InternalPolygonMesh {
     fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
         let nvp = self.vertices_per_polygon;
 
