@@ -135,3 +135,34 @@ pub(crate) fn dir_offset_z(direction: u8) -> i8 {
     const OFFSET: [i8; 4] = [0, 1, 0, -1];
     OFFSET[direction as usize & 0x03]
 }
+
+#[inline]
+pub(crate) fn prev(i: usize, n: usize) -> usize {
+    (i + n - 1) % n
+}
+
+#[inline]
+pub(crate) fn next(i: usize, n: usize) -> usize {
+    (i + 1) % n
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prev() {
+        assert_eq!(prev(0, 4), 3);
+        assert_eq!(prev(1, 4), 0);
+        assert_eq!(prev(2, 4), 1);
+        assert_eq!(prev(3, 4), 2);
+    }
+
+    #[test]
+    fn test_next() {
+        assert_eq!(next(0, 4), 1);
+        assert_eq!(next(1, 4), 2);
+        assert_eq!(next(2, 4), 3);
+        assert_eq!(next(3, 4), 0);
+    }
+}
