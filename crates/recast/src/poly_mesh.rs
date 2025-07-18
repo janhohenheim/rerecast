@@ -1,4 +1,4 @@
-use glam::{U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};
+use glam::{U16Vec3, U16Vec4, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
 use crate::{
@@ -12,8 +12,12 @@ use crate::{
 pub struct PolygonMesh {
     /// The mesh vertices.
     vertices: Vec<U16Vec3>,
+    /// The number of vertices
+    nvertices: u16,
     /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
     polygons: Vec<u16>,
+    /// The number of polygons.
+    npolys: usize,
     /// The region id assigned to each polygon.
     regions: Vec<RegionId>,
     /// The flags assigned to each polygon.
@@ -75,12 +79,7 @@ impl ContourSet {
         }
 
         let mut vflags = vec![false; max_vertices];
-        // We will later resize `mesh.vertices` to this length
-        let mut nverts = 0;
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
-        // We will later resize `mesh.polygons` to this length
-        let mut npolys = 0;
-        let mut mesh_npolys = 0;
         // Jan: no clue why this might be initialized to 255 specifically??????
         mesh.polygons = vec![u8::MAX as u16; max_tris * nvp * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
@@ -110,14 +109,14 @@ impl ContourSet {
             let ntris = triangulate(&cont.vertices, &mut indices, &mut tris)?;
 
             // Add and merge vertices.
-            for j in 0..(nverts as usize) {
+            for j in 0..(mesh.nvertices as usize) {
                 let (v, region) = &cont.vertices[j];
                 indices[j] = add_vertex(
                     *v,
                     &mut mesh.vertices,
                     &mut first_vert,
                     &mut next_vert,
-                    &mut nverts,
+                    &mut mesh.nvertices,
                 ) as usize;
                 if (region & RegionVertexId::BORDER_VERTEX.bits() as usize) != 0 {
                     // This vertex should be removed.
@@ -125,6 +124,7 @@ impl ContourSet {
                 }
             }
             // Build initial polygons.
+            let mut npolys = 0;
             for j in 0..ntris {
                 let t = tris[j];
                 if t.x != t.y && t.x != t.z && t.x != t.y {
@@ -197,42 +197,42 @@ impl ContourSet {
 
             // Store polygons.
             for j in 0..npolys {
-                let p = &mut mesh.polygons[mesh_npolys * nvp * 2..];
+                let p = &mut mesh.polygons[mesh.npolys * nvp * 2..];
                 let q = &polys[j * nvp..];
                 for k in 0..nvp {
                     p[k] = q[k];
                 }
-                mesh.regions[mesh_npolys] = cont.region;
-                mesh.areas[mesh_npolys] = cont.area;
-                mesh_npolys += 1;
-                if mesh_npolys > max_tris {
+                mesh.regions[mesh.npolys] = cont.region;
+                mesh.areas[mesh.npolys] = cont.area;
+                mesh.npolys += 1;
+                if mesh.npolys > max_tris {
                     // Jan: we are comparing polys with tris. Why? Shouldn't we compare polys with polys?
                     return Err(PolygonMeshError::TooManyPolygons {
-                        actual: mesh_npolys,
+                        actual: mesh.npolys,
                         max: max_tris,
                     });
                 }
             }
         }
-        mesh.polygons.truncate(mesh_npolys * nvp * 2);
+        mesh.polygons.truncate(mesh.npolys * nvp * 2);
         // Remove edge vertices.
         let mut i = 0;
-        while i < nverts as usize {
-            i += 1;
+        while i < mesh.nvertices as usize {
             if !vflags[i] {
+                i += 1;
                 continue;
             };
             if !mesh.can_remove_vertex(i as u16) {
+                i += 1;
                 continue;
             }
-            mesh.remove_vertex(i as u16, &mut nverts, max_tris)?;
+            mesh.remove_vertex(i as u16, max_tris)?;
             // Remove vertex
             // Note: nverts is already decremented inside removeVertex()!
             // Fixup vertex flags
-            for j in i..nverts as usize {
+            for j in i..mesh.nvertices as usize {
                 vflags[j] = vflags[j + 1];
             }
-            i -= 1;
         }
         todo!();
 
@@ -241,18 +241,83 @@ impl ContourSet {
 }
 
 impl PolygonMesh {
-    /// The amount of polygons in the mesh. Note that this is not the same as `polygons.len()`, as [`Self::polygons`] also contains metadata.
-    #[inline]
-    pub fn polygon_count(&self) -> usize {
-        self.polygons.len() / (self.vertices_per_polygon * 2)
-    }
+    fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
+        let nvp = self.vertices_per_polygon;
 
-    fn remove_vertex(
-        &mut self,
-        rem: u16,
-        nverts: &mut u16,
-        max_tris: usize,
-    ) -> Result<(), PolygonMeshError> {
+        // Count number of polygons to remove.
+        let mut num_removed_verts = 0;
+        for i in 0..self.npolys {
+            let p = &self.polygons[i * nvp * 2..];
+            let nv = count_poly_verts(p, nvp);
+            for j in 0..nv {
+                if p[j] == rem {
+                    num_removed_verts += 1;
+                }
+            }
+        }
+
+        let mut nedges = 0;
+        // Format: [polygon1, polygon2, region, area]
+        #[derive(Debug, Clone, Default)]
+        struct Edge {
+            polygon1: u16,
+            polygon2: u16,
+            region: RegionId,
+            area: AreaType,
+        }
+        let mut edges = vec![Edge::default(); num_removed_verts * nvp];
+        let mut nhole = 0;
+        let mut hole = vec![0; num_removed_verts * nvp];
+        let mut nhreg = 0;
+        let mut hreg = vec![0; num_removed_verts * nvp];
+        let mut nharea = 0;
+        let mut harea = vec![0; num_removed_verts * nvp];
+
+        let mut i = 0;
+        while i < self.npolys {
+            let i1 = i * nvp * 2;
+            {
+                // Scope p immutable in this scope
+                let p = &self.polygons[i1..];
+                let nv = count_poly_verts(p, nvp);
+                let has_rem = (0..nv).any(|j| p[j] == rem);
+                if !has_rem {
+                    i += 1;
+                    continue;
+                }
+                // Collect edges which does not touch the removed vertex.
+                for (j, k) in (0..nv).zip(nv - 1..) {
+                    if p[j] != rem && p[k] != rem {
+                        let e = &mut edges[nedges];
+                        e.polygon1 = p[k];
+                        e.polygon2 = p[j];
+                        e.region = self.regions[i];
+                        e.area = self.areas[i];
+                        nedges += 1;
+                    }
+                }
+            }
+            // Remove the polygon.
+            let i2 = (self.npolys - 1) * nvp * 2;
+            if i1 != i2 {
+                // Implicit assumption in the original
+                assert!(i2 > i1);
+                let (dst, src) = self.polygons.split_at_mut(i2);
+                dst[i1..(i1 + nvp)].copy_from_slice(&src[..nvp]);
+            }
+            self.polygons[i1 + nvp..(i1 + 2 * nvp)].fill(u8::MAX as u16);
+            self.regions[i] = self.regions[self.npolys - 1];
+            self.areas[i] = self.areas[self.npolys - 1];
+            self.npolys -= 1;
+        }
+
+        // Remove vertex.
+        for i in rem..self.nvertices - 1 {
+            let i = i as usize;
+            self.vertices[i] = self.vertices[i + 1];
+        }
+        self.nvertices -= 1;
+
         todo!()
     }
 
@@ -262,7 +327,7 @@ impl PolygonMesh {
         // Count number of polygons to remove.
         let mut num_touched_verts = 0;
         let mut num_remaining_edges = 0;
-        for i in 0..self.polygon_count() {
+        for i in 0..self.npolys {
             let p = &self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(p, nvp);
             let mut num_removed = 0;
@@ -291,7 +356,7 @@ impl PolygonMesh {
         let mut nedges = 0;
         // Format: [poly1, poly2, vertex share count]
         let mut edges = vec![U16Vec3::ZERO; max_edges];
-        for i in 0..self.polygon_count() {
+        for i in 0..self.npolys {
             let p = &self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(p, nvp);
 
