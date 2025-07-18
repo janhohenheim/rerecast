@@ -2,7 +2,7 @@ use glam::{U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
 use crate::{
-    Aabb3d, AreaType, CompactHeightfield, RegionId,
+    Aabb3d, AreaType, RegionId,
     contours::{ContourSet, RegionVertexId},
     math::{next, prev},
 };
@@ -402,7 +402,7 @@ fn triangulate(
     for i in 0..n {
         let i1 = next(i, n);
         let i2 = next(i1, n);
-        if is_diagonal(i, i2, &verts, indices) {
+        if is_diagonal(i, i2, verts, indices) {
             indices[i1] |= CAN_REMOVE;
         }
     }
@@ -417,7 +417,7 @@ fn triangulate(
 
                 let d = p2 - p0;
                 let len = d.xz().length_squared();
-                if min_len.is_none() || !min_len.is_some_and(|min| len >= min) {
+                if min_len.is_none() || min_len.is_none_or(|min| len < min) {
                     min_len = Some(len);
                     mini = Some(i);
                 }
@@ -436,12 +436,12 @@ fn triangulate(
             for i in 0..n {
                 let i1 = next(i, n);
                 let i2 = next(i1, n);
-                if is_diagonal_loose(i, i2, &verts, &indices) {
+                if is_diagonal_loose(i, i2, verts, indices) {
                     let p0 = verts[indices[i] & INDEX_MASK].0;
                     let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
                     let d = p2 - p0;
                     let len = d.xz().length_squared();
-                    if min_len.is_none() || !min_len.is_some_and(|min| len >= min) {
+                    if min_len.is_none() || min_len.is_none_or(|min| len < min) {
                         min_len = Some(len);
                         mini = Some(i);
                     }

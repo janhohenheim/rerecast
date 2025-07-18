@@ -394,7 +394,7 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
                 "contour {i} raw vertex coordinates"
             );
             assert_eq!(
-                cpp_vert[3] as u32,
+                cpp_vert[3],
                 data.bits(),
                 "contour {i} raw vertex data"
             );
