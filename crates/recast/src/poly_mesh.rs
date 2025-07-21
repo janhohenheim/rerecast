@@ -1,4 +1,4 @@
-use glam::{U16Vec3, U16Vec4, Vec3Swizzles as _, u16vec3, uvec3};
+use glam::{U16Vec2, U16Vec3, U16Vec4, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
 use crate::{
@@ -291,13 +291,104 @@ impl ContourSet {
                 vflags[j] = vflags[j + 1];
             }
         }
+        // Calculate adjacency.
+        mesh.build_mesh_adjacency()?;
         todo!();
 
         Ok(mesh.into())
     }
 }
 
+#[derive(Debug, Default, Clone)]
+struct Edge {
+    vert: U16Vec2,
+    poly_edge: U16Vec2,
+    poly: U16Vec2,
+}
+
 impl InternalPolygonMesh {
+    fn build_mesh_adjacency(&mut self) -> Result<(), PolygonMeshError> {
+        let nvp = self.vertices_per_polygon;
+        // Based on code by Eric Lengyel from:
+        // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
+        let max_edge_count = self.npolys * nvp;
+        let mut first_edge = vec![0; self.nvertices as usize + max_edge_count];
+        let mut next_edge_index = self.nvertices as usize;
+        let mut edge_count = 0;
+        let mut edges = vec![Edge::default(); max_edge_count];
+        for i in 0..self.nvertices as usize {
+            first_edge[i] = RC_MESH_NULL_IDX;
+        }
+        for i in 0..self.npolys {
+            let t = &self.polygons[i * nvp * 2..];
+            for j in 0..nvp {
+                if t[j] == RC_MESH_NULL_IDX {
+                    break;
+                }
+                let v0 = t[j];
+                let v1 = if j + 1 >= nvp || t[j + 1] == RC_MESH_NULL_IDX {
+                    t[0]
+                } else {
+                    t[j + 1]
+                };
+                if v0 < v1 {
+                    let edge = &mut edges[edge_count];
+                    edge.vert.x = v0;
+                    edge.vert.y = v1;
+                    edge.poly.x = i as u16;
+                    edge.poly_edge.x = j as u16;
+                    edge.poly.y = i as u16;
+                    edge.poly_edge.y = 0;
+                    // Insert edge
+                    first_edge[next_edge_index + edge_count] = first_edge[v0 as usize];
+                    first_edge[v0 as usize] = edge_count as u16;
+                    edge_count += 1;
+                }
+            }
+        }
+        for i in 0..self.npolys {
+            let t = &self.polygons[i * nvp * 2..];
+            let nv = count_poly_verts(t, nvp);
+            for j in 0..nv {
+                if t[j] == RC_MESH_NULL_IDX {
+                    break;
+                }
+                let v0 = t[j];
+                let v1 = if j + 1 >= nvp || t[j + 1] == RC_MESH_NULL_IDX {
+                    t[0]
+                } else {
+                    t[j + 1]
+                };
+                if v0 > v1 {
+                    let mut e = first_edge[1];
+                    while e != RC_MESH_NULL_IDX {
+                        let edge = &mut edges[e as usize];
+                        if edge.vert.y == v0 && edge.poly.x == edge.poly.y {
+                            edge.poly.y = i as u16;
+                            edge.poly_edge.y = j as u16;
+                            break;
+                        }
+                        e = first_edge[next_edge_index + e as usize];
+                    }
+                }
+            }
+        }
+
+        // Store adjacency
+        for i in 0..edge_count {
+            let e = &edges[i];
+            if e.poly.x != e.poly.y {
+                {
+                    let p0 = &mut self.polygons[e.poly.x as usize * nvp * 2..];
+                    p0[nvp + e.poly_edge.x as usize] = e.poly.y;
+                }
+                let p1 = &mut self.polygons[e.poly.y as usize * nvp * 2..];
+                p1[nvp + e.poly_edge.y as usize] = e.poly.x;
+            }
+        }
+        Ok(())
+    }
+
     fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
         let nvp = self.vertices_per_polygon;
 
@@ -326,9 +417,9 @@ impl InternalPolygonMesh {
         let mut nhole = 0;
         let mut hole = vec![0; num_removed_verts * nvp];
         let mut nhreg = 0;
-        let mut hreg = vec![0; num_removed_verts * nvp];
+        let mut hreg = vec![RegionId::default(); num_removed_verts * nvp];
         let mut nharea = 0;
-        let mut harea = vec![0; num_removed_verts * nvp];
+        let mut harea = vec![AreaType::default(); num_removed_verts * nvp];
 
         let mut i = 0;
         while i < self.npolys {
@@ -401,7 +492,176 @@ impl InternalPolygonMesh {
 
         // Start with one vertex, keep appending connected
         // segments to the start and end of the hole.
-        todo!()
+        push_back(edges[0].polygon1, &mut hole, &mut nhole);
+        push_back(edges[0].region, &mut hreg, &mut nhreg);
+        push_back(edges[0].area, &mut harea, &mut nharea);
+
+        while nedges != 0 {
+            let mut match_ = false;
+            let mut i = 0;
+            while i < nedges {
+                let edge = edges[i].clone();
+                let ea = edge.polygon1;
+                let eb = edge.polygon2;
+                let r = edge.region;
+                let a = edge.area;
+                let mut add = false;
+                if hole[0] == eb {
+                    // The segment matches the beginning of the hole boundary.
+                    push_front(ea, &mut hole, &mut nhole);
+                    push_front(r, &mut hreg, &mut nhreg);
+                    push_front(a, &mut harea, &mut nharea);
+                    add = true;
+                    i += 1;
+                } else if hole[nhole - 1] == ea {
+                    // The segment matches the end of the hole boundary.
+                    push_back(eb, &mut hole, &mut nhole);
+                    push_back(r, &mut hreg, &mut nhreg);
+                    push_back(a, &mut harea, &mut nharea);
+                    add = true;
+                    i += 1;
+                }
+                if add {
+                    // The edge segment was added, remove it.
+                    edges[i] = edges[nedges - 1].clone();
+                    nedges -= 1;
+                    match_ = true;
+                }
+            }
+            if !match_ {
+                break;
+            }
+        }
+        let mut tris = vec![U16Vec3::default(); nhole];
+        let mut tverts = vec![(U16Vec3::default(), 0); nhole];
+        let mut thole = vec![0; nhole];
+
+        // Generate temp vertex array for triangulation.
+        for i in 0..nhole {
+            let pi = hole[i] as usize;
+            tverts[i].0 = self.vertices[pi];
+            thole[i] = i;
+        }
+
+        // Triangulate the hole.
+        // Jan: we treat errors here as a hard error instead of printing a warning.
+        let mut ntris = triangulate(&tverts, &mut thole, &mut tris)?;
+
+        // Merge the hole triangles back to polygons.
+        let mut polys = vec![0; (ntris + 1) * nvp];
+        let mut pregs = vec![RegionId::default(); ntris];
+        let mut pareas = vec![AreaType::default(); ntris];
+        let tmp_poly_index = ntris * nvp;
+
+        // Build initial polygons.
+        let mut npolys = 0;
+        polys[..ntris * nvp].fill(u8::MAX as u16);
+        for j in 0..ntris {
+            let t = tris[j];
+            if t.x != t.y && t.x != t.z && t.y != t.z {
+                let t_x = t.x as usize;
+                let t_y = t.y as usize;
+                let t_z = t.z as usize;
+                polys[npolys * nvp + 0] = hole[t_x];
+                polys[npolys * nvp + 1] = hole[t_y];
+                polys[npolys * nvp + 2] = hole[t_z];
+
+                // If this polygon covers multiple region types then
+                // mark it as such
+                if hreg[t_x] != hreg[t_y] || hreg[t_y] != hreg[t_z] {
+                    pregs[npolys] = RegionId::NONE;
+                } else {
+                    pregs[npolys] = hreg[t_x];
+                }
+                pareas[npolys] = harea[t_x];
+                npolys += 1;
+            }
+        }
+        if npolys == 0 {
+            return Ok(());
+        }
+
+        // Merge polygons.
+        if nvp > 3 {
+            loop {
+                // Find best polygons to merge.
+                let mut best_merge_val = 0;
+                let mut best_pa = 0;
+                let mut best_pb = 0;
+                let mut best_ea = 0;
+                let mut best_eb = 0;
+                for j in 0..npolys - 1 {
+                    let pj = &polys[j * nvp..];
+                    for k in (j + 1)..npolys {
+                        let pk = &polys[k * nvp..];
+                        let value = get_poly_merge_value(pj, pk, &self.vertices, nvp);
+                        if let Some(value) = value
+                            && value.length_squared > best_merge_val
+                        {
+                            best_merge_val = value.length_squared;
+                            best_pa = j;
+                            best_pb = k;
+                            best_ea = value.edge_a;
+                            best_eb = value.edge_b;
+                        }
+                    }
+                }
+
+                if best_merge_val > 0 {
+                    // Found best, merge.
+                    let pa_index = best_pa * nvp;
+                    let pb_index = best_pb * nvp;
+                    merge_poly_verts(
+                        &mut polys,
+                        pa_index,
+                        pb_index,
+                        best_ea,
+                        best_eb,
+                        tmp_poly_index,
+                        nvp,
+                    );
+                    if pregs[best_pa] != pregs[best_pb] {
+                        pregs[best_pa] = RegionId::NONE;
+                    }
+
+                    let last_index = (npolys - 1) * nvp;
+                    if pb_index != last_index {
+                        assert!(pb_index < last_index);
+                        let (dst, src) = polys.split_at_mut(pb_index);
+                        dst[..nvp].copy_from_slice(&src);
+                    }
+                    pregs[best_pb] = pregs[npolys - 1];
+                    pareas[best_pb] = pareas[npolys - 1];
+                    npolys -= 1;
+                } else {
+                    // Cound not merge any polygons, stop.
+                    break;
+                }
+            }
+        }
+
+        // Store polygons.
+        for i in 0..npolys {
+            if self.npolys >= max_tris {
+                break;
+            }
+            let p = &mut self.polygons[self.npolys * nvp * 2..self.npolys * nvp * 2 + nvp * 2];
+            p[..nvp * 2].fill(u8::MAX as u16);
+            for j in 0..nvp {
+                p[j] = polys[i * nvp + j];
+            }
+            self.regions[self.npolys] = pregs[i];
+            self.areas[self.npolys] = pareas[i];
+            self.npolys += 1;
+            if self.npolys >= max_tris {
+                return Err(PolygonMeshError::TooManyPolygons {
+                    actual: self.npolys,
+                    max: max_tris,
+                });
+            }
+        }
+
+        Ok(())
     }
 
     fn can_remove_vertex(&self, rem: u16) -> bool {
@@ -480,6 +740,19 @@ impl InternalPolygonMesh {
         let num_open_edges = edges.iter().filter(|e| e[2] < 2).count();
         num_open_edges <= 2
     }
+}
+
+fn push_back<T>(value: T, vec: &mut Vec<T>, index: &mut usize) {
+    vec[*index] = value;
+    *index += 1;
+}
+
+fn push_front<T: Clone>(value: T, vec: &mut Vec<T>, index: &mut usize) {
+    *index += 1;
+    for i in (1..*index).rev() {
+        vec[i] = vec[i - 1].clone();
+    }
+    vec[0] = value;
 }
 
 // Jan: signature changed to align with the borrow checker :)
