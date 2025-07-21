@@ -5,7 +5,7 @@ use std::env;
 use glam::{UVec3, Vec2, Vec3A};
 use recast::{
     AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, Heightfield,
-    HeightfieldBuilder, RegionId, TriMesh,
+    HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -23,6 +23,7 @@ fn validate_navmesh_against_cpp_implementation() {
     let border_size = 5;
     let max_simplification_error = 1.3;
     let max_edge_len = 40;
+    let max_vertices_per_polygon = 6;
     let contour_flags = BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES;
     trimesh.mark_walkable_triangles(walkable_slope);
 
@@ -85,6 +86,11 @@ fn validate_navmesh_against_cpp_implementation() {
         compact_heightfield.build_contours(max_simplification_error, max_edge_len, contour_flags);
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_contours");
     assert_eq_contours(&contours, "contour_set");
+
+    let poly_mesh = contours
+        .into_polygon_mesh(max_vertices_per_polygon)
+        .unwrap();
+    assert_eq_poly_mesh(&poly_mesh, "poly_mesh");
 }
 
 #[track_caller]
@@ -393,12 +399,97 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
                 coord.as_uvec3().to_array(),
                 "contour {i} raw vertex coordinates"
             );
-            assert_eq!(
-                cpp_vert[3],
-                data.bits(),
-                "contour {i} raw vertex data"
-            );
+            assert_eq!(cpp_vert[3], data.bits(), "contour {i} raw vertex data");
         }
+    }
+}
+
+#[track_caller]
+fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
+    let cpp_poly_mesh = load_json::<CppPolyMesh>(reference_name);
+    assert_eq!(
+        cpp_poly_mesh.bmin,
+        poly_mesh.aabb.min.to_array(),
+        "poly mesh aabb min"
+    );
+
+    assert_eq!(
+        cpp_poly_mesh.bmax,
+        poly_mesh.aabb.max.to_array(),
+        "poly mesh aabb max"
+    );
+
+    assert_eq!(cpp_poly_mesh.cs, poly_mesh.cell_size, "poly mesh cell size");
+
+    assert_eq!(
+        cpp_poly_mesh.ch, poly_mesh.cell_height,
+        "poly mesh cell height"
+    );
+
+    assert_eq!(
+        cpp_poly_mesh.nvp, poly_mesh.vertices_per_polygon,
+        "poly mesh vertices per polygon"
+    );
+
+    assert_eq!(
+        cpp_poly_mesh.border_size, poly_mesh.border_size,
+        "poly mesh border_size"
+    );
+    assert_eq!(
+        cpp_poly_mesh.max_edge_error, poly_mesh.max_edge_error,
+        "poly mesh max_edge_error"
+    );
+    assert_eq!(
+        cpp_poly_mesh.verts.len(),
+        poly_mesh.vertices.len(),
+        "poly mesh verts len"
+    );
+    assert_eq!(
+        cpp_poly_mesh.polys.len(),
+        poly_mesh.polygons.len(),
+        "poly mesh polys len"
+    );
+    assert_eq!(
+        cpp_poly_mesh.flags.len(),
+        poly_mesh.flags.len(),
+        "poly mesh flags len"
+    );
+    assert_eq!(
+        cpp_poly_mesh.areas.len(),
+        poly_mesh.areas.len(),
+        "poly mesh areas len"
+    );
+    for (i, (cpp_vert, vert)) in cpp_poly_mesh
+        .verts
+        .iter()
+        .zip(poly_mesh.vertices.iter())
+        .enumerate()
+    {
+        assert_eq!(cpp_vert, &vert.to_array(), "{i} poly mesh vertices");
+    }
+    for (i, (cpp_poly, poly)) in cpp_poly_mesh
+        .polys
+        .iter()
+        .zip(poly_mesh.polygons.iter())
+        .enumerate()
+    {
+        assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
+    }
+    for (i, (cpp_area, area)) in cpp_poly_mesh
+        .areas
+        .iter()
+        .zip(poly_mesh.areas.iter())
+        .enumerate()
+    {
+        assert_eq!(*cpp_area, area.0, "{i} poly mesh area");
+    }
+    for (i, (cpp_flag, flag)) in cpp_poly_mesh
+        .flags
+        .iter()
+        .zip(poly_mesh.flags.iter())
+        .enumerate()
+    {
+        assert_eq!(cpp_flag, flag, "{i} poly mesh flag");
     }
 }
 
@@ -526,6 +617,21 @@ struct CppContour {
     area: u8,
     verts: Vec<[u32; 4]>,
     rverts: Vec<[u32; 4]>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppPolyMesh {
+    verts: Vec<[u16; 3]>,
+    polys: Vec<u16>,
+    flags: Vec<u16>,
+    areas: Vec<u8>,
+    nvp: usize,
+    cs: f32,
+    ch: f32,
+    border_size: u16,
+    max_edge_error: f32,
+    bmin: [f32; 3],
+    bmax: [f32; 3],
 }
 
 #[track_caller]

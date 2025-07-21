@@ -1,4 +1,4 @@
-use glam::{U16Vec2, U16Vec3, U16Vec4, Vec3Swizzles as _, u16vec3, uvec3};
+use glam::{U16Vec2, U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
 use crate::{
@@ -44,29 +44,29 @@ struct InternalPolygonMesh {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct PolygonMesh {
     /// The mesh vertices.
-    vertices: Vec<U16Vec3>,
+    pub vertices: Vec<U16Vec3>,
     /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
-    polygons: Vec<u16>,
+    pub polygons: Vec<u16>,
     /// The region id assigned to each polygon.
-    regions: Vec<RegionId>,
+    pub regions: Vec<RegionId>,
     /// The flags assigned to each polygon.
-    flags: Vec<u16>,
+    pub flags: Vec<u16>,
     /// The area id assigned to each polygon.
-    areas: Vec<AreaType>,
+    pub areas: Vec<AreaType>,
     /// The number of allocated polygons
-    max_polygons: usize,
+    pub max_polygons: usize,
     /// The maximum number of vertices per polygon
-    vertices_per_polygon: usize,
+    pub vertices_per_polygon: usize,
     /// The bounding box of the mesh in world space.
-    aabb: Aabb3d,
+    pub aabb: Aabb3d,
     /// The size of each cell. (On the xz-plane.)
-    cell_size: f32,
+    pub cell_size: f32,
     /// The height of each cell. (The minimum increment along the y-axis.)
-    cell_height: f32,
+    pub cell_height: f32,
     /// The AABB border size used to generate the source data from which the mesh was derived.
-    border_size: u16,
+    pub border_size: u16,
     /// The max error of the polygon edges in the mesh.
-    max_edge_error: f32,
+    pub max_edge_error: f32,
 }
 
 impl PolygonMesh {
@@ -350,7 +350,7 @@ impl InternalPolygonMesh {
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
         let mut first_edge = vec![0; self.nvertices as usize + max_edge_count];
-        let mut next_edge_index = self.nvertices as usize;
+        let next_edge_index = self.nvertices as usize;
         let mut edge_count = 0;
         let mut edges = vec![Edge::default(); max_edge_count];
         for i in 0..self.nvertices as usize {
@@ -582,7 +582,7 @@ impl InternalPolygonMesh {
 
         // Triangulate the hole.
         // Jan: we treat errors here as a hard error instead of printing a warning.
-        let mut ntris = triangulate(&tverts, &mut thole, &mut tris)?;
+        let ntris = triangulate(&tverts, &mut thole, &mut tris)?;
 
         // Merge the hole triangles back to polygons.
         let mut polys = vec![0; (ntris + 1) * nvp];
@@ -980,8 +980,8 @@ fn triangulate(
                 let p0 = verts[indices[i] & INDEX_MASK].0;
                 let p2 = verts[indices[next(i1, n)] & INDEX_MASK].0;
 
-                let d = p2 - p0;
-                let len = d.xz().length_squared();
+                let d = p2.as_ivec3() - p0.as_ivec3();
+                let len = d.xz().length_squared() as u16;
                 if min_len.is_none() || min_len.is_none_or(|min| len < min) {
                     min_len = Some(len);
                     mini = Some(i);
@@ -1004,8 +1004,8 @@ fn triangulate(
                 if is_diagonal_loose(i, i2, verts, indices) {
                     let p0 = verts[indices[i] & INDEX_MASK].0;
                     let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
-                    let d = p2 - p0;
-                    let len = d.xz().length_squared();
+                    let d = p2.as_ivec3() - p0.as_ivec3();
+                    let len = d.xz().length_squared() as u16;
                     if min_len.is_none() || min_len.is_none_or(|min| len < min) {
                         min_len = Some(len);
                         mini = Some(i);
