@@ -293,7 +293,44 @@ impl ContourSet {
         }
         // Calculate adjacency.
         mesh.build_mesh_adjacency()?;
-        todo!();
+
+        // Find portal edges
+        if self.border_size > 0 {
+            let w = self.width;
+            let h = self.height;
+            for i in 0..mesh.npolys {
+                let p = &mut mesh.polygons[i * 2 * nvp..];
+                for j in 0..nvp {
+                    if p[j] == RC_MESH_NULL_IDX {
+                        break;
+                    }
+                    // Skip connected edges.
+                    if p[nvp + j] != RC_MESH_NULL_IDX {
+                        continue;
+                    }
+                    let nj = j + 1;
+                    let nj = if nj >= nvp || p[nj] == RC_MESH_NULL_IDX {
+                        0
+                    } else {
+                        nj
+                    };
+                    let va = mesh.vertices[p[j] as usize];
+                    let vb = mesh.vertices[p[nj] as usize];
+                    if va.x == 0 && vb.x == 0 {
+                        p[nvp + j] = RegionId::BORDER_REGION.bits() | 0;
+                    } else if va.z == h && vb.z == h {
+                        p[nvp + j] = RegionId::BORDER_REGION.bits() | 1;
+                    } else if va.x == w && vb.x == w {
+                        p[nvp + j] = RegionId::BORDER_REGION.bits() | 2;
+                    } else if va.z == 0 && vb.z == 0 {
+                        p[nvp + j] = RegionId::BORDER_REGION.bits() | 3;
+                    }
+                }
+            }
+        }
+        // Just allocate the mesh flags array. The user is resposible to fill it.
+        mesh.flags = vec![0; mesh.npolys];
+        // Jan: Rust's type system makes it impossible for the number of verts and polys to be greater than the max index.
 
         Ok(mesh.into())
     }
