@@ -184,7 +184,7 @@ impl ContourSet {
             let mut npolys = 0;
             for j in 0..ntris {
                 let t = tris[j];
-                if t.x != t.y && t.x != t.z && t.x != t.y {
+                if t.x != t.y && t.x != t.z && t.y != t.z {
                     polys[npolys * nvp] = indices[t.x as usize] as u16;
                     polys[npolys * nvp + 1] = indices[t.y as usize] as u16;
                     polys[npolys * nvp + 2] = indices[t.z as usize] as u16;
@@ -239,10 +239,7 @@ impl ContourSet {
                         );
                         let last_poly = (npolys - 1) * nvp;
                         if pb_index != last_poly {
-                            // Implicit assumption of the original code
-                            assert!(pb_index <= last_poly);
-                            let (dst, src) = polys.split_at_mut(last_poly);
-                            dst[pb_index..(pb_index + nvp)].copy_from_slice(&src[0..nvp]);
+                            polys.copy_within(last_poly..last_poly + nvp, pb_index);
                         }
                         npolys -= 1;
                     } else {
@@ -271,6 +268,7 @@ impl ContourSet {
                 }
             }
         }
+
         mesh.polygons.truncate(mesh.npolys * nvp * 2);
         // Remove edge vertices.
         let mut i = 0;
@@ -287,9 +285,7 @@ impl ContourSet {
             // Remove vertex
             // Note: nverts is already decremented inside removeVertex()!
             // Fixup vertex flags
-            for j in i..mesh.nvertices as usize {
-                vflags[j] = vflags[j + 1];
-            }
+            vflags.copy_within((i + 1)..=mesh.nvertices as usize, i);
         }
         // Calculate adjacency.
         mesh.build_mesh_adjacency()?;
@@ -397,7 +393,7 @@ impl InternalPolygonMesh {
                     t[j + 1]
                 };
                 if v0 > v1 {
-                    let mut e = first_edge[1];
+                    let mut e = first_edge[v1 as usize];
                     while e != RC_MESH_NULL_IDX {
                         let edge = &mut edges[e as usize];
                         if edge.vert.y == v0 && edge.poly.x == edge.poly.y {
@@ -485,10 +481,7 @@ impl InternalPolygonMesh {
             // Remove the polygon.
             let i2 = (self.npolys - 1) * nvp * 2;
             if i1 != i2 {
-                // Implicit assumption in the original
-                assert!(i2 > i1);
-                let (dst, src) = self.polygons.split_at_mut(i2);
-                dst[i1..(i1 + nvp)].copy_from_slice(&src[..nvp]);
+                self.polygons.copy_within(i2..(i2 + nvp), i1);
             }
             self.polygons[i1 + nvp..(i1 + 2 * nvp)].fill(u8::MAX as u16);
             self.regions[i] = self.regions[self.npolys - 1];
@@ -663,9 +656,7 @@ impl InternalPolygonMesh {
 
                     let last_index = (npolys - 1) * nvp;
                     if pb_index != last_index {
-                        assert!(pb_index < last_index);
-                        let (dst, src) = polys.split_at_mut(pb_index);
-                        dst[..nvp].copy_from_slice(&src);
+                        polys.copy_within(last_index..last_index + nvp, pb_index);
                     }
                     pregs[best_pb] = pregs[npolys - 1];
                     pareas[best_pb] = pareas[npolys - 1];
@@ -820,9 +811,7 @@ fn merge_poly_verts(
     }
 
     // Implicit assumption of the original code
-    assert!(pa_index + nvp <= tmp_index);
-    let (dst, src) = polys.split_at_mut(tmp_index);
-    dst[pa_index..(pa_index + nvp)].copy_from_slice(&src[..nvp]);
+    polys.copy_within(tmp_index..tmp_index + nvp, pa_index);
 }
 
 fn get_poly_merge_value(
