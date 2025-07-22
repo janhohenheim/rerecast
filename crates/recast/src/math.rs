@@ -2,6 +2,7 @@ use glam::{UVec3, Vec2, Vec3A};
 
 /// A 3D axis-aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Aabb3d {
     /// The minimum point of the box
     pub min: Vec3A,

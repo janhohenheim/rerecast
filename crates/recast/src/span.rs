@@ -15,6 +15,7 @@ slotmap::new_key_type! {
 
 /// A collection of spans.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spans(SlotMap<SpanKey, Span>);
 
 impl Deref for Spans {
@@ -66,6 +67,7 @@ impl From<SpanBuilder> for Span {
 
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L294>
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Span {
     /// Height of the floor.
     ///
@@ -140,6 +142,7 @@ impl Span {
 /// The rest can be used for custom area types to e.g. assign different costs to different areas.
 /// When two spans are merged, the area type of the merged span is the maximum of the two area types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
 pub struct AreaType(pub u8);
 

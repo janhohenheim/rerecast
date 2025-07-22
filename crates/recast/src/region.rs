@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign};
 bitflags::bitflags! {
     /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
     #[repr(transparent)]
     pub struct RegionId: u16 {
         /// The default region, which is used for spans that are not in a region, i.e. not walkable.

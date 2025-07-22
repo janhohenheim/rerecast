@@ -20,7 +20,7 @@ tracing = { workspace = true }
 
 # Bevy integration
 bevy = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -28,7 +28,7 @@ serde_json = { workspace = true }
 
 [features]
 default = []
-serialize = ["dep:serde", "glam/serde"]
+serialize = ["dep:serde", "glam/serde", "slotmap/serde"]
 bevy = ["dep:bevy"]
 
 [lints]

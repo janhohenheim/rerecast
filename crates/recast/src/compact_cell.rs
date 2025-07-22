@@ -2,6 +2,7 @@ use std::ops::Range;
 
 /// Provides information on the content of a cell column in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactCell {
     // original: 24 bits
     /// Index to the first span in the column.

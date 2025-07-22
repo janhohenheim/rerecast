@@ -42,6 +42,7 @@ struct InternalPolygonMesh {
 
 /// Represents a polygon mesh suitable for use in building a navigation mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct PolygonMesh {
     /// The mesh vertices.
     pub vertices: Vec<U16Vec3>,

@@ -10,6 +10,7 @@ use crate::{
 
 /// A packed representation of a [`Heightfield`].
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactHeightfield {
     /// The width of the heightfield along the x-axis in cell units
     pub width: u16,

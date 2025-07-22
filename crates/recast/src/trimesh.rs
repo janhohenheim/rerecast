@@ -8,6 +8,7 @@ use crate::{math::Aabb3d, span::AreaType};
 
 /// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct TriMesh {
     /// The vertices composing the collider.
     /// Follows the convention of a triangle list.

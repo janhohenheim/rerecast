@@ -3,6 +3,7 @@ use crate::region::RegionId;
 /// A span in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
 /// Packed for memory efficiency.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactSpan {
     /// The lower extent of the span. (Measured from the heightfield's base.)
     pub y: u16,

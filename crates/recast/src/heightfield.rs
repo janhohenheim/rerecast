@@ -11,6 +11,7 @@ use crate::{
 /// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
 /// Build with [`HeightfieldBuilder`].
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Heightfield {
     /// The width of the heightfield along the x-axis in cell units
     pub width: u16,
