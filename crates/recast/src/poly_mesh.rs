@@ -140,7 +140,7 @@ impl ContourSet {
         let mut vflags = vec![false; max_vertices];
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
         // Jan: no clue why this might be initialized to 255 specifically??????
-        mesh.polygons = vec![u8::MAX as u16; max_tris * nvp * 2];
+        mesh.polygons = vec![u16::MAX; max_tris * nvp * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
         mesh.areas = vec![AreaType::default(); max_tris];
 
@@ -148,8 +148,7 @@ impl ContourSet {
         let mut first_vert = [None; VERTEX_BUCKET_COUNT];
         let mut indices = vec![0; max_verts_per_cont];
         let mut tris = vec![U16Vec3::ZERO; max_verts_per_cont];
-        // Jan: the original code initializes this later, but there's not really a reason to do so.
-        let mut polys = vec![u8::MAX as u16; (max_verts_per_cont + 1) * nvp];
+        let mut polys = vec![u16::MAX; (max_verts_per_cont + 1) * nvp];
 
         let temp_poly_index = max_verts_per_cont * nvp;
 
@@ -167,7 +166,6 @@ impl ContourSet {
 
             // Jan: we treat an invalid triangulation as an error instead of a warning.
             let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris)?;
-
             // Add and merge vertices.
             for j in 0..cont.vertices.len() {
                 let (v, region) = &cont.vertices[j];
@@ -185,6 +183,7 @@ impl ContourSet {
             }
             // Build initial polygons.
             let mut npolys = 0;
+            polys.fill(u16::MAX);
             for t in tris.iter().take(ntris) {
                 if t.x != t.y && t.x != t.z && t.y != t.z {
                     polys[npolys * nvp] = indices[t.x as usize] as u16;
@@ -481,7 +480,7 @@ impl InternalPolygonMesh {
             if i1 != i2 {
                 self.polygons.copy_within(i2..(i2 + nvp), i1);
             }
-            self.polygons[i1 + nvp..(i1 + 2 * nvp)].fill(u8::MAX as u16);
+            self.polygons[i1 + nvp..(i1 + 2 * nvp)].fill(u16::MAX);
             self.regions[i] = self.regions[self.npolys - 1];
             self.areas[i] = self.areas[self.npolys - 1];
             self.npolys -= 1;
@@ -582,7 +581,7 @@ impl InternalPolygonMesh {
 
         // Build initial polygons.
         let mut npolys = 0;
-        polys[..ntris * nvp].fill(u8::MAX as u16);
+        polys[..ntris * nvp].fill(u16::MAX);
         for t in tris.iter().take(ntris) {
             if t.x != t.y && t.x != t.z && t.y != t.z {
                 let t_x = t.x as usize;
@@ -670,7 +669,7 @@ impl InternalPolygonMesh {
                 break;
             }
             let p = &mut self.polygons[self.npolys * nvp * 2..self.npolys * nvp * 2 + nvp * 2];
-            p[..nvp * 2].fill(u8::MAX as u16);
+            p[..nvp * 2].fill(u16::MAX);
             for j in 0..nvp {
                 p[j] = polys[i * nvp + j];
             }
@@ -792,7 +791,7 @@ fn merge_poly_verts(
     let nb = count_poly_verts(&polys[pb_index..], nvp);
 
     // Merge polygons.
-    polys[tmp_index..tmp_index + nvp].fill(u8::MAX as u16);
+    polys[tmp_index..tmp_index + nvp].fill(u16::MAX);
     let mut n = 0;
     // Add pa
     for i in 0..na - 1 {
@@ -864,8 +863,8 @@ fn get_poly_merge_value(
     va = pa[ea] as usize;
     vb = pa[(ea + 1) % na] as usize;
 
-    let d = verts[va] - verts[vb];
-    let length_squared = d.xz().as_uvec2().length_squared();
+    let d = verts[va].as_ivec3() - verts[vb].as_ivec3();
+    let length_squared = d.xz().length_squared() as u32;
     Some(PolyMergeValue {
         length_squared,
         edge_a: ea,

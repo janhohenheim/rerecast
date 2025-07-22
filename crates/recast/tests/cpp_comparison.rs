@@ -476,7 +476,13 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
         .zip(poly_mesh.areas.iter())
         .enumerate()
     {
-        assert_eq!(*cpp_area, area.0, "{i} poly mesh area");
+        let cpp_area = if *cpp_area == 63 {
+            // We use u8::MAX currently, though this may change in the future.
+            AreaType::DEFAULT_WALKABLE
+        } else {
+            AreaType::from(*cpp_area)
+        };
+        assert_eq!(cpp_area, *area, "{i} poly mesh area");
     }
     assert_eq!(
         cpp_poly_mesh.areas.len(),
