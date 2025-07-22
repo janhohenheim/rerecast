@@ -158,6 +158,7 @@ impl ContourSet {
             }
 
             // Triangulate contour
+            #[expect(clippy::needless_range_loop)]
             for j in 0..cont.vertices.len() {
                 indices[j] = j;
             }
@@ -182,8 +183,7 @@ impl ContourSet {
             }
             // Build initial polygons.
             let mut npolys = 0;
-            for j in 0..ntris {
-                let t = tris[j];
+            for t in tris.iter().take(ntris) {
                 if t.x != t.y && t.x != t.z && t.y != t.z {
                     polys[npolys * nvp] = indices[t.x as usize] as u16;
                     polys[npolys * nvp + 1] = indices[t.y as usize] as u16;
@@ -253,9 +253,7 @@ impl ContourSet {
             for j in 0..npolys {
                 let p = &mut mesh.polygons[mesh.npolys * nvp * 2..];
                 let q = &polys[j * nvp..];
-                for k in 0..nvp {
-                    p[k] = q[k];
-                }
+                p[..nvp].copy_from_slice(&q[..nvp]);
                 mesh.regions[mesh.npolys] = cont.region;
                 mesh.areas[mesh.npolys] = cont.area;
                 mesh.npolys += 1;
@@ -313,7 +311,7 @@ impl ContourSet {
                     let va = mesh.vertices[p[j] as usize];
                     let vb = mesh.vertices[p[nj] as usize];
                     if va.x == 0 && vb.x == 0 {
-                        p[nvp + j] = RegionId::BORDER_REGION.bits() | 0;
+                        p[nvp + j] = RegionId::BORDER_REGION.bits();
                     } else if va.z == h && vb.z == h {
                         p[nvp + j] = RegionId::BORDER_REGION.bits() | 1;
                     } else if va.x == w && vb.x == w {
@@ -349,9 +347,7 @@ impl InternalPolygonMesh {
         let next_edge_index = self.nvertices as usize;
         let mut edge_count = 0;
         let mut edges = vec![Edge::default(); max_edge_count];
-        for i in 0..self.nvertices as usize {
-            first_edge[i] = RC_MESH_NULL_IDX;
-        }
+        first_edge[..self.nvertices as usize].fill(RC_MESH_NULL_IDX);
         for i in 0..self.npolys {
             let t = &self.polygons[i * nvp * 2..];
             for j in 0..nvp {
@@ -408,8 +404,7 @@ impl InternalPolygonMesh {
         }
 
         // Store adjacency
-        for i in 0..edge_count {
-            let e = &edges[i];
+        for e in edges.iter().take(edge_count) {
             if e.poly.x != e.poly.y {
                 {
                     let p0 = &mut self.polygons[e.poly.x as usize * nvp * 2..];
@@ -430,8 +425,8 @@ impl InternalPolygonMesh {
         for i in 0..self.npolys {
             let p = &self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(p, nvp);
-            for j in 0..nv {
-                if p[j] == rem {
+            for pj in p.iter().take(nv) {
+                if *pj == rem {
                     num_removed_verts += 1;
                 }
             }
@@ -500,14 +495,13 @@ impl InternalPolygonMesh {
         for i in 0..self.npolys {
             let p = &mut self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(p, nvp);
-            for j in 0..nv {
-                if p[j] > rem {
-                    p[j] -= 1;
+            for pj in p.iter_mut().take(nv) {
+                if *pj > rem {
+                    *pj -= 1;
                 }
             }
         }
-        for i in 0..nedges {
-            let edge = &mut edges[i];
+        for edge in edges.iter_mut().take(nedges) {
             if edge.polygon1 > rem {
                 edge.polygon1 -= 1;
             }
@@ -586,13 +580,12 @@ impl InternalPolygonMesh {
         // Build initial polygons.
         let mut npolys = 0;
         polys[..ntris * nvp].fill(u8::MAX as u16);
-        for j in 0..ntris {
-            let t = tris[j];
+        for t in tris.iter().take(ntris) {
             if t.x != t.y && t.x != t.z && t.y != t.z {
                 let t_x = t.x as usize;
                 let t_y = t.y as usize;
                 let t_z = t.z as usize;
-                polys[npolys * nvp + 0] = hole[t_x];
+                polys[npolys * nvp] = hole[t_x];
                 polys[npolys * nvp + 1] = hole[t_y];
                 polys[npolys * nvp + 2] = hole[t_z];
 
@@ -703,8 +696,8 @@ impl InternalPolygonMesh {
             let nv = count_poly_verts(p, nvp);
             let mut num_removed = 0;
             let mut num_verts = 0;
-            for j in 0..nv {
-                if p[j] == rem {
+            for pj in p.iter().take(nv) {
+                if *pj == rem {
                     num_touched_verts += 1;
                     num_removed += 1;
                 }
@@ -743,8 +736,7 @@ impl InternalPolygonMesh {
 
                 // Check if the edge exists
                 let mut exists = false;
-                for m in 0..nedges {
-                    let e = &mut edges[m];
+                for e in edges.iter_mut().take(nedges) {
                     if e[1] == b {
                         // Exists, increment vertex share count.
                         e[2] += 1;
@@ -770,12 +762,12 @@ impl InternalPolygonMesh {
     }
 }
 
-fn push_back<T>(value: T, vec: &mut Vec<T>, index: &mut usize) {
+fn push_back<T>(value: T, vec: &mut [T], index: &mut usize) {
     vec[*index] = value;
     *index += 1;
 }
 
-fn push_front<T: Clone>(value: T, vec: &mut Vec<T>, index: &mut usize) {
+fn push_front<T: Clone>(value: T, vec: &mut [T], index: &mut usize) {
     *index += 1;
     for i in (1..*index).rev() {
         vec[i] = vec[i - 1].clone();
@@ -886,12 +878,10 @@ fn uleft(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
 }
 
 fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
-    for i in 0..nvp {
-        if p[i] == RC_MESH_NULL_IDX {
-            return i;
-        }
-    }
-    nvp
+    p.iter()
+        .take(nvp)
+        .position(|p| *p == RC_MESH_NULL_IDX)
+        .unwrap_or(nvp)
 }
 
 /// A value which indicates an invalid index within a mesh.
@@ -1141,9 +1131,9 @@ fn intersect(a: U16Vec3, b: U16Vec3, c: U16Vec3, d: U16Vec3) -> bool {
     between(a, b, c) || between(a, b, d) || between(c, d, a) || between(c, d, b)
 }
 
-///	Returns true iff ab properly intersects cd: they share
-///	a point interior to both segments.  The properness of the
-///	intersection is ensured by using strict leftness.
+/// Returns true iff ab properly intersects cd: they share
+/// a point interior to both segments.  The properness of the
+/// intersection is ensured by using strict leftness.
 #[inline]
 fn intersect_prop(a: U16Vec3, b: U16Vec3, c: U16Vec3, d: U16Vec3) -> bool {
     // Eliminate improper cases.
