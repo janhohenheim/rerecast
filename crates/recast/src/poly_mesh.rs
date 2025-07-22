@@ -166,7 +166,7 @@ impl ContourSet {
             }
 
             // Jan: we treat an invalid triangulation as an error instead of a warning.
-            let ntris = triangulate(&cont.vertices, &mut indices, &mut tris)?;
+            let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris)?;
 
             // Add and merge vertices.
             for j in 0..cont.vertices.len() {
@@ -193,6 +193,7 @@ impl ContourSet {
                     npolys += 1;
                 }
             }
+
             if npolys == 0 {
                 continue;
             }
@@ -571,7 +572,7 @@ impl InternalPolygonMesh {
 
         // Triangulate the hole.
         // Jan: we treat errors here as a hard error instead of printing a warning.
-        let ntris = triangulate(&tverts, &mut thole, &mut tris)?;
+        let ntris = triangulate(nhole, &tverts, &mut thole, &mut tris)?;
 
         // Merge the hole triangles back to polygons.
         let mut polys = vec![0; (ntris + 1) * nvp];
@@ -890,6 +891,7 @@ fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
 /// This does not necessarily indicate an error.
 const RC_MESH_NULL_IDX: u16 = 0xffff;
 
+#[derive(Debug)]
 struct PolyMergeValue {
     length_squared: u32,
     edge_a: usize,
@@ -930,25 +932,29 @@ fn compute_vertex_hash(vertex: U16Vec3) -> usize {
         0xd8163841, // here arbitrarily chosen primes
         0xcb1ab31f,
     );
-    let n = h.as_u64vec3().dot(vertex.as_u64vec3());
+    let v = vertex.as_uvec3();
+    let n = h[0]
+        .wrapping_mul(v[0])
+        .wrapping_add(h[1].wrapping_mul(v[1]))
+        .wrapping_add(h[2].wrapping_mul(v[2]));
     n as usize & (VERTEX_BUCKET_COUNT - 1)
 }
 
 const VERTEX_BUCKET_COUNT: usize = 1 << 12;
 
 fn triangulate(
+    mut n: usize,
     verts: &[(U16Vec3, usize)],
     indices: &mut [usize],
     tris: &mut [U16Vec3],
 ) -> Result<usize, PolygonMeshError> {
-    let mut n = verts.len();
     let mut ntris = 0;
 
     // The last bit of the index is used to indicate if the vertex can be removed.
     for i in 0..n {
         let i1 = next(i, n);
         let i2 = next(i1, n);
-        if is_diagonal(i, i2, verts, indices) {
+        if is_diagonal(i, i2, n, verts, indices) {
             indices[i1] |= CAN_REMOVE;
         }
     }
@@ -963,7 +969,7 @@ fn triangulate(
 
                 let d = p2.as_ivec3() - p0.as_ivec3();
                 let len = d.xz().length_squared() as u16;
-                if min_len.is_none() || min_len.is_none_or(|min| len < min) {
+                if min_len.is_none_or(|min| len < min) {
                     min_len = Some(len);
                     mini = Some(i);
                 }
@@ -982,12 +988,12 @@ fn triangulate(
             for i in 0..n {
                 let i1 = next(i, n);
                 let i2 = next(i1, n);
-                if is_diagonal_loose(i, i2, verts, indices) {
+                if is_diagonal_loose(i, i2, n, verts, indices) {
                     let p0 = verts[indices[i] & INDEX_MASK].0;
                     let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
                     let d = p2.as_ivec3() - p0.as_ivec3();
                     let len = d.xz().length_squared() as u16;
-                    if min_len.is_none() || min_len.is_none_or(|min| len < min) {
+                    if min_len.is_none_or(|min| len < min) {
                         min_len = Some(len);
                         mini = Some(i);
                     }
@@ -1021,13 +1027,13 @@ fn triangulate(
         }
         i = prev(i1, n);
         // Update diagonal flags.
-        if is_diagonal(prev(i, n), i1, verts, indices) {
+        if is_diagonal(prev(i, n), i1, n, verts, indices) {
             indices[i] |= CAN_REMOVE;
         } else {
             indices[i] &= INDEX_MASK;
         }
 
-        if is_diagonal(i, next(i1, n), verts, indices) {
+        if is_diagonal(i, next(i1, n), n, verts, indices) {
             indices[i1] |= CAN_REMOVE;
         } else {
             indices[i1] &= INDEX_MASK;
@@ -1045,14 +1051,19 @@ fn triangulate(
 const CAN_REMOVE: usize = 0x80000000;
 
 /// Returns true iff (v_i, v_j) is a proper internal diagonal of P.
-fn is_diagonal(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
-    in_cone(i, j, verts, indices) && is_diagonal_internal_or_external(i, j, verts, indices)
+fn is_diagonal(
+    i: usize,
+    j: usize,
+    n: usize,
+    verts: &[(U16Vec3, usize)],
+    indices: &[usize],
+) -> bool {
+    in_cone(i, j, n, verts, indices) && is_diagonal_internal_or_external(i, j, n, verts, indices)
 }
 
 /// Returns true iff the diagonal (i,j) is strictly internal to the
 /// polygon P in the neighborhood of the i endpoint.
-fn in_cone(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
-    let n = verts.len();
+fn in_cone(i: usize, j: usize, n: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
     let pi = verts[indices[i] & INDEX_MASK].0;
     let pj = verts[indices[j] & INDEX_MASK].0;
     let pi1 = verts[indices[next(i, n)] & INDEX_MASK].0;
@@ -1092,10 +1103,10 @@ fn area2(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> i32 {
 fn is_diagonal_internal_or_external(
     i: usize,
     j: usize,
+    n: usize,
     verts: &[(U16Vec3, usize)],
     indices: &[usize],
 ) -> bool {
-    let n = verts.len();
     let d0 = verts[indices[i] & INDEX_MASK].0;
     let d1 = verts[indices[j] & INDEX_MASK].0;
 
@@ -1177,13 +1188,24 @@ fn between(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
     }
 }
 
-fn is_diagonal_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
-    in_cone_loose(i, j, verts, indices)
-        && is_diagonal_internal_or_external_loose(i, j, verts, indices)
+fn is_diagonal_loose(
+    i: usize,
+    j: usize,
+    n: usize,
+    verts: &[(U16Vec3, usize)],
+    indices: &[usize],
+) -> bool {
+    in_cone_loose(i, j, n, verts, indices)
+        && is_diagonal_internal_or_external_loose(i, j, n, verts, indices)
 }
 
-fn in_cone_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
-    let n = verts.len();
+fn in_cone_loose(
+    i: usize,
+    j: usize,
+    n: usize,
+    verts: &[(U16Vec3, usize)],
+    indices: &[usize],
+) -> bool {
     let pi = verts[indices[i] & INDEX_MASK].0;
     let pj = verts[indices[j] & INDEX_MASK].0;
     let pi1 = verts[indices[next(i, n)] & INDEX_MASK].0;
@@ -1200,10 +1222,10 @@ fn in_cone_loose(i: usize, j: usize, verts: &[(U16Vec3, usize)], indices: &[usiz
 fn is_diagonal_internal_or_external_loose(
     i: usize,
     j: usize,
+    n: usize,
     verts: &[(U16Vec3, usize)],
     indices: &[usize],
 ) -> bool {
-    let n = verts.len();
     let d0 = verts[indices[i] & INDEX_MASK].0;
     let d1 = verts[indices[j] & INDEX_MASK].0;
 
