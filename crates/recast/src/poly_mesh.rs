@@ -343,11 +343,10 @@ impl InternalPolygonMesh {
         // Based on code by Eric Lengyel from:
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
-        let mut first_edge = vec![0; self.nvertices as usize + max_edge_count];
+        let mut first_edge = vec![RC_MESH_NULL_IDX; self.nvertices as usize + max_edge_count];
         let next_edge_index = self.nvertices as usize;
         let mut edge_count = 0;
         let mut edges = vec![Edge::default(); max_edge_count];
-        first_edge[..self.nvertices as usize].fill(RC_MESH_NULL_IDX);
         for i in 0..self.npolys {
             let t = &self.polygons[i * nvp * 2..];
             for j in 0..nvp {

@@ -628,7 +628,9 @@ struct CppPolyMesh {
     nvp: usize,
     cs: f32,
     ch: f32,
+    #[serde(rename = "borderSize")]
     border_size: u16,
+    #[serde(rename = "maxEdgeError")]
     max_edge_error: f32,
     bmin: [f32; 3],
     bmax: [f32; 3],
