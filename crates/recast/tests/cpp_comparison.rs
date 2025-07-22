@@ -444,21 +444,6 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
         poly_mesh.vertices.len(),
         "poly mesh verts len"
     );
-    assert_eq!(
-        cpp_poly_mesh.polys.len(),
-        poly_mesh.polygons.len(),
-        "poly mesh polys len"
-    );
-    assert_eq!(
-        cpp_poly_mesh.flags.len(),
-        poly_mesh.flags.len(),
-        "poly mesh flags len"
-    );
-    assert_eq!(
-        cpp_poly_mesh.areas.len(),
-        poly_mesh.areas.len(),
-        "poly mesh areas len"
-    );
     for (i, (cpp_vert, vert)) in cpp_poly_mesh
         .verts
         .iter()
@@ -467,6 +452,11 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     {
         assert_eq!(cpp_vert, &vert.to_array(), "{i} poly mesh vertices");
     }
+    assert_eq!(
+        cpp_poly_mesh.polys.len(),
+        poly_mesh.polygons.len(),
+        "poly mesh polygons len"
+    );
     for (i, (cpp_poly, poly)) in cpp_poly_mesh
         .polys
         .iter()
@@ -475,6 +465,11 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     {
         assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
     }
+    assert_eq!(
+        cpp_poly_mesh.flags.len(),
+        poly_mesh.flags.len(),
+        "poly mesh flags len"
+    );
     for (i, (cpp_area, area)) in cpp_poly_mesh
         .areas
         .iter()
@@ -483,6 +478,11 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     {
         assert_eq!(*cpp_area, area.0, "{i} poly mesh area");
     }
+    assert_eq!(
+        cpp_poly_mesh.areas.len(),
+        poly_mesh.areas.len(),
+        "poly mesh areas len"
+    );
     for (i, (cpp_flag, flag)) in cpp_poly_mesh
         .flags
         .iter()

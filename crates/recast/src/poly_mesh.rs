@@ -78,7 +78,9 @@ impl PolygonMesh {
 
 impl From<InternalPolygonMesh> for PolygonMesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
-        value.polygons.truncate(value.npolys);
+        value
+            .polygons
+            .truncate(value.npolys * value.vertices_per_polygon * 2);
         value.vertices.truncate(value.nvertices as usize);
         PolygonMesh {
             vertices: value.vertices,
@@ -142,7 +144,7 @@ impl ContourSet {
         mesh.regions = vec![RegionId::default(); max_tris];
         mesh.areas = vec![AreaType::default(); max_tris];
 
-        let mut next_vert = vec![Some(0); max_vertices / 3];
+        let mut next_vert = vec![Some(0); max_vertices];
         let mut first_vert = [None; VERTEX_BUCKET_COUNT];
         let mut indices = vec![0; max_verts_per_cont];
         let mut tris = vec![U16Vec3::ZERO; max_verts_per_cont];
@@ -167,7 +169,7 @@ impl ContourSet {
             let ntris = triangulate(&cont.vertices, &mut indices, &mut tris)?;
 
             // Add and merge vertices.
-            for j in 0..(mesh.nvertices as usize) {
+            for j in 0..cont.vertices.len() {
                 let (v, region) = &cont.vertices[j];
                 indices[j] = add_vertex(
                     *v,
@@ -271,19 +273,20 @@ impl ContourSet {
         // Remove edge vertices.
         let mut i = 0;
         while i < mesh.nvertices as usize {
-            if !vflags[i] {
-                i += 1;
-                continue;
-            };
-            if !mesh.can_remove_vertex(i as u16) {
-                i += 1;
-                continue;
+            if vflags[i] {
+                if !mesh.can_remove_vertex(i as u16) {
+                    i += 1;
+                    continue;
+                }
+                mesh.remove_vertex(i as u16, max_tris)?;
+                // Remove vertex
+                // Note: nverts is already decremented inside removeVertex()!
+                // Fixup vertex flags
+                vflags.copy_within((i + 1)..=mesh.nvertices as usize, i);
+                i -= 1;
             }
-            mesh.remove_vertex(i as u16, max_tris)?;
-            // Remove vertex
-            // Note: nverts is already decremented inside removeVertex()!
-            // Fixup vertex flags
-            vflags.copy_within((i + 1)..=mesh.nvertices as usize, i);
+
+            i += 1;
         }
         // Calculate adjacency.
         mesh.build_mesh_adjacency()?;
@@ -673,7 +676,7 @@ impl InternalPolygonMesh {
             self.regions[self.npolys] = pregs[i];
             self.areas[self.npolys] = pareas[i];
             self.npolys += 1;
-            if self.npolys >= max_tris {
+            if self.npolys > max_tris {
                 return Err(PolygonMeshError::TooManyPolygons {
                     actual: self.npolys,
                     max: max_tris,
@@ -927,7 +930,7 @@ fn compute_vertex_hash(vertex: U16Vec3) -> usize {
         0xd8163841, // here arbitrarily chosen primes
         0xcb1ab31f,
     );
-    let n = h.dot(vertex.as_uvec3());
+    let n = h.as_u64vec3().dot(vertex.as_u64vec3());
     n as usize & (VERTEX_BUCKET_COUNT - 1)
 }
 
@@ -1002,9 +1005,9 @@ fn triangulate(
         let mut i1 = next(i, n);
         let i2 = next(i1, n);
 
-        tris[ntris].x = (indices[i] & CAN_REMOVE) as u16;
-        tris[ntris].y = (indices[i1] & CAN_REMOVE) as u16;
-        tris[ntris].z = (indices[i2] & CAN_REMOVE) as u16;
+        tris[ntris].x = (indices[i] & INDEX_MASK) as u16;
+        tris[ntris].y = (indices[i1] & INDEX_MASK) as u16;
+        tris[ntris].z = (indices[i2] & INDEX_MASK) as u16;
         ntris += 1;
 
         // Removes P[i1] by copying P[i+1]...P[n-1] left one index.
