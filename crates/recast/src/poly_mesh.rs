@@ -14,7 +14,7 @@ struct InternalPolygonMesh {
     vertices: Vec<U16Vec3>,
     /// The number of vertices
     nvertices: u16,
-    /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
+    /// Polygon and neighbor data.
     polygons: Vec<u16>,
     /// The number of polygons.
     npolys: usize,
@@ -82,6 +82,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
             .polygons
             .truncate(value.npolys * value.vertices_per_polygon * 2);
         value.vertices.truncate(value.nvertices as usize);
+        value.areas.truncate(value.npolys);
         PolygonMesh {
             vertices: value.vertices,
             polygons: value.polygons,
