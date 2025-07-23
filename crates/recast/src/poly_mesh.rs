@@ -72,6 +72,7 @@ pub struct PolygonMesh {
 
 impl PolygonMesh {
     /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
+    #[inline]
     pub fn polygon_count(&self) -> usize {
         self.polygons.len() / (2 * self.vertices_per_polygon)
     }
@@ -890,7 +891,7 @@ fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
 
 /// A value which indicates an invalid index within a mesh.
 /// This does not necessarily indicate an error.
-const RC_MESH_NULL_IDX: u16 = 0xffff;
+pub(crate) const RC_MESH_NULL_IDX: u16 = 0xffff;
 
 #[derive(Debug)]
 struct PolyMergeValue {
