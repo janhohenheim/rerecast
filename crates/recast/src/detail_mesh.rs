@@ -1,6 +1,10 @@
 use glam::{U16Vec3, U16Vec4, Vec3A, u16vec3};
 
-use crate::{CompactHeightfield, PolygonMesh, RegionId, poly_mesh::RC_MESH_NULL_IDX};
+use crate::{
+    CompactHeightfield, PolygonMesh, RegionId,
+    math::{dir_offset, dir_offset_x, dir_offset_z},
+    poly_mesh::RC_MESH_NULL_IDX,
+};
 
 /// Contains triangle meshes that represent detailed height data associated
 /// with the polygons in its associated polygon mesh object.
@@ -46,7 +50,7 @@ impl DetailPolygonMesh {
 
         let mut edges = Vec::with_capacity(64);
         let mut tris = Vec::with_capacity(512);
-        let mut arr = Vec::with_capacity(512);
+        let mut arr = Vec::with_capacity(512 / 3);
         let mut samples = Vec::with_capacity(512);
         let verts = [Vec3A::default(); 256];
         let mut hp = HeightPatch::default();
@@ -155,7 +159,7 @@ impl HeightPatch {
         npoly: usize,
         verts: &[Vec3A],
         bs: u16,
-        queue: &mut Vec<(u16, u16, usize)>,
+        queue: &mut Vec<(i32, i32, usize)>,
         region: RegionId,
     ) {
         // Note: Reads to the compact heightfield are offset by border size (bs)
@@ -200,7 +204,7 @@ impl HeightPatch {
                                 }
                             }
                             if border {
-                                queue.push((x, z, i));
+                                queue.push((x as i32, z as i32, i));
                             }
                             break;
                         }
@@ -211,17 +215,188 @@ impl HeightPatch {
         // if the polygon does not contain any points from the current region (rare, but happens)
         // or if it could potentially be overlapping polygons of the same region,
         // then use the center as the seed point.
+        if empty {
+            self.seed_array_with_poly_center(chf, poly, npoly, verts, bs, queue);
+        }
+        const RETRACT_SIZE: usize = 256;
+        let mut head = 0;
+
+        // We assume the seed is centered in the polygon, so a BFS to collect
+        // height data will ensure we do not move onto overlapping polygons and
+        // sample wrong heights.
+        while head < queue.len() {
+            let (cx, cz, ci) = queue[head];
+            head += 1;
+            if head >= RETRACT_SIZE {
+                head = 0;
+                if queue.len() > RETRACT_SIZE {
+                    todo!()
+                }
+                queue.truncate(queue.len() - RETRACT_SIZE);
+            }
+        }
         todo!()
+    }
+
+    fn seed_array_with_poly_center(
+        &mut self,
+        chf: &CompactHeightfield,
+        poly: &[u16],
+        npoly: usize,
+        verts: &[Vec3A],
+        bs: u16,
+        array: &mut Vec<(i32, i32, usize)>,
+    ) {
+        // Note: Reads to the compact heightfield are offset by border size (bs)
+        // since border size offset is already removed from the polymesh vertices.
+        const OFFSET: [i32; 9 * 2] = [0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0];
+
+        // Find cell closest to a poly vertex
+        let mut start_cell_x = 0;
+        let mut start_cell_z = 0;
+        let mut start_span_index = None;
+        let mut dmin = RC_UNSET_HEIGHT as i32;
+        for poly_j in poly[..npoly].iter().map(|p| *p as usize) {
+            if dmin <= 0 {
+                break;
+            }
+            for k in 0..9 {
+                if dmin <= 0 {
+                    break;
+                }
+                let ax = verts[poly_j].x as i32 + OFFSET[k * 2];
+                let ay = verts[poly_j].y as i32;
+                let az = verts[poly_j].z as i32 + OFFSET[k * 2 + 1];
+                if ax < self.xmin as i32
+                    || ax >= self.xmin as i32 + self.width as i32
+                    || az < self.zmin as i32
+                    || az >= self.zmin as i32 + self.height as i32
+                {
+                    continue;
+                };
+                let c =
+                    &chf.cells[((ax + bs as i32) + (az + bs as i32) * chf.width as i32) as usize];
+                for i in c.index_range() {
+                    let s = &chf.spans[i];
+                    let d = (ay - s.y as i32).abs();
+                    if d < dmin {
+                        start_cell_x = ax;
+                        start_cell_z = az;
+                        start_span_index = Some(i);
+                        dmin = d;
+                    }
+                }
+            }
+        }
+
+        // Jan: Original code also asserts this.
+        let start_span_index = start_span_index.expect("Internal error: found no start span");
+        // Find center of the polygon
+        let mut pcx = 0;
+        let mut pcz = 0;
+        for poly_j in poly[..npoly].iter().map(|p| *p as usize) {
+            // Jan: shouldn't the type conversion happen only at the final value?
+            pcx += verts[poly_j].x as i32;
+            pcz += verts[poly_j].z as i32;
+        }
+        pcx /= npoly as i32;
+        pcz /= npoly as i32;
+
+        // Use seeds array as a stack for DFS
+        array.clear();
+        array.push((start_cell_x, start_cell_z, start_span_index));
+
+        let mut dirs = [0, 1, 2, 3];
+        let data_len = self.data_len();
+        self.data[..data_len].fill(0);
+        // DFS to move to the center. Note that we need a DFS here and can not just move
+        // directly towards the center without recording intermediate nodes, even though the polygons
+        // are convex. In very rare we can get stuck due to contour simplification if we do not
+        // record nodes.
+        let mut cx = None;
+        let mut cz = None;
+        let mut ci = None;
+        loop {
+            if array.is_empty() {
+                tracing::warn!("Walk towards polygon center failed to reach center");
+                break;
+            }
+
+            let (cx_raw, cz_raw, ci_raw) = array.pop().unwrap();
+            cx = Some(cx_raw as i32);
+            cz = Some(cz_raw as i32);
+            ci = Some(ci_raw);
+            let cx = cx.unwrap();
+            let cz = cz.unwrap();
+            let ci = ci.unwrap();
+
+            if cx == pcx && cz == pcz {
+                break;
+            }
+
+            // If we are already at the correct X-position, prefer direction
+            // directly towards the center in the Y-axis; otherwise prefer
+            // direction in the X-axis
+            let direct_dir = if cx as i32 == pcx {
+                dir_offset(0, if pcz > cz { 1 } else { -1 })
+            } else {
+                dir_offset(if pcx > cx { 1 } else { -1 }, 0)
+            } as usize;
+
+            // Push the direct dir last so we start with this on next iteration
+            dirs.swap(direct_dir, 3);
+
+            let cs = &chf.spans[ci];
+            for i in 0..4 {
+                let dir = dirs[i];
+                let Some(con) = cs.con(dir) else {
+                    continue;
+                };
+
+                let new_x = cx + dir_offset_x(dir) as i32;
+                let new_z = cz + dir_offset_z(dir) as i32;
+
+                let hpx = new_x - self.xmin as i32;
+                let hpz = new_z - self.zmin as i32;
+                if hpx < 0 || hpx >= self.width as i32 || hpz < 0 || hpz >= self.height as i32 {
+                    continue;
+                }
+                let hpx = hpx as u16;
+                let hpz = hpz as u16;
+                if *self.data_at(hpx, hpz) != 0 {
+                    continue;
+                }
+                *self.data_at_mut(hpx, hpz) = 1;
+                let new_index = chf.cells
+                    [((new_x + bs as i32) + (new_z + bs as i32) * chf.width as i32) as usize]
+                    .index() as i32
+                    + con as i32;
+                array.push((new_x, new_z, new_index as usize));
+            }
+            dirs.swap(direct_dir, 3);
+        }
+
+        array.clear();
+        // getHeightData seeds are given in coordinates with borders
+        let (Some(cx), Some(cz), Some(ci)) = (cx, cz, ci) else {
+            // Jan: We panic earlier in the loop before this could even happen.
+            unreachable!()
+        };
+        array.push((cx + bs as i32, cz + bs as i32, ci));
+        self.data[..data_len].fill(0xffff);
+        let cs = &chf.spans[ci];
+        self.data[(cx - self.xmin as i32 + (cz - self.zmin as i32) * self.width as i32) as usize] =
+            cs.y;
     }
 
     #[inline]
     fn data_len(&self) -> usize {
-        (self.width * self.height) as usize
+        self.width as usize * self.height as usize
     }
 
     #[inline]
     fn data_at(&self, x: u16, z: u16) -> &u16 {
-        &self.data[(x + z * self.width) as usize]
+        &self.data[x as usize + z as usize * self.width as usize]
     }
 
     #[inline]
@@ -229,6 +404,8 @@ impl HeightPatch {
         &mut self.data[(x + z * self.width) as usize]
     }
 }
+
+const RC_UNSET_HEIGHT: u16 = 0xffff;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct Bounds {

@@ -138,6 +138,12 @@ pub(crate) fn dir_offset_z(direction: u8) -> i8 {
 }
 
 #[inline]
+pub(crate) fn dir_offset(offset_x: i32, offset_z: i32) -> i8 {
+    const DIRS: [i8; 5] = [3, 0, -1, 2, 1];
+    DIRS[(((offset_z + 1) << 1) + offset_x) as usize]
+}
+
+#[inline]
 pub(crate) fn prev(i: usize, n: usize) -> usize {
     (i + n - 1) % n
 }
