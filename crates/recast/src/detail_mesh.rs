@@ -1,4 +1,5 @@
 use glam::{U16Vec3, U16Vec4, Vec3A, u16vec3};
+use thiserror::Error;
 
 use crate::{
     CompactHeightfield, PolygonMesh, RegionId,
@@ -35,10 +36,10 @@ impl DetailPolygonMesh {
         heightfield: &CompactHeightfield,
         sample_distance: f32,
         sample_max_error: f32,
-    ) -> Self {
+    ) -> Result<Self, DetailPolygonMeshError> {
         let mut dmesh = DetailPolygonMesh::default();
         if mesh.vertices.is_empty() || mesh.polygon_count() == 0 {
-            return dmesh;
+            return Ok(dmesh);
         }
         let chf = heightfield;
         let nvp = mesh.vertices_per_polygon;
@@ -52,7 +53,7 @@ impl DetailPolygonMesh {
         let mut tris = Vec::with_capacity(512);
         let mut arr = Vec::with_capacity(512 / 3);
         let mut samples = Vec::with_capacity(512);
-        let verts = [Vec3A::default(); 256];
+        let mut verts = [Vec3A::default(); 256];
         let mut hp = HeightPatch::default();
         let mut poly_vert_count = 0;
         let mut maxhw = 0;
@@ -135,12 +136,49 @@ impl DetailPolygonMesh {
                 &mut arr,
                 mesh.regions[i],
             );
-            todo!();
+
+            // Build detail mesh.
+            let mut nverts = 0;
+            build_poly_detail(
+                &poly,
+                npoly,
+                sample_distance,
+                sample_max_error,
+                height_search_radius,
+                chf,
+                &hp,
+                &mut verts,
+                &mut nverts,
+                &mut tris,
+                &mut edges,
+                &mut samples,
+            )?;
         }
 
         todo!()
     }
 }
+
+fn build_poly_detail(
+    in_: &[Vec3A],
+    nin: usize,
+    sample_dist: f32,
+    sample_max_error: f32,
+    height_search_radius: u32,
+    chf: &CompactHeightfield,
+    hp: &HeightPatch,
+    verts: &mut [Vec3A],
+    nverts: &mut usize,
+    tris: &mut Vec<usize>,
+    edges: &mut Vec<usize>,
+    samples: &mut Vec<usize>,
+) -> Result<(), DetailPolygonMeshError> {
+    // Implementation of build_poly_detail function
+    todo!()
+}
+
+#[derive(Error, Debug)]
+pub enum DetailPolygonMeshError {}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct HeightPatch {
@@ -186,7 +224,7 @@ impl HeightPatch {
                         let s = &chf.spans[i];
                         if s.region == region {
                             // Store height
-                            *self.data_at_mut(hx, hz) = s.y;
+                            *self.data_at_mut(hx as i32, hz as i32) = s.y;
                             empty = false;
 
                             // If any of the neighbours is not in same region,
@@ -230,12 +268,35 @@ impl HeightPatch {
             if head >= RETRACT_SIZE {
                 head = 0;
                 if queue.len() > RETRACT_SIZE {
-                    todo!()
+                    queue.copy_within(RETRACT_SIZE.., 0);
                 }
                 queue.truncate(queue.len() - RETRACT_SIZE);
             }
+            let cs = &chf.spans[ci];
+            for dir in 0..4 {
+                let Some(con) = cs.con(dir) else {
+                    continue;
+                };
+                let ax = cx + dir_offset_x(dir) as i32;
+                let az = cz + dir_offset_z(dir) as i32;
+                let hx = ax - self.xmin as i32 - bs as i32;
+                let hz = az - self.zmin as i32 - bs as i32;
+
+                if hx as u16 > self.width || hz as u16 >= self.height {
+                    continue;
+                }
+
+                if *self.data_at(hx, hz) != RC_UNSET_HEIGHT {
+                    continue;
+                }
+                let ai = chf.cells[(ax + az * chf.width as i32) as usize].index() as usize
+                    + con as usize;
+                let as_ = &chf.spans[ai];
+
+                *self.data_at_mut(hx, hz) = as_.y;
+                queue.push((ax, az, ai));
+            }
         }
-        todo!()
     }
 
     fn seed_array_with_poly_center(
@@ -361,8 +422,6 @@ impl HeightPatch {
                 if hpx < 0 || hpx >= self.width as i32 || hpz < 0 || hpz >= self.height as i32 {
                     continue;
                 }
-                let hpx = hpx as u16;
-                let hpz = hpz as u16;
                 if *self.data_at(hpx, hpz) != 0 {
                     continue;
                 }
@@ -395,13 +454,13 @@ impl HeightPatch {
     }
 
     #[inline]
-    fn data_at(&self, x: u16, z: u16) -> &u16 {
-        &self.data[x as usize + z as usize * self.width as usize]
+    fn data_at(&self, x: i32, z: i32) -> &u16 {
+        &self.data[(x + z * self.width as i32) as usize]
     }
 
     #[inline]
-    fn data_at_mut(&mut self, x: u16, z: u16) -> &mut u16 {
-        &mut self.data[(x + z * self.width) as usize]
+    fn data_at_mut(&mut self, x: i32, z: i32) -> &mut u16 {
+        &mut self.data[(x + z * self.width as i32) as usize]
     }
 }
 
