@@ -51,8 +51,9 @@ fn validate_navmesh_against_cpp_implementation() {
 
     assert_eq_heightfield(&heightfield, "heightfield_filtered");
 
-    let mut compact_heightfield =
-        CompactHeightfield::from_heightfield(heightfield, walkable_height, walkable_climb).unwrap();
+    let mut compact_heightfield = heightfield
+        .into_compact(walkable_height, walkable_climb)
+        .unwrap();
 
     assert_eq_compact_heightfield(&compact_heightfield, "compact_heightfield_initial");
 

@@ -42,7 +42,7 @@ pub struct CompactHeightfield {
     pub areas: Vec<AreaType>,
 }
 
-impl CompactHeightfield {
+impl Heightfield {
     const MAX_HEIGHT: u16 = u16::MAX;
 
     /// Builds a compact heightfield from a heightfield.
@@ -50,32 +50,29 @@ impl CompactHeightfield {
     /// # Errors
     ///
     /// Returns an error if the heightfield has too many layers.
-    pub fn from_heightfield(
-        heightfield: Heightfield,
+    pub fn into_compact(
+        self,
         walkable_height: u16,
         walkable_climb: u16,
-    ) -> Result<Self, CompactHeightfieldError> {
-        let walkable_span_count = heightfield
+    ) -> Result<CompactHeightfield, CompactHeightfieldError> {
+        let walkable_span_count = self
             .allocated_spans
             .values()
             .filter(|span| span.area().is_walkable())
             .count();
 
-        let mut compact_heightfield = Self {
-            width: heightfield.width,
-            height: heightfield.height,
+        let mut compact_heightfield = CompactHeightfield {
+            width: self.width,
+            height: self.height,
             walkable_height,
             walkable_climb,
             border_size: 0,
-            aabb: heightfield.aabb,
+            aabb: self.aabb,
             max_distance: 0,
             max_region: RegionId::NONE,
-            cell_size: heightfield.cell_size,
-            cell_height: heightfield.cell_height,
-            cells: vec![
-                CompactCell::default();
-                heightfield.width as usize * heightfield.height as usize
-            ],
+            cell_size: self.cell_size,
+            cell_height: self.cell_height,
+            cells: vec![CompactCell::default(); self.width as usize * self.height as usize],
             spans: vec![CompactSpan::default(); walkable_span_count],
             dist: vec![],
             areas: vec![AreaType::NOT_WALKABLE; walkable_span_count],
@@ -84,21 +81,21 @@ impl CompactHeightfield {
 
         let mut cell_index = 0_usize;
         // Fill in cells and spans
-        for z in 0..heightfield.height {
-            for x in 0..heightfield.width {
-                let Some(span_key) = heightfield.span_key_at(x, z) else {
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let Some(span_key) = self.span_key_at(x, z) else {
                     // If there are no spans at this cell, just leave the data to index=0, count=0.
                     continue;
                 };
                 let mut span_key_iter = Some(span_key);
-                let column_index = heightfield.column_index(x, z);
+                let column_index = self.column_index(x, z);
 
                 let cell = &mut compact_heightfield.cells[column_index];
                 cell.set_index(cell_index as u32);
                 cell.set_count(0);
 
                 while let Some(span_key) = span_key_iter {
-                    let span = heightfield.span(span_key);
+                    let span = self.span(span_key);
                     span_key_iter = span.next();
                     if !span.area().is_walkable() {
                         continue;
@@ -106,7 +103,7 @@ impl CompactHeightfield {
                     let bot = span.max();
                     let top = span
                         .next()
-                        .map(|span| heightfield.span(span).min())
+                        .map(|span| self.span(span).min())
                         .unwrap_or(Self::MAX_HEIGHT);
                     compact_heightfield.spans[cell_index].y = bot.clamp(0, Self::MAX_HEIGHT);
                     let height = (top.saturating_sub(bot)).min(u8::MAX.into()) as u8;
@@ -121,9 +118,9 @@ impl CompactHeightfield {
         // Find neighbour connections
         const MAX_LAYERS: u8 = CompactSpan::NOT_CONNECTED - 1;
         let mut max_layer_index = 0_u32;
-        for z in 0..heightfield.height {
-            for x in 0..heightfield.width {
-                let column_index = x as usize + z as usize * heightfield.width as usize;
+        for z in 0..self.height {
+            for x in 0..self.width {
+                let column_index = x as usize + z as usize * self.width as usize;
                 let cell = &mut compact_heightfield.cells[column_index];
                 let index_count = cell.index() as usize + cell.count() as usize;
                 for i in cell.index() as usize..index_count {
@@ -132,7 +129,7 @@ impl CompactHeightfield {
                         let neighbor_x = x as i32 + dir_offset_x(dir) as i32;
                         let neighbor_z = z as i32 + dir_offset_z(dir) as i32;
                         // First check that the neighbour cell is in bounds.
-                        if !heightfield.contains(neighbor_x, neighbor_z) {
+                        if !self.contains(neighbor_x, neighbor_z) {
                             continue;
                         }
                         let neighbor_x = neighbor_x as u16;
@@ -140,7 +137,7 @@ impl CompactHeightfield {
 
                         // Iterate over all neighbour spans and check if any of the is
                         // accessible from current cell.
-                        let column_index = heightfield.column_index(neighbor_x, neighbor_z);
+                        let column_index = self.column_index(neighbor_x, neighbor_z);
                         let neighbor_cell = &compact_heightfield.cells[column_index];
                         let neighbor_index_count =
                             neighbor_cell.index() as usize + neighbor_cell.count() as usize;
@@ -181,7 +178,9 @@ impl CompactHeightfield {
         }
         Ok(compact_heightfield)
     }
+}
 
+impl CompactHeightfield {
     #[inline]
     pub(crate) fn column_index(&self, x: u16, z: u16) -> usize {
         x as usize + z as usize * self.width as usize
