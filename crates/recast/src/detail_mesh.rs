@@ -23,10 +23,10 @@ pub struct DetailPolygonMesh {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubMesh {
-    first_vertex_index: usize,
-    vertex_count: usize,
-    first_triangle_index: usize,
-    triangle_count: usize,
+    pub first_vertex_index: usize,
+    pub vertex_count: usize,
+    pub first_triangle_index: usize,
+    pub triangle_count: usize,
 }
 
 impl DetailPolygonMesh {
@@ -50,7 +50,7 @@ impl DetailPolygonMesh {
         let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
 
         let mut edges = Vec::with_capacity(64);
-        let mut tris = Vec::with_capacity(512);
+        let mut tris = Vec::with_capacity(512 / 4);
         let mut arr = Vec::with_capacity(512 / 3);
         let mut samples = Vec::with_capacity(512);
         let mut verts = [Vec3A::default(); 256];
@@ -99,11 +99,11 @@ impl DetailPolygonMesh {
         hp.data = vec![0; maxhw as usize * maxhh as usize];
         dmesh.meshes = vec![SubMesh::default(); mesh.polygon_count()];
 
-        let vcap = poly_vert_count + poly_vert_count / 2;
-        let tcap = vcap * 2;
+        let mut vcap = poly_vert_count + poly_vert_count / 2;
+        let mut tcap = vcap * 2;
 
-        dmesh.vertices = vec![Vec3A::default(); vcap];
-        dmesh.triangles = vec![Default::default(); tcap];
+        dmesh.vertices = Vec::with_capacity(vcap);
+        dmesh.triangles = Vec::with_capacity(tcap);
 
         for i in 0..mesh.polygon_count() {
             let p = &mesh.polygons[i * nvp * 2..];
@@ -153,9 +153,51 @@ impl DetailPolygonMesh {
                 &mut edges,
                 &mut samples,
             )?;
+
+            // Move detail verts to world space.
+            for vert in &mut verts[..nverts] {
+                *vert += orig;
+                // [sic] Is this offset necessary?
+                vert.y += chf.cell_height;
+            }
+            // Offset poly too, will be used to flag checking.
+            for poly in &mut poly[..npoly] {
+                *poly += orig;
+            }
+
+            // Store detail submesh
+            {
+                let submesh = &mut dmesh.meshes[i];
+                submesh.first_vertex_index = dmesh.vertices.len();
+                submesh.vertex_count = nverts;
+                submesh.first_triangle_index = dmesh.triangles.len();
+                submesh.triangle_count = tris.len();
+            }
+
+            // Store vertices, allocate more memory if necessary.
+            if dmesh.vertices.len() + nverts > vcap {
+                while dmesh.vertices.len() + nverts > vcap {
+                    vcap += 256;
+                }
+                dmesh.vertices.reserve(vcap - dmesh.vertices.capacity());
+            }
+            for vert in &verts[..nverts] {
+                dmesh.vertices.push(*vert);
+            }
+
+            // Store triangles, allocate more memory if necessary.
+            if dmesh.triangles.len() + tris.len() > tcap {
+                while dmesh.triangles.len() + tris.len() > tcap {
+                    tcap += 256;
+                }
+                dmesh.triangles.reserve(tcap - dmesh.triangles.capacity());
+            }
+            for tri in &tris {
+                dmesh.triangles.push(*tri);
+            }
         }
 
-        todo!()
+        Ok(dmesh)
     }
 }
 
@@ -169,7 +211,7 @@ fn build_poly_detail(
     hp: &HeightPatch,
     verts: &mut [Vec3A],
     nverts: &mut usize,
-    tris: &mut Vec<usize>,
+    tris: &mut Vec<(U16Vec3, usize)>,
     edges: &mut Vec<usize>,
     samples: &mut Vec<usize>,
 ) -> Result<(), DetailPolygonMeshError> {
