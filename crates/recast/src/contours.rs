@@ -14,7 +14,7 @@ impl CompactHeightfield {
     ///
     /// Setting `max_edge_length` to zero will disabled the edge length feature.
     pub fn build_contours(
-        &mut self,
+        &self,
         max_error: f32,
         max_edge_len: u16,
         build_flags: BuildContoursFlags,
