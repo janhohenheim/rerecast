@@ -4,11 +4,11 @@ use glam::{U16Vec3, U16Vec4, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
-    CompactHeightfield, PolygonMesh, RegionId,
+    Aabb3d, CompactHeightfield, PolygonMesh, RegionId,
     math::{
         dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_u16vec2,
         distance_squared_between_point_and_line_vec2, distance_squared_between_point_and_line_vec3,
-        next,
+        next, prev,
     },
     poly_mesh::RC_MESH_NULL_IDX,
 };
@@ -337,9 +337,161 @@ fn build_poly_detail(
 
     // If the polygon minimum extent is small (sliver or small triangle), do not try to add internal points.
     if min_extent_squared < (sample_dist * 2.0) * (sample_dist * 2.0) {
-        todo!();
+        triangulate_hull(verts, nhull, &hull, nin, tris);
+        set_tri_flags(tris, nhull, &hull);
+        return Ok(());
+    }
+
+    // Tessellate the base mesh.
+    // We're using the triangulateHull instead of delaunayHull as it tends to
+    // create a bit better triangulation for long thin triangles when there
+    // are no internal points.
+    triangulate_hull(verts, nhull, &hull, nin, tris);
+
+    if tris.is_empty() {
+        // Could not triangulate the poly, make sure there is some valid data there.
+        tracing::warn!("Could not triangulate polygon ({nverts} verts)");
+        // Jan: how is this not an Err?
+        return Ok(());
+    }
+
+    if sample_dist > 0.0 {
+        // Create sample locations in a grid.
+        let mut aabb = Aabb3d::default();
+        aabb.min = in_[0];
+        aabb.max = in_[0];
+        for in_ in in_[..nin].iter().copied() {
+            aabb.min = aabb.min.min(in_);
+            aabb.max = aabb.max.max(in_);
+        }
+        let x0 = (aabb.min.x / sample_dist).floor() as i32;
+        let x1 = (aabb.max.x / sample_dist).ceil() as i32;
+        let z0 = (aabb.min.z / sample_dist).floor() as i32;
+        let z1 = (aabb.max.z / sample_dist).ceil() as i32;
+        samples.clear();
+        for z in z0..z1 {
+            for x in x0..x1 {
+                let mut pt = Vec3A::default();
+                pt.x = x as f32 * sample_dist;
+                pt.y = (aabb.max.y + aabb.min.y) * 0.5;
+                pt.z = z as f32 * sample_dist;
+                // Make sure the samples are not too close to the edges.
+                todo!();
+            }
+        }
     }
     todo!()
+}
+
+/// Find edges that lie on hull and mark them as such.
+fn set_tri_flags(tris: &mut Vec<(U16Vec3, usize)>, nhull: usize, hull: &[usize]) {
+    // Matches DT_DETAIL_EDGE_BOUNDARY
+    const DETAIL_EDGE_BOUNDARY: usize = 0x1;
+
+    for (tri, tri_flags) in tris {
+        let mut flags = 0;
+        flags |= if on_hull(tri.x as usize, tri.y as usize, nhull, hull) {
+            DETAIL_EDGE_BOUNDARY
+        } else {
+            0
+        } << 0;
+        flags |= if on_hull(tri.y as usize, tri.z as usize, nhull, hull) {
+            DETAIL_EDGE_BOUNDARY
+        } else {
+            0
+        } << 2;
+        flags |= if on_hull(tri.z as usize, tri.x as usize, nhull, hull) {
+            DETAIL_EDGE_BOUNDARY
+        } else {
+            0
+        } << 4;
+        *tri_flags = flags;
+    }
+}
+
+fn on_hull(a: usize, b: usize, nhull: usize, hull: &[usize]) -> bool {
+    // All internal sampled points come after the hull so we can early out for those.
+    if a >= nhull || b >= nhull {
+        return false;
+    }
+    let mut j = nhull - 1;
+    for i in 0..nhull {
+        if a == hull[j] && b == hull[i] {
+            return true;
+        }
+        j = i;
+    }
+    false
+}
+
+fn triangulate_hull(
+    verts: &[Vec3A],
+    nhull: usize,
+    hull: &[usize],
+    nin: usize,
+    tris: &mut Vec<(U16Vec3, usize)>,
+) {
+    let mut start = 0;
+    let mut left = 1;
+    let mut right = nhull - 1;
+
+    // Start from an ear with shortest perimeter.
+    // This tends to favor well formed triangles as starting point.
+    let mut dmin = f32::MAX;
+    for i in 0..nhull {
+        if hull[i] >= nin {
+            // Ears are triangles with original vertices as middle vertex while others are actually line segments on edges
+            continue;
+        }
+        let pi = prev(i, nhull);
+        let ni = next(i, nhull);
+        let pv = verts[hull[pi]].xz();
+        let cv = verts[hull[i]].xz();
+        let nv = verts[hull[ni]].xz();
+        let d = pv.distance(cv) + cv.distance(nv) + nv.distance(pv);
+        if d < dmin {
+            start = i;
+            left = ni;
+            right = pi;
+            dmin = d;
+        }
+    }
+
+    // Add first triangle
+    tris.push((
+        u16vec3(hull[start] as u16, hull[left] as u16, hull[right] as u16),
+        0,
+    ));
+
+    // Triangulate the polygon by moving left or right,
+    // depending on which triangle has shorter perimeter.
+    // This heuristic was chose empirically, since it seems
+    // handle tessellated straight edges well.
+    while next(left, nhull) != right {
+        // Check to see if se should advance left or right.
+        let nleft = next(left, nhull);
+        let nright = prev(right, nhull);
+
+        let cvleft = verts[hull[left]].xz();
+        let nvleft = verts[hull[nleft]].xz();
+        let cvright = verts[hull[right]].xz();
+        let nvright = verts[hull[nright]].xz();
+        let dleft = cvleft.distance(nvleft) + nvleft.distance(cvright);
+        let dright = cvright.distance(nvright) + cvleft.distance(nvright);
+        if dleft < dright {
+            tris.push((
+                u16vec3(hull[left] as u16, hull[nleft] as u16, hull[right] as u16),
+                0,
+            ));
+            left = nleft;
+        } else {
+            tris.push((
+                u16vec3(hull[left] as u16, hull[nright] as u16, hull[right] as u16),
+                0,
+            ));
+            right = nright;
+        }
+    }
 }
 
 fn get_height(f: Vec3A, ics: f32, ch: f32, radius: u32, hp: &HeightPatch) -> u16 {
