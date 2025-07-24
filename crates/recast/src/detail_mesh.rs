@@ -4,7 +4,7 @@ use std::{
     usize::MAX,
 };
 
-use glam::{U16Vec3, U16Vec4, Vec3A, Vec3Swizzles as _, u16vec3};
+use glam::{U16Vec3, U16Vec4, Vec2, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
@@ -483,11 +483,27 @@ fn delaunay_hull(
 
     let mut current_edge = 0;
     while current_edge < nedges {
-        if edges[current_edge][2] == Edge::Undefined {
-            todo!("complete_facet");
+        if edges[current_edge][2].is_undefined() {
+            complete_facet(
+                pts,
+                npts,
+                edges,
+                &mut nedges,
+                max_edges,
+                &mut nfaces,
+                current_edge,
+            );
         }
-        if edges[current_edge][3] == Edge::Undefined {
-            todo!("complete_edge");
+        if edges[current_edge][3].is_undefined() {
+            complete_facet(
+                pts,
+                npts,
+                edges,
+                &mut nedges,
+                max_edges,
+                &mut nfaces,
+                current_edge,
+            );
         }
         current_edge += 1;
     }
@@ -496,6 +512,89 @@ fn delaunay_hull(
     tris.resize(nfaces, (U16Vec3::default(), 0));
 
     todo!()
+}
+
+fn complete_facet(
+    pts: &[Vec3A],
+    npts: usize,
+    edges: &mut [Edges],
+    nedges: &mut usize,
+    max_edges: usize,
+    nfaces: &mut usize,
+    e: usize,
+) {
+    const EPS: f32 = 1.0e-5;
+
+    let edge = edges[e];
+
+    // Cache s and t.
+    let mut s: usize;
+    let mut t: usize;
+    let (s, t) = if edge[2].is_undefined() {
+        (edge[0], edge[1])
+    } else if edge[3].is_undefined() {
+        (edge[1], edge[0])
+    } else {
+        // Edge already completed.
+        return;
+    };
+
+    // Find best point on left of edge.
+    let mut pt = npts;
+    let mut c = Vec3A::default();
+    let mut r = None;
+
+    // Jan: original implies this:
+    let Edge::Regular(s) = s else {
+        panic!("Invalid edge s");
+    };
+    let Edge::Regular(t) = t else {
+        panic!("Invalid edge t");
+    };
+
+    for u in 0..npts {
+        if u == s || u == t {
+            continue;
+        }
+        if cross2(pts[s].xz(), pts[t].xz(), pts[u].xz()) > EPS {
+            let Some(r) = r else {
+                // The circle is not updated yet, do it now.
+                pt = u;
+                todo!("circum_circle");
+                continue;
+            };
+            let d_squared = c.xz().distance_squared(pts[u].xz());
+            let tol = 1.0e-3;
+            let threshold_out = r * (1.0 + tol);
+            let threshold_in = r * (1.0 - tol);
+            if d_squared > threshold_out * threshold_out {
+                // Outside current circumcircle, skip.
+                continue;
+            } else if d_squared < threshold_in * threshold_in {
+                // Inside safe circumcircle, update circle.
+                pt = u;
+                todo!("circum_circle");
+            } else {
+                // Inside epsilon circum circle, do extra tests to make sure the edge is valid.
+                // s-u and t-u cannot overlap with s-pt nor t-pt if they exists.
+                todo!()
+            }
+        }
+    }
+}
+
+#[inline]
+fn dist_squared2(p1: Vec2, p2: Vec2) -> f32 {
+    let dx = p1.x - p2.x;
+    let dy = p1.y - p2.y;
+    dx * dx + dy * dy
+}
+
+#[inline]
+fn cross2(p1: Vec2, p2: Vec2, p3: Vec2) -> f32 {
+    let uv1 = p2 - p1;
+    let uv2 = p3 - p1;
+    uv1.x * uv2.y - uv1.y * uv2.x
 }
 
 fn add_edge(
@@ -558,6 +657,18 @@ enum Edge {
     Regular(usize),
     Undefined,
     Hull,
+}
+
+impl Edge {
+    #[inline]
+    fn is_undefined(self) -> bool {
+        matches!(self, Edge::Undefined)
+    }
+
+    #[inline]
+    fn is_hull(self) -> bool {
+        matches!(self, Edge::Hull)
+    }
 }
 
 impl Default for Edge {
