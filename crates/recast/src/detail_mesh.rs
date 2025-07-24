@@ -22,7 +22,7 @@ pub struct DetailPolygonMesh {
     pub meshes: Vec<SubMesh>,
     /// The mesh vertices
     pub vertices: Vec<Vec3A>,
-    /// The mesh triangles
+    /// The mesh triangles and their associated metadata
     pub triangles: Vec<(U16Vec3, usize)>,
 }
 
@@ -219,7 +219,7 @@ fn build_poly_detail(
     nverts: &mut usize,
     tris: &mut Vec<(U16Vec3, usize)>,
     edges: &mut Vec<usize>,
-    samples: &mut Vec<usize>,
+    samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
     const MAX_VERTS: usize = 127;
     // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
@@ -376,11 +376,150 @@ fn build_poly_detail(
                 pt.y = (aabb.max.y + aabb.min.y) * 0.5;
                 pt.z = z as f32 * sample_dist;
                 // Make sure the samples are not too close to the edges.
-                todo!();
+                // Jan: I believe this check is bugged, see https://github.com/recastnavigation/recastnavigation/issues/788
+                if dist_to_poly(nin, in_, pt) > -sample_dist / 2.0 {
+                    continue;
+                }
+                let y = get_height(pt, ics, chf.cell_height, height_search_radius, hp);
+                samples.push((u16vec3(x as u16, y, z as u16), false));
             }
         }
+
+        // Add the samples starting from the one that has the most
+        // error. The procedure stops when all samples are added
+        // or when the max error is within treshold.
+        for _iter in 0..samples.len() {
+            if *nverts >= MAX_VERTS {
+                break;
+            }
+
+            // Find sample with most error.
+            let mut bestpt = Vec3A::default();
+            let mut bestd = 0.0;
+            let mut besti = None;
+            for (i, (s, added)) in samples.iter().enumerate() {
+                if *added {
+                    continue;
+                }
+                let mut pt = Vec3A::default();
+                // The sample location is jittered to get rid of some bad triangulations
+                // which are cause by symmetrical data from the grid structure.
+                pt.x = s.x as f32 * sample_dist + get_jitter_x(i) * cs * 0.1;
+                pt.y = s.y as f32 * chf.cell_height;
+                pt.z = s.z as f32 * sample_dist + get_jitter_y(i) * cs * 0.1;
+                let d = dist_to_tri_mesh(pt, verts, tris);
+                let Some(d) = d else {
+                    // did not hit the mesh.
+                    continue;
+                };
+                if d > bestd {
+                    bestd = d;
+                    besti = Some(i);
+                    bestpt = pt;
+                }
+            }
+            // If the max error is within accepted threshold, stop tesselating.
+            if bestd <= sample_max_error {
+                break;
+            }
+            let Some(besti) = besti else {
+                break;
+            };
+            // Mark sample as added.
+            samples[besti].1 = true;
+            // Add the new sample point.
+            verts[*nverts] = bestpt;
+            *nverts += 1;
+
+            // Create new triangulation.
+            // [sic] TODO: Incremental add instead of full rebuild.
+            edges.clear();
+            tris.clear();
+            todo!("delaunay_hull");
+        }
     }
-    todo!()
+    if tris.len() > MAX_TRIS {
+        // Jan: why do we need this?
+        tris.truncate(MAX_TRIS);
+        tracing::error!(
+            "Too many triangles! Shringking triangle count from {} to {MAX_TRIS}",
+            tris.len()
+        );
+    }
+    set_tri_flags(tris, nhull, &hull);
+    Ok(())
+}
+
+fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, usize)]) -> Option<f32> {
+    let mut dmin = f32::MAX;
+    for (tri, _) in tris {
+        let va = verts[tri.x as usize];
+        let vb = verts[tri.y as usize];
+        let vc = verts[tri.z as usize];
+        let d = dist_pt_tri(p, va, vb, vc);
+        if let Some(d) = d
+            && d < dmin
+        {
+            dmin = d;
+        }
+    }
+    if dmin == f32::MAX { None } else { Some(dmin) }
+}
+
+/// Distance from point p to triangle defined by vertices a, b, and c.
+/// Returns None if the point is outside the triangle.
+fn dist_pt_tri(p: Vec3A, a: Vec3A, b: Vec3A, c: Vec3A) -> Option<f32> {
+    let v0 = c - a;
+    let v1 = b - a;
+    let v2 = p - a;
+
+    let dot00 = v0.xz().dot(v0.xz());
+    let dot01 = v0.xz().dot(v1.xz());
+    let dot02 = v0.xz().dot(v2.xz());
+    let dot11 = v1.xz().dot(v1.xz());
+    let dot12 = v1.xz().dot(v2.xz());
+
+    // Compute barycentric coordinates
+    let inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+    let u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+    let v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+
+    // If point lies inside the triangle, return interpolated y-coord.
+    const EPS: f32 = 1.0e-4;
+    if u >= -EPS && v >= -EPS && (u + v) <= 1.0 + EPS {
+        let y = a.y + v0.y * u + v1.y * v;
+        Some((y - p.y).abs())
+    } else {
+        None
+    }
+}
+
+fn get_jitter_x(i: usize) -> f32 {
+    (((i * 0x8da6b343) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
+}
+
+fn get_jitter_y(i: usize) -> f32 {
+    (((i * 0xd8163841) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
+}
+
+fn dist_to_poly(nvert: usize, verts: &[Vec3A], p: Vec3A) -> f32 {
+    let mut dmin = f32::MAX;
+    let mut c = false;
+    let mut j = nvert - 1;
+    for i in 0..nvert {
+        let vi = verts[i];
+        let vj = verts[j];
+        if (vi.z > p.z) != (vj.z > p.z) && p.x < (vj.x - vi.x) * (p.z - vi.z) / (vj.z - vi.z) + vi.x
+        {
+            c = !c;
+        }
+        dmin = dmin.min(distance_squared_between_point_and_line_vec2(
+            p.xz(),
+            (vj.xz(), vi.xz()),
+        ));
+        j = i;
+    }
+    if c { -dmin } else { dmin }
 }
 
 /// Find edges that lie on hull and mark them as such.
