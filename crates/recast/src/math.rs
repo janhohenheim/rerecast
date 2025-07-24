@@ -1,4 +1,4 @@
-use glam::{UVec3, Vec2, Vec3A};
+use glam::{U16Vec2, UVec3, Vec2, Vec3A};
 
 /// A 3D axis-aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -151,6 +151,63 @@ pub(crate) fn prev(i: usize, n: usize) -> usize {
 #[inline]
 pub(crate) fn next(i: usize, n: usize) -> usize {
     (i + 1) % n
+}
+
+pub(crate) fn distance_squared_between_point_and_line_u16vec2(
+    point: U16Vec2,
+    (p, q): (U16Vec2, U16Vec2),
+) -> f32 {
+    let p = p.as_vec2();
+    let q = q.as_vec2();
+    let pt = point.as_vec2();
+
+    let pq = q - p;
+    let dt = pt - p;
+    let d = pq.length_squared();
+    let mut t = dt.dot(pq);
+    if d > 0.0 {
+        t /= d;
+    } else {
+        tracing::error!(
+            "distance_squared_between_point_and_line was called with identical points as a line segment. The result might be unexpected."
+        );
+    }
+    let t = t.clamp(0.0, 1.0);
+
+    let result = p + t * pq - pt;
+    result.length_squared()
+}
+
+pub(crate) fn distance_squared_between_point_and_line_vec2(pt: Vec2, (p, q): (Vec2, Vec2)) -> f32 {
+    let pq = q - p;
+    let dt = pt - p;
+    let d = pq.length_squared();
+    let mut t = pq.dot(dt);
+    if d > 0.0 {
+        t /= d;
+    }
+    t = t.clamp(0.0, 1.0);
+    let dx = p.x + t * pq.x - pt.x;
+    let dy = p.y + t * pq.y - pt.y;
+    dx * dx + dy * dy
+}
+
+pub(crate) fn distance_squared_between_point_and_line_vec3(
+    pt: Vec3A,
+    (p, q): (Vec3A, Vec3A),
+) -> f32 {
+    let pq = q - p;
+    let dt = pt - p;
+    let d = pq.length_squared();
+    let mut t = pq.dot(dt);
+    if d > 0.0 {
+        t /= d;
+    }
+    t = t.clamp(0.0, 1.0);
+    let dx = p.x + t * pq.x - pt.x;
+    let dy = p.y + t * pq.y - pt.y;
+    let dz = p.z + t * pq.z - pt.z;
+    dx * dx + dy * dy + dz * dz
 }
 
 #[cfg(test)]

@@ -1,9 +1,15 @@
-use glam::{U16Vec3, U16Vec4, Vec3A, u16vec3};
+use std::{f32, usize::MAX};
+
+use glam::{U16Vec3, U16Vec4, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
     CompactHeightfield, PolygonMesh, RegionId,
-    math::{dir_offset, dir_offset_x, dir_offset_z},
+    math::{
+        dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_u16vec2,
+        distance_squared_between_point_and_line_vec2, distance_squared_between_point_and_line_vec3,
+        next,
+    },
     poly_mesh::RC_MESH_NULL_IDX,
 };
 
@@ -215,8 +221,217 @@ fn build_poly_detail(
     edges: &mut Vec<usize>,
     samples: &mut Vec<usize>,
 ) -> Result<(), DetailPolygonMeshError> {
-    // Implementation of build_poly_detail function
+    const MAX_VERTS: usize = 127;
+    // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
+    const MAX_TRIS: usize = 255;
+    const MAX_VERTS_PER_EDGE: usize = 32;
+    let mut edge = [Vec3A::default(); MAX_VERTS_PER_EDGE + 1];
+    let mut hull = [0; MAX_VERTS];
+    let mut nhull = 0;
+
+    *nverts = nin;
+
+    verts[..nin].clone_from_slice(&in_[..nin]);
+    edges.clear();
+    tris.clear();
+
+    let cs = chf.cell_size;
+    let ics = 1.0 / cs;
+
+    // Calculate minimum extents of the polygon based on input data.
+    let min_extent_squared = poly_min_extent_squared(verts, *nverts);
+
+    // Tessellate outlines.
+    // This is done in separate pass in order to ensure
+    // seamless height values across the ply boundaries.
+    if sample_dist > 0.0 {
+        let mut j = nin - 1;
+        for i in 0..nin {
+            let mut vj = in_[j];
+            let mut vi = in_[i];
+            let mut swapped = false;
+            // Make sure the segments are always handled in same order
+            // using lexological sort or else there will be seams.
+            if (vj.x - vi.x).abs() < 1.0e-6 {
+                if vj.z > vi.z {
+                    std::mem::swap(&mut vj, &mut vi);
+                    swapped = true;
+                }
+            } else if vj.x > vi.x {
+                std::mem::swap(&mut vj, &mut vi);
+                swapped = true;
+            }
+            // Create samples along the edge.
+            let dij = vi - vj;
+            let d = dij.length();
+            let mut nn = 1 + (d / sample_dist).floor() as usize;
+            if nn >= MAX_VERTS_PER_EDGE {
+                nn = MAX_VERTS_PER_EDGE - 1;
+            }
+            if *nverts + nn >= MAX_VERTS {
+                nn = MAX_VERTS - 1 - *nverts;
+            }
+            for k in 0..=nn {
+                let u = k as f32 / nn as f32;
+                let pos = &mut edge[k];
+                *pos = vj + dij * u;
+                pos.y = get_height(*pos, ics, chf.cell_height, height_search_radius, &hp) as f32
+                    * chf.cell_height;
+            }
+            // Simplify samples.
+            let mut idx = [0; MAX_VERTS_PER_EDGE];
+            idx[1] = nn;
+            let mut nidx = 2;
+            let mut k = 0;
+            while k < nidx - 1 {
+                let a = idx[k];
+                let b = idx[k + 1];
+                let va = edge[a];
+                let vb = edge[b];
+                // Find maximum deviation along the segment.
+                let mut maxd = 0.0;
+                let mut maxi = None;
+                for m in (a + 1)..b {
+                    let dev = distance_squared_between_point_and_line_vec3(edge[m], (va, vb));
+                    if dev > maxd {
+                        maxd = dev;
+                        maxi = Some(m);
+                    }
+                }
+                // If the max deviation is larger than accepted error,
+                // add new point, else continue to next segment.
+                if let Some(maxi) = maxi
+                    && maxd > sample_max_error * sample_max_error
+                {
+                    for m in ((k + 1)..=nidx).rev() {
+                        idx[m] = idx[m - 1];
+                    }
+                    idx[k + 1] = maxi;
+                    nidx += 1;
+                } else {
+                    k += 1;
+                }
+            }
+
+            hull[nhull + 1] = j;
+            nhull += 1;
+            // Add new vertices.
+            if swapped {
+                for k in (1..nidx - 1).rev() {
+                    verts[*nverts] = edge[idx[k]];
+                    hull[nhull] = *nverts;
+                    nhull += 1;
+                    *nverts += 1;
+                }
+            } else {
+                for k in 1..nidx - 1 {
+                    verts[*nverts] = edge[idx[k]];
+                    hull[nhull] = *nverts;
+                    nhull += 1;
+                    *nverts += 1;
+                }
+            }
+            j = i;
+        }
+    }
+
+    // If the polygon minimum extent is small (sliver or small triangle), do not try to add internal points.
+    if min_extent_squared < (sample_dist * 2.0) * (sample_dist * 2.0) {
+        todo!();
+    }
     todo!()
+}
+
+fn get_height(f: Vec3A, ics: f32, ch: f32, radius: u32, hp: &HeightPatch) -> u16 {
+    let mut ix = (f.x * ics + 0.01).floor() as i32;
+    let mut iz = (f.z * ics + 0.01).floor() as i32;
+    ix = (ix - hp.xmin as i32).clamp(0, hp.width as i32 - 1);
+    iz = (iz - hp.zmin as i32).clamp(0, hp.height as i32 - 1);
+    let mut h = hp.data[(ix + iz * hp.width as i32) as usize];
+    if h == RC_UNSET_HEIGHT {
+        // Special case when data might be bad.
+        // Walk adjacent cells in a spiral up to 'radius', and look
+        // for a pixel which has a valid height.
+        let mut x = 1;
+        let mut z = 0;
+        let mut dx = 1;
+        let mut dz = 0;
+        let max_size = radius * 2 + 1;
+        let max_iter = max_size * max_size - 1;
+
+        let mut next_ring_iter_start = 8;
+        let mut next_ring_iters = 16;
+
+        let mut dmin = f32::MAX;
+        for i in 0..max_iter {
+            let nx = ix + x;
+            let nz = iz + z;
+            if nx >= 0 && nz >= 0 && nx < hp.width as i32 && nz < hp.height as i32 {
+                let nh = hp.data[(nx + nz * hp.width as i32) as usize];
+                if nh != RC_UNSET_HEIGHT {
+                    let d = (nh as f32 * ch - f.y).abs();
+                    if d < dmin {
+                        h = nh;
+                        dmin = d;
+                    }
+                }
+            }
+            // We are searching in a grid which looks approximately like this:
+            //  __________
+            // |2 ______ 2|
+            // | |1 __ 1| |
+            // | | |__| | |
+            // | |______| |
+            // |__________|
+            // We want to find the best height as close to the center cell as possible. This means that
+            // if we find a height in one of the neighbor cells to the center, we don't want to
+            // expand further out than the 8 neighbors - we want to limit our search to the closest
+            // of these "rings", but the best height in the ring.
+            // For example, the center is just 1 cell. We checked that at the entrance to the function.
+            // The next "ring" contains 8 cells (marked 1 above). Those are all the neighbors to the center cell.
+            // The next one again contains 16 cells (marked 2). In general each ring has 8 additional cells, which
+            // can be thought of as adding 2 cells around the "center" of each side when we expand the ring.
+            // Here we detect if we are about to enter the next ring, and if we are and we have found
+            // a height, we abort the search.
+            if i + 1 == next_ring_iter_start {
+                if h != RC_UNSET_HEIGHT {
+                    break;
+                }
+                next_ring_iter_start += next_ring_iters;
+                next_ring_iters += 8;
+            }
+
+            if x == z || (x < 0 && x == -z) || (x > 0 && x == 1 - z) {
+                let tmp = dx;
+                dx = -dz;
+                dz = tmp;
+            }
+            x += dx;
+            z += dz;
+        }
+    }
+    h
+}
+
+/// Calculate minimum extend of the polygon.
+fn poly_min_extent_squared(verts: &[Vec3A], nverts: usize) -> f32 {
+    let mut min_dist = f32::MAX;
+    for i in 0..nverts {
+        let ni = next(i, nverts);
+        let p1 = verts[i];
+        let p2 = verts[ni];
+        let mut max_edge_dist = 0.0_f32;
+        for j in 0..nverts {
+            if j == i || j == ni {
+                continue;
+            }
+            let d = distance_squared_between_point_and_line_vec2(verts[j].xz(), (p1.xz(), p2.xz()));
+            max_edge_dist = max_edge_dist.max(d);
+        }
+        min_dist = min_dist.min(max_edge_dist);
+    }
+    // Jan: original returns sqrt, but doesn't actually need to
+    min_dist
 }
 
 #[derive(Error, Debug)]

@@ -2,7 +2,7 @@ use glam::{U16Vec2, U16Vec3, Vec3Swizzles};
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
-    math::{dir_offset_x, dir_offset_z},
+    math::{dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_u16vec2},
 };
 
 impl CompactHeightfield {
@@ -392,7 +392,8 @@ fn simplify_contour(
         {
             while ci != endi {
                 let point = points[ci].0;
-                let d = distance_squared_between_point_and_line(point.xz(), (a.xz(), b.xz()));
+                let d =
+                    distance_squared_between_point_and_line_u16vec2(point.xz(), (a.xz(), b.xz()));
                 if d > maxd {
                     maxd = d;
                     maxi = Some(ci);
@@ -507,28 +508,6 @@ fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
         }
         i += 1;
     }
-}
-
-fn distance_squared_between_point_and_line(point: U16Vec2, (p, q): (U16Vec2, U16Vec2)) -> f32 {
-    let p = p.as_vec2();
-    let q = q.as_vec2();
-    let pt = point.as_vec2();
-
-    let pq = q - p;
-    let dt = pt - p;
-    let d = pq.length_squared();
-    let mut t = dt.dot(pq);
-    if d > 0.0 {
-        t /= d;
-    } else {
-        tracing::error!(
-            "distance_squared_between_point_and_line was called with identical points as a line segment. The result might be unexpected."
-        );
-    }
-    let t = t.clamp(0.0, 1.0);
-
-    let result = p + t * pq - pt;
-    result.length_squared()
 }
 
 /// Represents a group of related contours.
