@@ -1,4 +1,8 @@
-use std::{f32, usize::MAX};
+use std::{
+    f32,
+    ops::{Deref, DerefMut},
+    usize::MAX,
+};
 
 use glam::{U16Vec3, U16Vec4, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
@@ -218,7 +222,7 @@ fn build_poly_detail(
     verts: &mut [Vec3A],
     nverts: &mut usize,
     tris: &mut Vec<(U16Vec3, usize)>,
-    edges: &mut Vec<[Option<u16>; 4]>,
+    edges: &mut Vec<Edges>,
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
     const MAX_VERTS: usize = 127;
@@ -456,24 +460,110 @@ fn delaunay_hull(
     nhull: usize,
     hull: &mut [usize],
     tris: &mut Vec<(U16Vec3, usize)>,
-    edges: &mut Vec<[Option<u16>; 4]>,
+    edges: &mut Vec<Edges>,
 ) {
     let mut nfaces = 0;
     let mut nedges = 0;
     let max_edges = npts * 10;
-    edges.resize(max_edges, todo!());
+    edges.resize(max_edges, Edges::default());
 
     let mut j = nhull - 1;
     for i in 0..nhull {
-        todo!("add_edge");
+        add_edge(
+            edges,
+            &mut nedges,
+            max_edges,
+            Edge::Regular(hull[j]),
+            Edge::Regular(hull[i]),
+            Edge::Hull,
+            Edge::Undefined,
+        );
         j = i;
     }
 
     let mut current_edge = 0;
     while current_edge < nedges {
-        todo!();
+        if edges[current_edge][2] == Edge::Undefined {
+            todo!("complete_facet");
+        }
+        if edges[current_edge][3] == Edge::Undefined {
+            todo!("complete_edge");
+        }
+        current_edge += 1;
     }
+
+    // Create tris
+    tris.resize(nfaces, (U16Vec3::default(), 0));
+
     todo!()
+}
+
+fn add_edge(
+    edges: &mut Vec<Edges>,
+    nedges: &mut usize,
+    max_edges: usize,
+    s: Edge,
+    t: Edge,
+    l: Edge,
+    r: Edge,
+) -> Edge {
+    if *nedges >= max_edges {
+        tracing::error!("Too many edges ({nedges}/{max_edges})");
+        return Edge::Undefined;
+    }
+
+    // Add edge if not already in the triangulation.
+    let e = find_edge(edges, *nedges, s, t);
+    if e == Edge::Undefined {
+        let edge = &mut edges[*nedges];
+        edge[0] = s;
+        edge[1] = t;
+        edge[2] = l;
+        edge[3] = r;
+        *nedges += 1;
+        Edge::Regular(*nedges - 1)
+    } else {
+        Edge::Undefined
+    }
+}
+
+fn find_edge(edges: &[Edges], nedges: usize, s: Edge, t: Edge) -> Edge {
+    for (i, e) in edges.iter().enumerate().take(nedges) {
+        if (e[0] == s && e[1] == t) || (e[0] == t && e[1] == s) {
+            return Edge::Regular(i);
+        }
+    }
+    Edge::Undefined
+}
+
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+struct Edges([Edge; 4]);
+
+impl Deref for Edges {
+    type Target = [Edge; 4];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Edges {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum Edge {
+    Regular(usize),
+    Undefined,
+    Hull,
+}
+
+impl Default for Edge {
+    fn default() -> Self {
+        Edge::Regular(0)
+    }
 }
 
 fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, usize)]) -> Option<f32> {
