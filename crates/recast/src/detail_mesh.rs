@@ -55,10 +55,10 @@ impl DetailPolygonMesh {
         let border_size = mesh.border_size;
         let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
 
-        let mut edges = Vec::with_capacity(64);
+        let mut edges = Vec::with_capacity(64 / 4);
         let mut tris = Vec::with_capacity(512 / 4);
         let mut arr = Vec::with_capacity(512 / 3);
-        let mut samples = Vec::with_capacity(512);
+        let mut samples = Vec::with_capacity(512 / 4);
         let mut verts = [Vec3A::default(); 256];
         let mut hp = HeightPatch::default();
         let mut poly_vert_count = 0;
@@ -218,7 +218,7 @@ fn build_poly_detail(
     verts: &mut [Vec3A],
     nverts: &mut usize,
     tris: &mut Vec<(U16Vec3, usize)>,
-    edges: &mut Vec<usize>,
+    edges: &mut Vec<[Option<u16>; 4]>,
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
     const MAX_VERTS: usize = 127;
@@ -435,7 +435,7 @@ fn build_poly_detail(
             // [sic] TODO: Incremental add instead of full rebuild.
             edges.clear();
             tris.clear();
-            todo!("delaunay_hull");
+            delaunay_hull(*nverts, verts, nhull, &mut hull, tris, edges);
         }
     }
     if tris.len() > MAX_TRIS {
@@ -448,6 +448,32 @@ fn build_poly_detail(
     }
     set_tri_flags(tris, nhull, &hull);
     Ok(())
+}
+
+fn delaunay_hull(
+    npts: usize,
+    pts: &[Vec3A],
+    nhull: usize,
+    hull: &mut [usize],
+    tris: &mut Vec<(U16Vec3, usize)>,
+    edges: &mut Vec<[Option<u16>; 4]>,
+) {
+    let mut nfaces = 0;
+    let mut nedges = 0;
+    let max_edges = npts * 10;
+    edges.resize(max_edges, todo!());
+
+    let mut j = nhull - 1;
+    for i in 0..nhull {
+        todo!("add_edge");
+        j = i;
+    }
+
+    let mut current_edge = 0;
+    while current_edge < nedges {
+        todo!();
+    }
+    todo!()
 }
 
 fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, usize)]) -> Option<f32> {
