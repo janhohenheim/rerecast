@@ -53,7 +53,7 @@ impl DetailPolygonMesh {
         let nvp = mesh.vertices_per_polygon;
         let cs = mesh.cell_size;
         let ch = mesh.cell_height;
-        let orig = mesh.aabb.max;
+        let orig = mesh.aabb.min;
         let border_size = mesh.border_size;
         let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
 
