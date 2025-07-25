@@ -185,6 +185,10 @@ pub(crate) fn distance_squared_between_point_and_line_vec2(pt: Vec2, (p, q): (Ve
     let mut t = pq.dot(dt);
     if d > 0.0 {
         t /= d;
+    } else {
+        tracing::error!(
+            "distance_squared_between_point_and_line_vec2 was called with identical points as a line segment. The result might be unexpected."
+        );
     }
     t = t.clamp(0.0, 1.0);
     let dt = p + t * pq - pt;
@@ -201,6 +205,10 @@ pub(crate) fn distance_squared_between_point_and_line_vec3(
     let mut t = pq.dot(dt);
     if d > 0.0 {
         t /= d;
+    } else {
+        tracing::error!(
+            "distance_squared_between_point_and_line_vec3 was called with identical points as a line segment. The result might be unexpected."
+        );
     }
     t = t.clamp(0.0, 1.0);
     let dt = p + t * pq - pt;
