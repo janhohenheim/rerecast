@@ -94,9 +94,9 @@ impl DetailPolygonMesh {
                 *zmax = (*zmax).max(v.z);
                 poly_vert_count += 1;
             }
-            *xmin -= 1;
+            *xmin = xmin.saturating_sub(1);
             *xmax = chf.width.min(*xmax + 1);
-            *zmin -= 1;
+            *zmin = xmin.saturating_sub(1);
             *zmax = chf.height.min(*zmax + 1);
             if xmin >= xmax || zmin >= zmax {
                 continue;
