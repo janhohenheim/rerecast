@@ -1,19 +1,16 @@
 use std::{
     f32,
     ops::{Deref, DerefMut},
-    usize::MAX,
 };
 
-use bevy::ui::update;
-use glam::{U16Vec3, U16Vec4, Vec2, Vec3A, Vec3Swizzles as _, u16vec3};
+use glam::{U16Vec3, Vec2, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
     Aabb3d, CompactHeightfield, PolygonMesh, RegionId,
     math::{
-        dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_u16vec2,
-        distance_squared_between_point_and_line_vec2, distance_squared_between_point_and_line_vec3,
-        next, prev,
+        dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_vec2,
+        distance_squared_between_point_and_line_vec3, next, prev,
     },
     poly_mesh::RC_MESH_NULL_IDX,
 };
@@ -74,14 +71,14 @@ impl DetailPolygonMesh {
         let mut poly = vec![Vec3A::default(); nvp];
 
         // Find max size for a polygon area.
-        for i in 0..mesh.polygon_count() {
+        for (i, b) in bounds.iter_mut().enumerate().take(mesh.polygon_count()) {
             let p = &mesh.polygons[i * nvp * 2..];
             let Bounds {
                 xmin,
                 xmax,
                 zmin,
                 zmax,
-            } = &mut bounds[i];
+            } = b;
             *xmin = chf.width;
             *xmax = 0;
             *zmin = chf.height;
@@ -97,9 +94,9 @@ impl DetailPolygonMesh {
                 *zmax = (*zmax).max(v.z);
                 poly_vert_count += 1;
             }
-            *xmin = 0.max(*xmin - 1);
+            *xmin -= 1;
             *xmax = chf.width.min(*xmax + 1);
-            *zmin = 0.max(*zmin - 1);
+            *zmin -= 1;
             *zmax = chf.height.min(*zmax + 1);
             if xmin >= xmax || zmin >= zmax {
                 continue;
@@ -116,7 +113,7 @@ impl DetailPolygonMesh {
         dmesh.vertices = Vec::with_capacity(vcap);
         dmesh.triangles = Vec::with_capacity(tcap);
 
-        for i in 0..mesh.polygon_count() {
+        for (i, bounds_i) in bounds.iter().enumerate().take(mesh.polygon_count()) {
             let p = &mesh.polygons[i * nvp * 2..];
 
             // Store polygon vertices for processing.
@@ -133,7 +130,6 @@ impl DetailPolygonMesh {
             }
 
             // Get the height data from the area of the polygon.
-            let bounds_i = &bounds[i];
             hp.xmin = bounds_i.xmin;
             hp.zmin = bounds_i.zmin;
             hp.width = bounds_i.width();
@@ -276,11 +272,10 @@ fn build_poly_detail(
             if *nverts + nn >= MAX_VERTS {
                 nn = MAX_VERTS - 1 - *nverts;
             }
-            for k in 0..=nn {
+            for (k, pos) in edge.iter_mut().enumerate().take(nn + 1) {
                 let u = k as f32 / nn as f32;
-                let pos = &mut edge[k];
                 *pos = vj + dij * u;
-                pos.y = get_height(*pos, ics, chf.cell_height, height_search_radius, &hp) as f32
+                pos.y = get_height(*pos, ics, chf.cell_height, height_search_radius, hp) as f32
                     * chf.cell_height;
             }
             // Simplify samples.
@@ -296,8 +291,8 @@ fn build_poly_detail(
                 // Find maximum deviation along the segment.
                 let mut maxd = 0.0;
                 let mut maxi = None;
-                for m in (a + 1)..b {
-                    let dev = distance_squared_between_point_and_line_vec3(edge[m], (va, vb));
+                for (m, edge) in edge[a + 1..b].iter().enumerate() {
+                    let dev = distance_squared_between_point_and_line_vec3(*edge, (va, vb));
                     if dev > maxd {
                         maxd = dev;
                         maxi = Some(m);
@@ -362,9 +357,10 @@ fn build_poly_detail(
 
     if sample_dist > 0.0 {
         // Create sample locations in a grid.
-        let mut aabb = Aabb3d::default();
-        aabb.min = in_[0];
-        aabb.max = in_[0];
+        let mut aabb = Aabb3d {
+            min: in_[0],
+            max: in_[0],
+        };
         for in_ in in_[..nin].iter().copied() {
             aabb.min = aabb.min.min(in_);
             aabb.max = aabb.max.max(in_);
@@ -912,7 +908,7 @@ fn set_tri_flags(tris: &mut Vec<(U16Vec3, usize)>, nhull: usize, hull: &[usize])
             DETAIL_EDGE_BOUNDARY
         } else {
             0
-        } << 0;
+        };
         flags |= if on_hull(tri.y as usize, tri.z as usize, nhull, hull) {
             DETAIL_EDGE_BOUNDARY
         } else {
@@ -1091,11 +1087,11 @@ fn poly_min_extent_squared(verts: &[Vec3A], nverts: usize) -> f32 {
         let p1 = verts[i];
         let p2 = verts[ni];
         let mut max_edge_dist = 0.0_f32;
-        for j in 0..nverts {
+        for (j, vert) in verts.iter().enumerate().take(nverts) {
             if j == i || j == ni {
                 continue;
             }
-            let d = distance_squared_between_point_and_line_vec2(verts[j].xz(), (p1.xz(), p2.xz()));
+            let d = distance_squared_between_point_and_line_vec2(vert.xz(), (p1.xz(), p2.xz()));
             max_edge_dist = max_edge_dist.max(d);
         }
         min_dist = min_dist.min(max_edge_dist);
@@ -1311,8 +1307,8 @@ impl HeightPatch {
             }
 
             let (cx_raw, cz_raw, ci_raw) = array.pop().unwrap();
-            cx = Some(cx_raw as i32);
-            cz = Some(cz_raw as i32);
+            cx = Some(cx_raw);
+            cz = Some(cz_raw);
             ci = Some(ci_raw);
             let cx = cx.unwrap();
             let cz = cz.unwrap();
@@ -1325,7 +1321,7 @@ impl HeightPatch {
             // If we are already at the correct X-position, prefer direction
             // directly towards the center in the Y-axis; otherwise prefer
             // direction in the X-axis
-            let direct_dir = if cx as i32 == pcx {
+            let direct_dir = if cx == pcx {
                 dir_offset(0, if pcz > cz { 1 } else { -1 })
             } else {
                 dir_offset(if pcx > cx { 1 } else { -1 }, 0)
@@ -1335,8 +1331,7 @@ impl HeightPatch {
             dirs.swap(direct_dir, 3);
 
             let cs = &chf.spans[ci];
-            for i in 0..4 {
-                let dir = dirs[i];
+            for dir in dirs {
                 let Some(con) = cs.con(dir) else {
                     continue;
                 };

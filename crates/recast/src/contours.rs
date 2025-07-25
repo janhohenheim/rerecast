@@ -1,4 +1,4 @@
-use glam::{U16Vec2, U16Vec3, Vec3Swizzles};
+use glam::{U16Vec3, Vec3Swizzles};
 
 use crate::{
     Aabb3d, AreaType, CompactHeightfield, RegionId,
