@@ -289,13 +289,14 @@ fn build_poly_detail(
                 // Find maximum deviation along the segment.
                 let mut maxd = 0.0;
                 let mut maxi = None;
-                for (m, edge) in edge[..b].iter().skip(a + 1).enumerate() {
-                    let m = m + a + 1;
-                    let dev = distance_squared_between_point_and_line_vec3(*edge, (va, vb));
+                let mut m = a + 1;
+                while m < b {
+                    let dev = distance_squared_between_point_and_line_vec3(edge[m], (va, vb));
                     if dev > maxd {
                         maxd = dev;
                         maxi = Some(m);
                     }
+                    m += 1;
                 }
                 // If the max deviation is larger than accepted error,
                 // add new point, else continue to next segment.
