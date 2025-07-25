@@ -1414,8 +1414,6 @@ impl Bounds {
 
     #[inline]
     fn height(&self) -> u16 {
-        println!("zmax: {}", self.zmax);
-        println!("zmin: {}", self.zmin);
         self.zmax - self.zmin
     }
 }
