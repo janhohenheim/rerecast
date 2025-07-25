@@ -262,7 +262,7 @@ fn build_poly_detail(
             }
             // Create samples along the edge.
             let dij = vi - vj;
-            let d = dij.length();
+            let d = dij.xz().length();
             let mut nn = 1 + (d / sample_dist).floor() as usize;
             if nn >= MAX_VERTS_PER_EDGE {
                 nn = MAX_VERTS_PER_EDGE - 1;
