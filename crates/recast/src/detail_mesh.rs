@@ -510,9 +510,56 @@ fn delaunay_hull(
     }
 
     // Create tris
-    tris.resize(nfaces, (U16Vec3::default(), 0));
+    let orig_tris = tris;
+    let mut tris: Vec<Edges> = vec![Edges::UNDEFINED; nfaces];
 
-    todo!()
+    for e in edges[..nedges].iter() {
+        if let Edge::Regular(e_3) = e[3] {
+            // Left face
+            let t = &mut tris[e_3];
+            if t[0].is_undefined() {
+                t[0] = e[0];
+                t[1] = e[1];
+            } else if t[0] == e[1] {
+                t[2] = e[0];
+            } else if t[1] == e[0] {
+                t[2] = e[1];
+            }
+        }
+        if let Edge::Regular(e_2) = e[2] {
+            // Right
+            let t = &mut tris[e_2];
+            if t[0].is_undefined() {
+                t[0] = e[1];
+                t[1] = e[0];
+            } else if t[0] == e[0] {
+                t[2] = e[1];
+            } else if t[1] == e[1] {
+                t[2] = e[0];
+            }
+        }
+    }
+    let mut i = 0;
+    while i < tris.len() {
+        let t = tris[i];
+        if t[0].is_undefined() || t[1].is_undefined() || t[2].is_undefined() {
+            tracing::warn!(
+                "Removing dangling face {i} [{:?}, {:?}, {:?}]",
+                t[0],
+                t[1],
+                t[2]
+            );
+            tris.swap_remove(i);
+            i -= 1;
+        }
+    }
+    orig_tris.resize(tris.len(), Default::default());
+    for ((p, d), edge) in orig_tris.iter_mut().zip(tris.iter()) {
+        p.x = edge[0].unwrap() as u16;
+        p.y = edge[1].unwrap() as u16;
+        p.z = edge[2].unwrap() as u16;
+        *d = edge[3].unwrap();
+    }
 }
 
 fn complete_facet(
@@ -730,6 +777,9 @@ fn find_edge(edges: &[Edges], nedges: usize, s: impl Into<Edge>, t: impl Into<Ed
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 struct Edges([Edge; 4]);
+impl Edges {
+    const UNDEFINED: Edges = Edges([Edge::Undefined; 4]);
+}
 
 impl Deref for Edges {
     type Target = [Edge; 4];
