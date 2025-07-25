@@ -2,10 +2,10 @@
 
 use std::env;
 
-use glam::{UVec3, Vec2, Vec3A};
+use glam::{U8Vec3, UVec3, Vec2, Vec3A};
 use recast::{
-    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, Heightfield,
-    HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
+    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailPolygonMesh,
+    Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -25,6 +25,9 @@ fn validate_navmesh_against_cpp_implementation() {
     let max_edge_len = 40;
     let max_vertices_per_polygon = 6;
     let contour_flags = BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES;
+    let detail_sample_dist = 1.8;
+    let detail_sample_max_error = 0.2;
+
     trimesh.mark_walkable_triangles(walkable_slope);
 
     let aabb = trimesh.compute_aabb().unwrap();
@@ -92,6 +95,15 @@ fn validate_navmesh_against_cpp_implementation() {
         .into_polygon_mesh(max_vertices_per_polygon)
         .unwrap();
     assert_eq_poly_mesh(&poly_mesh, "poly_mesh");
+
+    let detail_mesh = DetailPolygonMesh::new(
+        &poly_mesh,
+        &compact_heightfield,
+        detail_sample_dist,
+        detail_sample_max_error,
+    )
+    .unwrap();
+    assert_eq_detail_mesh(&detail_mesh, "poly_mesh_detail");
 }
 
 #[track_caller]
@@ -500,6 +512,58 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     }
 }
 
+#[track_caller]
+fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) {
+    let cpp_detail_mesh = load_json::<CppDetailPolyMesh>(reference_name);
+
+    assert_eq!(cpp_detail_mesh.meshes.len(), detail_mesh.meshes.len());
+    for (i, (cpp_mesh, mesh)) in cpp_detail_mesh
+        .meshes
+        .iter()
+        .zip(detail_mesh.meshes.iter())
+        .enumerate()
+    {
+        assert_eq!(
+            cpp_mesh[0] as usize, mesh.first_vertex_index,
+            "{i} detail mesh first vertex index"
+        );
+        assert_eq!(
+            cpp_mesh[1] as usize, mesh.vertex_count,
+            "{i} detail mesh vertex_count"
+        );
+        assert_eq!(
+            cpp_mesh[2] as usize, mesh.first_triangle_index,
+            "{i} detail mesh first triangle index"
+        );
+        assert_eq!(
+            cpp_mesh[3] as usize, mesh.triangle_count,
+            "{i} detail mesh triangle_count"
+        );
+    }
+
+    assert_eq!(cpp_detail_mesh.tris.len(), detail_mesh.triangles.len());
+    for (i, (cpp_tri, (tri, data))) in cpp_detail_mesh
+        .tris
+        .iter()
+        .zip(detail_mesh.triangles.iter())
+        .enumerate()
+    {
+        let cpp_tri = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
+        assert_eq!(cpp_tri, *tri, "{i} detail mesh triangle");
+        assert_eq!(cpp_tri[3] as usize, *data, "{i} detail mesh triangle data");
+    }
+
+    assert_eq!(cpp_detail_mesh.verts.len(), detail_mesh.vertices.len());
+    for (i, (cpp_vert, vert)) in cpp_detail_mesh
+        .verts
+        .iter()
+        .zip(detail_mesh.vertices.iter())
+        .enumerate()
+    {
+        assert_eq!(cpp_vert, &vert.to_array(), "{i} detail mesh vertex");
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct CppHeightfield {
     width: u16,
@@ -641,6 +705,13 @@ struct CppPolyMesh {
     max_edge_error: f32,
     bmin: [f32; 3],
     bmax: [f32; 3],
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppDetailPolyMesh {
+    meshes: Vec<[u16; 4]>,
+    tris: Vec<[u8; 4]>,
+    verts: Vec<[f32; 3]>,
 }
 
 #[track_caller]
