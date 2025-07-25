@@ -292,6 +292,7 @@ fn build_poly_detail(
                 let mut maxd = 0.0;
                 let mut maxi = None;
                 for (m, edge) in edge[..b].iter().skip(a + 1).enumerate() {
+                    let m = m + a + 1;
                     let dev = distance_squared_between_point_and_line_vec3(*edge, (va, vb));
                     if dev > maxd {
                         maxd = dev;
