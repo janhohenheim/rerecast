@@ -96,7 +96,7 @@ impl DetailPolygonMesh {
             }
             *xmin = xmin.saturating_sub(1);
             *xmax = chf.width.min(*xmax + 1);
-            *zmin = xmin.saturating_sub(1);
+            *zmin = zmin.saturating_sub(1);
             *zmax = chf.height.min(*zmax + 1);
             if xmin >= xmax || zmin >= zmax {
                 continue;
@@ -1403,6 +1403,8 @@ impl Bounds {
 
     #[inline]
     fn height(&self) -> u16 {
+        println!("zmax: {}", self.zmax);
+        println!("zmin: {}", self.zmin);
         self.zmax - self.zmin
     }
 }
