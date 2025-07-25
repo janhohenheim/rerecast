@@ -3,7 +3,7 @@
 use std::env;
 
 use glam::{U8Vec3, UVec3, Vec2, Vec3A};
-use recast::{
+use rerecast::{
     AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailPolygonMesh,
     Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
 };

@@ -5,9 +5,7 @@ use avian3d::{
     prelude::*,
 };
 use bevy::prelude::*;
-use recast::TriMesh;
-
-use recast::AreaType;
+use rerecast::{AreaType, TriMesh};
 
 /// Convenience trait that allows a [`Collider`] to be converted into a [`TriMesh`].
 pub trait ToTriMesh {

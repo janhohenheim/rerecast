@@ -1,6 +1,6 @@
 [package]
-name = "recast"
-description = "TODO"
+name = "rerecast"
+description = "Rust port of recastnavigation"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }

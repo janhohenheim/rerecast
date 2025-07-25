@@ -7,7 +7,7 @@ mod collider_to_trimesh;
 pub mod editor_integration;
 pub use collider_to_trimesh::ToTriMesh;
 
-pub use recast;
+pub use rerecast;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {

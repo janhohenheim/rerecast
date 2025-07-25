@@ -372,13 +372,13 @@ dependencies = [
 
 [[package]]
 name = "avian_navmesh"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "avian3d",
  "avian_navmesh_editor_transmission",
  "bevy",
- "recast",
+ "rerecast",
  "serde",
  "serde_json",
  "slotmap",
@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "avian_navmesh_editor"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "avian3d",
@@ -402,7 +402,7 @@ dependencies = [
 
 [[package]]
 name = "avian_navmesh_editor_transmission"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2718,7 +2718,7 @@ dependencies = [
 
 [[package]]
 name = "gltf_scene"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "avian3d",
  "avian_navmesh",
@@ -4425,21 +4425,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "recast"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bevy",
- "bitflags 2.9.1",
- "glam",
- "serde",
- "serde_json",
- "slotmap",
- "thiserror 2.0.12",
- "tracing",
-]
-
-[[package]]
 name = "rectangle-pack"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4512,6 +4497,21 @@ name = "renderdoc-sys"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
+
+[[package]]
+name = "rerecast"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "bitflags 2.9.1",
+ "glam",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "thiserror 2.0.12",
+ "tracing",
+]
 
 [[package]]
 name = "ring"
@@ -4777,7 +4777,7 @@ dependencies = [
 
 [[package]]
 name = "shapes_scene"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "avian3d",
  "avian_navmesh",
@@ -5318,7 +5318,7 @@ dependencies = [
 
 [[package]]
 name = "trenchbroom_scene"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "avian3d",
  "avian_navmesh",

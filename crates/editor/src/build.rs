@@ -1,6 +1,6 @@
 use avian_navmesh::{
     ToTriMesh as _,
-    recast::{HeightfieldBuilder, HeightfieldBuilderError, TriMesh},
+    rerecast::{HeightfieldBuilder, HeightfieldBuilderError, TriMesh},
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
