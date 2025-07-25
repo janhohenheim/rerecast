@@ -4,6 +4,7 @@ use std::{
     usize::MAX,
 };
 
+use bevy::ui::update;
 use glam::{U16Vec3, U16Vec4, Vec2, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
@@ -473,8 +474,8 @@ fn delaunay_hull(
             edges,
             &mut nedges,
             max_edges,
-            Edge::Regular(hull[j]),
-            Edge::Regular(hull[i]),
+            hull[j],
+            hull[i],
             Edge::Hull,
             Edge::Undefined,
         );
@@ -526,10 +527,9 @@ fn complete_facet(
     const EPS: f32 = 1.0e-5;
 
     let edge = edges[e];
+    let mut e = Edge::Regular(e);
 
     // Cache s and t.
-    let mut s: usize;
-    let mut t: usize;
     let (s, t) = if edge[2].is_undefined() {
         (edge[0], edge[1])
     } else if edge[3].is_undefined() {
@@ -542,52 +542,139 @@ fn complete_facet(
     // Find best point on left of edge.
     let mut pt = npts;
     let mut c = Vec3A::default();
-    let mut r = None;
+    let mut r_squared = None;
 
     // Jan: original implies this:
-    let Edge::Regular(s) = s else {
-        panic!("Invalid edge s");
-    };
-    let Edge::Regular(t) = t else {
-        panic!("Invalid edge t");
-    };
+    let s = s.unwrap();
+    let t = t.unwrap();
 
     for u in 0..npts {
         if u == s || u == t {
             continue;
         }
         if cross2(pts[s].xz(), pts[t].xz(), pts[u].xz()) > EPS {
-            let Some(r) = r else {
+            let Some(r_squared) = r_squared.as_mut() else {
                 // The circle is not updated yet, do it now.
                 pt = u;
-                todo!("circum_circle");
+                r_squared = Some(circum_circle_squared(pts[s], pts[t], pts[u], &mut c));
                 continue;
             };
             let d_squared = c.xz().distance_squared(pts[u].xz());
             let tol = 1.0e-3;
-            let threshold_out = r * (1.0 + tol);
-            let threshold_in = r * (1.0 - tol);
-            if d_squared > threshold_out * threshold_out {
+            let threshold_out = *r_squared * (1.0 + tol) * (1.0 + tol);
+            let threshold_in = *r_squared * (1.0 - tol) * (1.0 - tol);
+            if d_squared > threshold_out {
                 // Outside current circumcircle, skip.
                 continue;
             } else if d_squared < threshold_in * threshold_in {
                 // Inside safe circumcircle, update circle.
                 pt = u;
-                todo!("circum_circle");
+                *r_squared = circum_circle_squared(pts[s], pts[t], pts[u], &mut c);
             } else {
                 // Inside epsilon circum circle, do extra tests to make sure the edge is valid.
                 // s-u and t-u cannot overlap with s-pt nor t-pt if they exists.
-                todo!()
+                if overlap_edges(pts, edges, *nedges, s, u)
+                    || overlap_edges(pts, edges, *nedges, t, u)
+                {
+                    continue;
+                }
+                // Edge is valid.
+                pt = u;
+                *r_squared = circum_circle_squared(pts[s], pts[t], pts[u], &mut c);
             }
         }
     }
+
+    // Add new triangle or update edge info if s-t is on hull.
+    if pt < npts {
+        // Update face information of edge being completed.
+        update_left_face(&mut edges[e.unwrap()], s, t, *nfaces);
+
+        // Add new edge or update face info of old edge.
+        e = find_edge(edges, *nedges, pt, s);
+        if e.is_undefined() {
+            add_edge(edges, nedges, max_edges, pt, s, *nfaces, Edge::Undefined);
+        } else {
+            update_left_face(&mut edges[e.unwrap()], pt, s, *nfaces);
+        }
+
+        // Add new edge or update face info of old edge.
+        e = find_edge(edges, *nedges, t, pt);
+        if e.is_undefined() {
+            add_edge(edges, nedges, max_edges, t, pt, *nfaces, Edge::Undefined);
+        } else {
+            update_left_face(&mut edges[e.unwrap()], t, pt, *nfaces);
+        }
+        *nfaces += 1;
+    } else {
+        update_left_face(&mut edges[e.unwrap()], s, t, Edge::Hull);
+    }
 }
 
-#[inline]
-fn dist_squared2(p1: Vec2, p2: Vec2) -> f32 {
-    let dx = p1.x - p2.x;
-    let dy = p1.y - p2.y;
-    dx * dx + dy * dy
+fn update_left_face(e: &mut Edges, s: impl Into<Edge>, t: impl Into<Edge>, f: impl Into<Edge>) {
+    let s = s.into();
+    let t = t.into();
+    let f = f.into();
+    if e[0] == s && e[1] == t && e[2].is_undefined() {
+        e[2] = f;
+    } else if e[1] == s && e[0] == t && e[3].is_undefined() {
+        e[3] = f;
+    }
+}
+
+fn overlap_edges(pts: &[Vec3A], edges: &[Edges], nedges: usize, s1: usize, t1: usize) -> bool {
+    for edges in edges[..nedges].iter() {
+        let s0 = edges[0];
+        let t0 = edges[1];
+        // Jan: original implies this
+        let s0 = s0.unwrap();
+        let t0 = t0.unwrap();
+        // Same or connected edges do not overlap.
+        if s0 == s1 || s0 == t1 || t0 == s1 || t0 == t1 {
+            continue;
+        }
+        if overlap_seg_seg2(pts[s0], pts[t0], pts[s1], pts[t1]) {
+            return true;
+        }
+    }
+    false
+}
+
+fn overlap_seg_seg2(a: Vec3A, b: Vec3A, c: Vec3A, d: Vec3A) -> bool {
+    let a1 = cross2(a.xz(), b.xz(), c.xz());
+    let a2 = cross2(a.xz(), b.xz(), d.xz());
+    if a1 * a2 < 0.0 {
+        let a3 = cross2(c.xz(), d.xz(), a.xz());
+        let a4 = a3 + a2 - a1;
+        if a3 * a4 < 0.0 {
+            return true;
+        }
+    }
+    false
+}
+
+fn circum_circle_squared(p1: Vec3A, p2: Vec3A, p3: Vec3A, c: &mut Vec3A) -> f32 {
+    const EPS: f32 = 1e-6;
+    // Calculate the circle relative to p1, to avoid some precision issues.
+    // Jan: omitted v1 because it is always Vec3A::ZERO
+    let v2 = (p2 - p1).xz();
+    let v3 = (p3 - p1).xz();
+
+    let cp = cross2(Vec2::ZERO, v2, v3);
+    if cp.abs() > EPS {
+        let v2_sq = v2.length_squared();
+        let v3_sq = v3.length_squared();
+        c.x = (v2_sq * (v3.y) + v3_sq * (-v2.y)) / (2.0 * cp);
+        c.y = 0.0;
+        c.z = (v2_sq * (-v3.x) + v3_sq * (v2.x)) / (2.0 * cp);
+
+        let r = c.xz().length_squared();
+        *c += p1;
+        r
+    } else {
+        *c = p1;
+        0.0
+    }
 }
 
 #[inline]
@@ -598,14 +685,18 @@ fn cross2(p1: Vec2, p2: Vec2, p3: Vec2) -> f32 {
 }
 
 fn add_edge(
-    edges: &mut Vec<Edges>,
+    edges: &mut [Edges],
     nedges: &mut usize,
     max_edges: usize,
-    s: Edge,
-    t: Edge,
-    l: Edge,
-    r: Edge,
+    s: impl Into<Edge>,
+    t: impl Into<Edge>,
+    l: impl Into<Edge>,
+    r: impl Into<Edge>,
 ) -> Edge {
+    let s = s.into();
+    let t = t.into();
+    let l = l.into();
+    let r = r.into();
     if *nedges >= max_edges {
         tracing::error!("Too many edges ({nedges}/{max_edges})");
         return Edge::Undefined;
@@ -626,7 +717,9 @@ fn add_edge(
     }
 }
 
-fn find_edge(edges: &[Edges], nedges: usize, s: Edge, t: Edge) -> Edge {
+fn find_edge(edges: &[Edges], nedges: usize, s: impl Into<Edge>, t: impl Into<Edge>) -> Edge {
+    let s = s.into();
+    let t = t.into();
     for (i, e) in edges.iter().enumerate().take(nedges) {
         if (e[0] == s && e[1] == t) || (e[0] == t && e[1] == s) {
             return Edge::Regular(i);
@@ -659,15 +752,24 @@ enum Edge {
     Hull,
 }
 
+impl From<usize> for Edge {
+    fn from(value: usize) -> Self {
+        Edge::Regular(value)
+    }
+}
+
 impl Edge {
     #[inline]
-    fn is_undefined(self) -> bool {
-        matches!(self, Edge::Undefined)
+    fn unwrap(self) -> usize {
+        match self {
+            Edge::Regular(i) => i,
+            _ => panic!("unwrap called on non-regular edge"),
+        }
     }
 
     #[inline]
-    fn is_hull(self) -> bool {
-        matches!(self, Edge::Hull)
+    fn is_undefined(self) -> bool {
+        matches!(self, Edge::Undefined)
     }
 }
 
