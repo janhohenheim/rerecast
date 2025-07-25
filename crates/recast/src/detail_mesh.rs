@@ -547,8 +547,9 @@ fn delaunay_hull(
                 t[2]
             );
             tris.swap_remove(i);
-            i -= 1;
+            continue;
         }
+        i += 1;
     }
     orig_tris.resize(tris.len(), Default::default());
     for ((p, d), edge) in orig_tris.iter_mut().zip(tris.iter()) {
