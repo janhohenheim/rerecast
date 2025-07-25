@@ -505,6 +505,7 @@ fn delaunay_hull(
     }
 
     // Create tris
+    tris.resize(nfaces, Default::default());
     let orig_tris = tris;
     let mut tris: Vec<Edges> = vec![Edges::UNDEFINED; nfaces];
 
