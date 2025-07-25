@@ -13,13 +13,13 @@ impl CompactHeightfield {
             for x in 0..self.width {
                 let cell = self.cell_at(x, z);
                 let max_span_index = cell.index() as usize + cell.count() as usize;
-                #[expect(
-                    clippy::needless_range_loop,
-                    reason = "lol the alternative suggestion is really unreadable"
-                )]
-                for span_index in cell.index() as usize..max_span_index {
+                for (span_index, dist) in distance_to_boundary
+                    [cell.index() as usize..max_span_index]
+                    .iter_mut()
+                    .enumerate()
+                {
                     if !self.areas[span_index].is_walkable() {
-                        distance_to_boundary[span_index] = 0;
+                        *dist = 0;
                         continue;
                     }
                     let span = &self.spans[span_index];
@@ -43,7 +43,7 @@ impl CompactHeightfield {
 
                     // At least one missing neighbour, so this is a boundary cell.
                     if neighbor_count != 4 {
-                        distance_to_boundary[span_index] = 0;
+                        *dist = 0;
                     }
                 }
             }
@@ -165,12 +165,8 @@ impl CompactHeightfield {
 
         // Jan: This just wraps on overflow. Is that intentional???
         let min_boundary_distance = (erosion_radius * 2) as u8;
-        #[expect(
-            clippy::needless_range_loop,
-            reason = "lol the alternative suggestion is really unreadable"
-        )]
-        for span_index in 0..self.spans.len() {
-            if distance_to_boundary[span_index] < min_boundary_distance {
+        for (span_index, dist) in distance_to_boundary[..self.spans.len()].iter().enumerate() {
+            if *dist < min_boundary_distance {
                 self.areas[span_index] = AreaType::NOT_WALKABLE;
             }
         }
