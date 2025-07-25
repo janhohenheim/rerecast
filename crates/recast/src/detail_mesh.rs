@@ -556,7 +556,8 @@ fn delaunay_hull(
         p.x = edge[0].unwrap() as u16;
         p.y = edge[1].unwrap() as u16;
         p.z = edge[2].unwrap() as u16;
-        *d = edge[3].unwrap();
+        // Will be overwritten by set_tri_flags
+        *d = edge[3].unwrap_or_zero();
     }
 }
 
@@ -812,6 +813,14 @@ impl Edge {
         match self {
             Edge::Regular(i) => i,
             _ => panic!("unwrap called on non-regular edge"),
+        }
+    }
+
+    #[inline]
+    fn unwrap_or_zero(self) -> usize {
+        match self {
+            Edge::Regular(i) => i,
+            _ => 0,
         }
     }
 
@@ -1144,7 +1153,7 @@ impl HeightPatch {
                 let z = self.zmin + hz + bs;
                 for hx in 0..self.width {
                     let x = self.xmin + hx + bs;
-                    let c = &chf.cells[(x + z * chf.width) as usize];
+                    let c = &chf.cells[x as usize + z as usize * chf.width as usize];
                     for i in c.index_range() {
                         let s = &chf.spans[i];
                         if s.region == region {

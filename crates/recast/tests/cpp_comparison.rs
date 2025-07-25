@@ -548,8 +548,8 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         .zip(detail_mesh.triangles.iter())
         .enumerate()
     {
-        let cpp_tri = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
-        assert_eq!(cpp_tri, *tri, "{i} detail mesh triangle");
+        let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
+        assert_eq!(cpp_tri_without_data, *tri, "{i} detail mesh triangle");
         assert_eq!(cpp_tri[3] as usize, *data, "{i} detail mesh triangle data");
     }
 
