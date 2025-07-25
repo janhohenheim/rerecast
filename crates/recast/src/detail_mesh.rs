@@ -189,7 +189,6 @@ impl DetailPolygonMesh {
             for (vert, dmesh_vertices) in verts.iter().zip(&mut dmesh.vertices).take(nverts) {
                 *dmesh_vertices = *vert;
             }
-            dmesh.vertices.truncate(nverts);
 
             // Store triangles, allocate more memory if necessary.
             if dmesh.triangles.len() + tris.len() > tcap {
