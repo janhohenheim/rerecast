@@ -187,9 +187,8 @@ pub(crate) fn distance_squared_between_point_and_line_vec2(pt: Vec2, (p, q): (Ve
         t /= d;
     }
     t = t.clamp(0.0, 1.0);
-    let dx = p.x + t * pq.x - pt.x;
-    let dy = p.y + t * pq.y - pt.y;
-    dx * dx + dy * dy
+    let dt = p + t * pq - pt;
+    dt.length_squared()
 }
 
 pub(crate) fn distance_squared_between_point_and_line_vec3(
@@ -204,10 +203,8 @@ pub(crate) fn distance_squared_between_point_and_line_vec3(
         t /= d;
     }
     t = t.clamp(0.0, 1.0);
-    let dx = p.x + t * pq.x - pt.x;
-    let dy = p.y + t * pq.y - pt.y;
-    let dz = p.z + t * pq.z - pt.z;
-    dx * dx + dy * dy + dz * dz
+    let dt = p + t * pq - pt;
+    dt.length_squared()
 }
 
 #[cfg(test)]
