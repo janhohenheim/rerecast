@@ -186,8 +186,8 @@ impl DetailPolygonMesh {
                 }
                 dmesh.vertices.reserve(vcap - dmesh.vertices.capacity());
             }
-            for (vert, dmesh_vertices) in verts.iter().zip(&mut dmesh.vertices).take(nverts) {
-                *dmesh_vertices = *vert;
+            for vert in &verts[..nverts] {
+                dmesh.vertices.push(*vert);
             }
 
             // Store triangles, allocate more memory if necessary.

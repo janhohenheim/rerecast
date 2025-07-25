@@ -516,7 +516,11 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
 fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) {
     let cpp_detail_mesh = load_json::<CppDetailPolyMesh>(reference_name);
 
-    assert_eq!(cpp_detail_mesh.meshes.len(), detail_mesh.meshes.len());
+    assert_eq!(
+        cpp_detail_mesh.meshes.len(),
+        detail_mesh.meshes.len(),
+        "detail mesh meshes len"
+    );
     for (i, (cpp_mesh, mesh)) in cpp_detail_mesh
         .meshes
         .iter()
@@ -541,7 +545,11 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         );
     }
 
-    assert_eq!(cpp_detail_mesh.tris.len(), detail_mesh.triangles.len());
+    assert_eq!(
+        cpp_detail_mesh.tris.len(),
+        detail_mesh.triangles.len(),
+        "detail mesh triangles len"
+    );
     for (i, (cpp_tri, (tri, data))) in cpp_detail_mesh
         .tris
         .iter()
@@ -553,7 +561,11 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         assert_eq!(cpp_tri[3] as usize, *data, "{i} detail mesh triangle data");
     }
 
-    assert_eq!(cpp_detail_mesh.verts.len(), detail_mesh.vertices.len());
+    assert_eq!(
+        cpp_detail_mesh.verts.len(),
+        detail_mesh.vertices.len(),
+        "detail mesh vertices len"
+    );
     for (i, (cpp_vert, vert)) in cpp_detail_mesh
         .verts
         .iter()
