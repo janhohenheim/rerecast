@@ -313,7 +313,7 @@ fn build_poly_detail(
                 }
             }
 
-            hull[nhull + 1] = j;
+            hull[nhull] = j;
             nhull += 1;
             // Add new vertices.
             if swapped {
