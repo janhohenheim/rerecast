@@ -163,9 +163,9 @@ impl CompactHeightfield {
         }
 
         // Write the result out
-
-        for (i, span) in self.spans.iter_mut().enumerate() {
-            span.region = src_reg[i];
+        #[expect(clippy::needless_range_loop)]
+        for i in 0..self.spans.len() {
+            self.spans[i].region = src_reg[i];
         }
 
         Ok(())
@@ -193,7 +193,7 @@ impl CompactHeightfield {
             for x in 0..w {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-
+                #[expect(clippy::needless_range_loop)]
                 for i in cell.index() as usize..max_index {
                     let r = src_reg[i];
                     if r == RegionId::NONE || r >= RegionId::from(nreg) {
@@ -203,12 +203,11 @@ impl CompactHeightfield {
                     reg.span_count += 1;
 
                     // Update floors
-                    for (j, &floor_id) in
-                        src_reg[cell.index() as usize..max_index].iter().enumerate()
-                    {
+                    for j in cell.index() as usize..max_index {
                         if i == j {
                             continue;
                         }
+                        let floor_id = src_reg[j];
                         if floor_id == RegionId::NONE || floor_id >= RegionId::from(nreg) {
                             continue;
                         }
@@ -352,8 +351,9 @@ impl CompactHeightfield {
                         regions[i].span_count = 0;
                         regions[i].connections.clear();
                         // Fixup regions pointing to current region.
-
-                        for reg in regions[..nreg as usize].iter_mut() {
+                        #[expect(clippy::needless_range_loop)]
+                        for j in 0..nreg as usize {
+                            let reg = &mut regions[j];
                             if reg.id == RegionId::NONE
                                 || reg.id.intersects(RegionId::BORDER_REGION)
                             {
@@ -379,8 +379,9 @@ impl CompactHeightfield {
         }
 
         // Compress region IDs
-
-        for reg in regions[..nreg as usize].iter_mut() {
+        #[expect(clippy::needless_range_loop)]
+        for i in 0..nreg as usize {
+            let reg = &mut regions[i];
             // Skip nil regions and external regions.
             reg.remap = !(reg.id == RegionId::NONE || reg.id.intersects(RegionId::BORDER_REGION));
         }
@@ -393,11 +394,11 @@ impl CompactHeightfield {
             let old_id = regions[i].id;
             reg_id_gen += 1;
             let new_id = RegionId::from(reg_id_gen);
-
-            for reg in &mut regions[i..nreg as usize] {
-                if reg.id == old_id {
-                    reg.id = new_id;
-                    reg.remap = false;
+            #[expect(clippy::needless_range_loop)]
+            for j in i..nreg as usize {
+                if regions[j].id == old_id {
+                    regions[j].id = new_id;
+                    regions[j].remap = false;
                 }
             }
         }
@@ -411,10 +412,10 @@ impl CompactHeightfield {
         }
 
         // Return regions that we found to be overlapping.
-
-        for reg in &regions[..nreg as usize] {
-            if reg.overlap {
-                overlaps.push(reg.id);
+        #[expect(clippy::needless_range_loop)]
+        for i in 0..nreg as usize {
+            if regions[i].overlap {
+                overlaps.push(regions[i].id);
             }
         }
 
@@ -633,12 +634,9 @@ impl CompactHeightfield {
             for x in min_x..max_x {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-
-                for (i, area) in self.areas[cell.index() as usize..max_index]
-                    .iter()
-                    .enumerate()
-                {
-                    if area.is_walkable() {
+                #[expect(clippy::needless_range_loop)]
+                for i in cell.index() as usize..max_index {
+                    if self.areas[i].is_walkable() {
                         src_reg[i] = region;
                     }
                 }
@@ -664,12 +662,9 @@ impl CompactHeightfield {
             for x in 0..self.width {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-
-                for (i, area) in self.areas[cell.index() as usize..max_index]
-                    .iter()
-                    .enumerate()
-                {
-                    if !area.is_walkable() || src_reg[i] != RegionId::NONE {
+                #[expect(clippy::needless_range_loop)]
+                for i in cell.index() as usize..max_index {
+                    if !self.areas[i].is_walkable() || src_reg[i] != RegionId::NONE {
                         continue;
                     }
                     let level = self.dist[i] >> log_levels_per_stack;
@@ -704,14 +699,11 @@ impl CompactHeightfield {
                 for x in 0..self.width {
                     let cell = self.cell_at(x, z);
                     let max_index = cell.index() as usize + cell.count() as usize;
-
-                    for (i, area) in self.areas[cell.index() as usize..max_index]
-                        .iter()
-                        .enumerate()
-                    {
+                    #[expect(clippy::needless_range_loop)]
+                    for i in cell.index() as usize..max_index {
                         if self.dist[i] >= level
                             && src_reg[i] == RegionId::NONE
-                            && area.is_walkable()
+                            && self.areas[i].is_walkable()
                         {
                             stack.push(LevelStackEntry {
                                 x,

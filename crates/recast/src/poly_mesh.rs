@@ -162,9 +162,9 @@ impl ContourSet {
             }
 
             // Triangulate contour
-
-            for (j, index) in indices[..cont.vertices.len()].iter_mut().enumerate() {
-                *index = j;
+            #[expect(clippy::needless_range_loop)]
+            for j in 0..cont.vertices.len() {
+                indices[j] = j;
             }
 
             // Jan: we treat an invalid triangulation as an error instead of a warning.
