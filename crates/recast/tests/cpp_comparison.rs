@@ -572,7 +572,11 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         .zip(detail_mesh.vertices.iter())
         .enumerate()
     {
-        assert_eq!(cpp_vert, &vert.to_array(), "{i} detail mesh vertex");
+        // the jitter functions are sliiiiiightly different in Rust and C++
+        assert!(
+            vert.distance(Vec3A::from_array(*cpp_vert)) < 1.0e-5,
+            "{cpp_vert:?} != {vert} failed: {i} detail mesh vertex"
+        );
     }
 }
 
