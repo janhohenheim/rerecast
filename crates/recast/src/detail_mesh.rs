@@ -173,13 +173,11 @@ impl DetailPolygonMesh {
             }
 
             // Store detail submesh
-            {
-                let submesh = &mut dmesh.meshes[i];
-                submesh.first_vertex_index = dmesh.vertices.len();
-                submesh.vertex_count = nverts;
-                submesh.first_triangle_index = dmesh.triangles.len();
-                submesh.triangle_count = tris.len();
-            }
+            let submesh = &mut dmesh.meshes[i];
+            submesh.first_vertex_index = dmesh.vertices.len();
+            submesh.vertex_count = nverts;
+            submesh.first_triangle_index = dmesh.triangles.len();
+            submesh.triangle_count = tris.len();
 
             // Store vertices, allocate more memory if necessary.
             if dmesh.vertices.len() + nverts > vcap {
@@ -612,7 +610,7 @@ fn complete_facet(
             if d_squared > threshold_out {
                 // Outside current circumcircle, skip.
                 continue;
-            } else if d_squared < threshold_in * threshold_in {
+            } else if d_squared < threshold_in {
                 // Inside safe circumcircle, update circle.
                 pt = u;
                 *r_squared = circum_circle_squared(pts[s], pts[t], pts[u], &mut c);
