@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
-use bevy_rerecast_transmission::{SerializedMesh, serialize};
+use bevy_rerecast_transmission::{serialize, SerializedMesh};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -21,7 +21,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_rasterizer(rasterize_meshes);
 }
 
-/// Extension used to implement [`AppExt::add_rasterizer`] on [`App`]
+/// Extension used to implement [`RerecastAppExt::add_rasterizer`] on [`App`]
 pub trait RerecastAppExt {
     /// Add a system for rasterizing navmesh data. This will be called when the editor is fetching navmesh data.
     fn add_rasterizer<M>(
