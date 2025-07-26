@@ -34,7 +34,6 @@ fn setup(
         RigidBody::Static,
         Collider::from(shape),
         MeshMaterial3d(material_gray.clone()),
-        ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));
     let shape = Cuboid::new(3.0, 2.0, 1.0);
     commands.spawn((
@@ -44,7 +43,6 @@ fn setup(
         Collider::from(shape),
         Transform::from_xyz(0.0, 1.0, 0.0),
         MeshMaterial3d(material_gray.clone()),
-        ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));
     let shape = Cuboid::new(1.0, 2.0, 3.0);
     commands.spawn((
@@ -54,7 +52,6 @@ fn setup(
         Collider::from(shape),
         Transform::from_xyz(-4.0, 1.0, 5.0),
         MeshMaterial3d(material_gray.clone()),
-        ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));
 
     let shape = Cuboid::new(5.0, 1.0, 5.0);
@@ -65,7 +62,6 @@ fn setup(
         Collider::from(shape),
         Transform::from_xyz(10.0, 3.0, 3.0),
         MeshMaterial3d(material_red.clone()),
-        ColliderConstructorHierarchy::new(ColliderConstructor::TrimeshFromMesh),
     ));
     commands.spawn((
         DirectionalLight {
