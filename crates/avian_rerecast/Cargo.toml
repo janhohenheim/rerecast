@@ -24,3 +24,6 @@ bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_trans
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

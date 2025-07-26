@@ -4,7 +4,10 @@
 use bevy::render::mesh::{Mesh, PrimitiveTopology};
 use glam::{UVec3, Vec3A};
 
-use crate::{math::Aabb3d, span::AreaType};
+use crate::{
+    math::{Aabb3d, TriangleIndices as _},
+    span::AreaType,
+};
 
 /// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -40,6 +43,25 @@ impl TriMesh {
     /// Returns `None` if the trimesh is empty.
     pub fn compute_aabb(&self) -> Option<Aabb3d> {
         Aabb3d::from_verts(&self.vertices)
+    }
+
+    /// Marks the triangles as walkable or not based on the threshold angle.
+    ///
+    /// The triangles are marked as walkable if the normal angle is greater than the threshold angle.
+    ///
+    /// # Arguments
+    ///
+    /// * `threshold_rad` - The threshold angle in radians.
+    ///
+    pub fn mark_walkable_triangles(&mut self, threshold_rad: f32) {
+        let threshold_cos = threshold_rad.cos();
+        for (i, indices) in self.indices.iter().enumerate() {
+            let normal = indices.normal(&self.vertices);
+
+            if normal.y > threshold_cos {
+                self.area_types[i] = AreaType::DEFAULT_WALKABLE;
+            }
+        }
     }
 }
 

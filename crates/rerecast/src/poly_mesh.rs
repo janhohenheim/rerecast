@@ -891,7 +891,7 @@ fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
 
 /// A value which indicates an invalid index within a mesh.
 /// This does not necessarily indicate an error.
-pub(crate) const RC_MESH_NULL_IDX: u16 = 0xffff;
+pub const RC_MESH_NULL_IDX: u16 = 0xffff;
 
 #[derive(Debug)]
 struct PolyMergeValue {

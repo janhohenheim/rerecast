@@ -34,5 +34,5 @@ bevy = ["dep:bevy"]
 [lints]
 workspace = true
 
-[package.metadata]
+[package.metadata.docs.rs]
 all-features = true
