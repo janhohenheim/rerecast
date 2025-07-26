@@ -15,7 +15,6 @@ pub(crate) struct BuildNavmesh;
 
 #[derive(Resource)]
 pub(crate) struct BuildNavmeshConfig {
-    pub(crate) subdivisions: u32,
     pub(crate) cell_size: f32,
     pub(crate) cell_height: f32,
     pub(crate) walkable_height: u16,
@@ -26,7 +25,6 @@ pub(crate) struct BuildNavmeshConfig {
 impl Default for BuildNavmeshConfig {
     fn default() -> Self {
         Self {
-            subdivisions: 12,
             cell_size: 1.0,
             cell_height: 1.0,
             walkable_height: 1,
@@ -48,7 +46,7 @@ fn build_navmesh(
             warn!("Failed to get mesh for navmesh build. Skipping.");
             continue;
         };
-        let Some(collider) = TriMesh::from_mesh(&mesh) else {
+        let Some(collider) = TriMesh::from_mesh(mesh) else {
             warn!("Failed to convert collider to trimesh. Skipping.");
             continue;
         };
