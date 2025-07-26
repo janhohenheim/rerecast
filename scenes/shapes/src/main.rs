@@ -1,5 +1,6 @@
 //! A test scene that only uses primitive shapes.
 
+use avian_rerecast::AvianRerecastPlugin;
 use avian3d::prelude::*;
 use bevy::{
     color::palettes::tailwind,
@@ -11,9 +12,9 @@ use bevy_rerecast::RerecastPlugin;
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
+        .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins(RerecastPlugin::default())
+        .add_plugins((RerecastPlugin::default(), AvianRerecastPlugin::default()))
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()

@@ -1,7 +1,7 @@
 #![doc = include_str!("../../../readme.md")]
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{ecs::entity_disabling::Disabled, prelude::*};
 
 mod collider_to_trimesh;
 use bevy_rerecast::{NavmeshAffector, editor_integration::RerecastAppExt as _};
@@ -19,15 +19,58 @@ pub mod prelude {
     pub use crate::AvianRerecastPlugin;
 }
 
-/// The plugin of the crate.
+/// The plugin of the crate. Will make all entities with both [`Collider`] and [`NavmeshAffector<Collider>`] available for navmesh generation.
 #[non_exhaustive]
-#[derive(Default)]
-pub struct AvianRerecastPlugin;
+#[derive(Debug, Default)]
+pub struct AvianRerecastPlugin {
+    /// Settings for when [`NavmeshAffector<Collider>`] is inserted automatically.
+    affector_settings: AvianNavmeshAffectorSettings,
+}
+
+/// The settings for when [`NavmeshAffector<Collider>`] is inserted automatically.
+#[derive(Debug, Default)]
+pub enum AvianNavmeshAffectorSettings {
+    /// All entities with [`Collider`] belonging to a static [`RigidBody`] will have [`NavmeshAffector<Collider>`] inserted automatically.
+    #[default]
+    Static,
+    /// [`NavmeshAffector<Collider>`] will not be inserted automatically. The user must manually insert it.
+    Manual,
+}
 
 impl Plugin for AvianRerecastPlugin {
     fn build(&self, app: &mut App) {
         app.add_rasterizer(rasterize_colliders);
+        match self.affector_settings {
+            AvianNavmeshAffectorSettings::Static => {
+                app.add_observer(insert_navmesh_affector_to_static_bodies);
+            }
+            AvianNavmeshAffectorSettings::Manual => {}
+        }
     }
+}
+
+fn insert_navmesh_affector_to_static_bodies(
+    trigger: Trigger<OnAdd, ColliderOf>,
+    mut commands: Commands,
+    collider_of: Query<&ColliderOf, Or<(With<Disabled>, Without<Disabled>)>>,
+    bodies: Query<&RigidBody>,
+) {
+    let entity = trigger.target();
+    let Ok(collider_of) = collider_of.get(entity) else {
+        return;
+    };
+
+    let Ok(body) = bodies.get(collider_of.body) else {
+        return;
+    };
+
+    if !body.is_static() {
+        return;
+    }
+
+    commands
+        .entity(entity)
+        .insert(NavmeshAffector::<Collider>::default());
 }
 
 fn rasterize_colliders(

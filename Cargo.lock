@@ -2734,6 +2734,7 @@ name = "gltf_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
+ "avian_rerecast",
  "bevy",
  "bevy_rerecast",
  "serde",
@@ -4793,6 +4794,7 @@ name = "shapes_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
+ "avian_rerecast",
  "bevy",
  "bevy_rerecast",
  "serde",
@@ -5334,6 +5336,7 @@ name = "trenchbroom_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
+ "avian_rerecast",
  "bevy",
  "bevy_rerecast",
  "bevy_trenchbroom",

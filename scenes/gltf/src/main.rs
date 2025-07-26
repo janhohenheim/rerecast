@@ -1,5 +1,6 @@
 //! A test scene that loads a GLTF model as a level.
 
+use avian_rerecast::AvianRerecastPlugin;
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
@@ -10,9 +11,9 @@ use bevy_rerecast::RerecastPlugin;
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
+        .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins(RerecastPlugin::default())
+        .add_plugins((RerecastPlugin::default(), AvianRerecastPlugin::default()))
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()
@@ -28,6 +29,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         DirectionalLight::default(),
         Transform::default().looking_to(Vec3::new(0.5, -1.0, 0.3), Vec3::Y),
+    ));
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-10.0, 40.0, 40.0).looking_at(Vec3::Y * 20.0, Vec3::Y),
     ));
 }
 

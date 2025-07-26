@@ -16,6 +16,7 @@ bevy = { workspace = true, default-features = true, features = ["bevy_remote"] }
 serde = { workspace = true }
 avian3d = { workspace = true }
 bevy_rerecast = { path = "../../crates/bevy_rerecast" }
+avian_rerecast = { path = "../../crates/avian_rerecast" }
 bevy_trenchbroom = { workspace = true }
 
 [lints]
