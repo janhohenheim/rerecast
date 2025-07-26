@@ -17,7 +17,7 @@ pub(super) fn plugin(app: &mut App) {
         setup_methods.run_if(resource_exists::<RemoteMethods>),
     );
     app.init_resource::<RasterizerSystems>();
-    app.register_type::<EditorHidden>();
+    app.register_type::<EditorVisible>();
     app.add_rasterizer(rasterize_meshes);
 }
 
@@ -66,17 +66,12 @@ fn rasterize_meshes(
         .collect::<Vec<_>>()
 }
 
-/// Component used to mark [`Mesh`]es so that they're not sent to the editor.
-///
-/// By default, all meshes that have [`InheritedVisibility::VISIBLE`] are sent to the editor so that they can be previewed.
-/// Use this component to exclude meshes from this process.
-///
-/// Has no effect on entities with [`NavmeshAffector`](crate::NavmeshAffector).
+/// Component used to mark [`Mesh3d`]es so that they're not sent to the editor for previewing the level.
 #[derive(Debug, Component, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
 #[reflect(Component)]
-pub struct EditorHidden;
+pub struct EditorVisible;
 
 fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
     methods.insert(
@@ -111,8 +106,8 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         }
     }
 
-    let mut visuals = world.query_filtered::<(&GlobalTransform, &Mesh3d),
-    (Without<EditorHidden>, Without<NavmeshAffector<Mesh3d>>)>();
+    let mut visuals = world
+        .query_filtered::<(&GlobalTransform, &Mesh3d, &InheritedVisibility), With<EditorVisible>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
             code: bevy::remote::error_codes::INTERNAL_ERROR,
@@ -122,7 +117,10 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
     };
     let visuals = visuals
         .iter(world)
-        .filter_map(|(transform, mesh)| {
+        .filter_map(|(transform, mesh, visibility)| {
+            if !matches!(*visibility, InheritedVisibility::VISIBLE) {
+                return None;
+            }
             let transform = *transform;
             let mesh = meshes.get(mesh)?;
             let proxy_mesh = SerializedMesh::from_mesh(mesh);
