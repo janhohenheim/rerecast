@@ -42,9 +42,9 @@ fn fetch_navmesh_input(
     for entity in mesh_handles.iter() {
         commands.entity(entity).despawn();
     }
+
     for (transform, mesh) in response.affector_meshes {
-        let mesh: Mesh = mesh.into_mesh();
-        let mesh = meshes.add(mesh);
+        let mesh = meshes.add(mesh.into_mesh());
 
         commands.spawn((
             transform.compute_transform(),
@@ -56,9 +56,9 @@ fn fetch_navmesh_input(
             NavmeshAffector::<Mesh3d>::default(),
         ));
     }
+
     for (transform, mesh) in response.visual_meshes {
-        let mesh: Mesh = mesh.into_mesh();
-        let mesh = meshes.add(mesh);
+        let mesh = meshes.add(mesh.into_mesh());
 
         commands.spawn((
             transform.compute_transform(),
