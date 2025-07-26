@@ -1,5 +1,5 @@
 [package]
-name = "avian_navmesh"
+name = "bevy_rerecast"
 description = "TODO"
 version = { workspace = true }
 authors = { workspace = true }
@@ -15,21 +15,20 @@ bevy = { workspace = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-avian3d = { workspace = true }
 rerecast = { version = "0.0.1", path = "../rerecast", features = ["bevy"] }
 
 # Editor integration
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-avian_navmesh_editor_transmission = { version = "0.0.1", path = "../transmission", optional = true }
+bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_transmission", optional = true }
 
 [features]
 default = ["editor_integration"]
-serialize = ["dep:serde", "avian3d/serialize", "rerecast/serialize"]
+serialize = ["dep:serde", "rerecast/serialize"]
 editor_integration = [
     "serialize",
     "dep:serde_json",
-    "dep:avian_navmesh_editor_transmission",
+    "dep:bevy_rerecast_transmission",
     "bevy/bevy_remote",
 ]
 

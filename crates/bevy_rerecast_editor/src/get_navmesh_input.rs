@@ -1,8 +1,10 @@
 use anyhow::Context as _;
-use avian_navmesh::editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse};
-use avian_navmesh_editor_transmission::deserialize;
-use avian3d::prelude::*;
 use bevy::{prelude::*, remote::BrpRequest};
+use bevy_rerecast::{
+    NavmeshAffector,
+    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+};
+use bevy_rerecast_transmission::deserialize;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);
@@ -40,7 +42,21 @@ fn fetch_navmesh_input(
     for entity in mesh_handles.iter() {
         commands.entity(entity).despawn();
     }
-    for (transform, mesh) in response.meshes {
+    for (transform, mesh) in response.affector_meshes {
+        let mesh: Mesh = mesh.into_mesh();
+        let mesh = meshes.add(mesh);
+
+        commands.spawn((
+            transform.compute_transform(),
+            Mesh3d(mesh),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                ..default()
+            })),
+            NavmeshAffector,
+        ));
+    }
+    for (transform, mesh) in response.visual_meshes {
         let mesh: Mesh = mesh.into_mesh();
         let mesh = meshes.add(mesh);
 
@@ -52,12 +68,6 @@ fn fetch_navmesh_input(
                 ..default()
             })),
         ));
-    }
-    for rigid_bodies in response.rigid_bodies {
-        let mut entity_commands = commands.spawn((RigidBody::Static, Transform::default()));
-        for (transform, collider) in rigid_bodies.into_iter() {
-            entity_commands.with_child((transform.compute_transform(), collider));
-        }
     }
 
     Ok(())

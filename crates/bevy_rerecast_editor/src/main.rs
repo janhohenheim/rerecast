@@ -1,11 +1,11 @@
 //! The editor for the NavMesh plugin.
 
-use avian_navmesh::prelude::*;
 use avian3d::prelude::*;
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     prelude::*,
 };
+use bevy_rerecast::prelude::*;
 
 mod build;
 mod camera;
@@ -21,7 +21,7 @@ fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
-        .add_plugins(NavMeshPlugin::default())
+        .add_plugins(RerecastPlugin::default())
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,

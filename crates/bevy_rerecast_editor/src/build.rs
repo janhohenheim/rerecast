@@ -1,9 +1,8 @@
-use avian_navmesh::{
-    ToTriMesh as _,
+use bevy::prelude::*;
+use bevy_rerecast::{
+    NavmeshAffector,
     rerecast::{HeightfieldBuilder, HeightfieldBuilderError, TriMesh},
 };
-use avian3d::prelude::*;
-use bevy::prelude::*;
 use thiserror::Error;
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,12 +38,17 @@ impl Default for BuildNavmeshConfig {
 
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
-    colliders: Query<&Collider>,
+    affectors: Query<&Mesh3d, With<NavmeshAffector>>,
+    meshes: Res<Assets<Mesh>>,
     config: Res<BuildNavmeshConfig>,
 ) -> Result {
     let mut trimesh = TriMesh::default();
-    for collider in colliders.iter() {
-        let Some(collider) = collider.to_trimesh(config.subdivisions) else {
+    for mesh in affectors.iter() {
+        let Some(mesh) = meshes.get(mesh) else {
+            warn!("Failed to get mesh for navmesh build. Skipping.");
+            continue;
+        };
+        let Some(collider) = TriMesh::from_mesh(&mesh) else {
             warn!("Failed to convert collider to trimesh. Skipping.");
             continue;
         };

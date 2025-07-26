@@ -1,11 +1,11 @@
 //! A test scene that loads a TrenchBroom map.
 
-use avian_navmesh::NavMeshPlugin;
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
+use bevy_rerecast::RerecastPlugin;
 use bevy_trenchbroom::prelude::*;
 
 fn main() -> AppExit {
@@ -13,11 +13,11 @@ fn main() -> AppExit {
         .add_plugins(DefaultPlugins)
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins(TrenchBroomPlugins(
-            TrenchBroomConfig::new("avian_navmesh").assets_path("scenes/trenchbroom/assets"),
+            TrenchBroomConfig::new("bevy_rerecast").assets_path("scenes/trenchbroom/assets"),
         ))
         .register_type::<Worldspawn>()
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins(NavMeshPlugin::default())
+        .add_plugins(RerecastPlugin::default())
         .add_systems(Startup, (write_trenchbroom_config, setup).chain())
         .add_observer(configure_camera)
         .run()

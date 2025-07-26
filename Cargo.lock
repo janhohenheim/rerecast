@@ -371,47 +371,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "avian_navmesh"
+name = "avian_rerecast"
 version = "0.0.1"
 dependencies = [
  "anyhow",
  "avian3d",
- "avian_navmesh_editor_transmission",
  "bevy",
+ "bevy_rerecast",
+ "bevy_rerecast_transmission",
  "rerecast",
  "serde",
  "serde_json",
  "slotmap",
  "thiserror 2.0.12",
-]
-
-[[package]]
-name = "avian_navmesh_editor"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "avian3d",
- "avian_navmesh",
- "avian_navmesh_editor_transmission",
- "bevy",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
- "ureq",
-]
-
-[[package]]
-name = "avian_navmesh_editor_transmission"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "bevy",
- "bincode",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
- "wgpu-types",
 ]
 
 [[package]]
@@ -1236,6 +1208,49 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "bevy_rerecast"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "bevy_rerecast_transmission",
+ "rerecast",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "bevy_rerecast_editor"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "avian3d",
+ "bevy",
+ "bevy_rerecast",
+ "bevy_rerecast_transmission",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "ureq",
+]
+
+[[package]]
+name = "bevy_rerecast_transmission"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "bevy",
+ "bincode",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "wgpu-types",
 ]
 
 [[package]]
@@ -2721,8 +2736,8 @@ name = "gltf_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
- "avian_navmesh",
  "bevy",
+ "bevy_rerecast",
  "serde",
 ]
 
@@ -4780,8 +4795,8 @@ name = "shapes_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
- "avian_navmesh",
  "bevy",
+ "bevy_rerecast",
  "serde",
 ]
 
@@ -5321,8 +5336,8 @@ name = "trenchbroom_scene"
 version = "0.0.1"
 dependencies = [
  "avian3d",
- "avian_navmesh",
  "bevy",
+ "bevy_rerecast",
  "bevy_trenchbroom",
  "serde",
 ]

@@ -1,18 +1,18 @@
 //! A test scene that loads a GLTF model as a level.
 
-use avian_navmesh::NavMeshPlugin;
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
+use bevy_rerecast::RerecastPlugin;
 
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins(NavMeshPlugin::default())
+        .add_plugins(RerecastPlugin::default())
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()

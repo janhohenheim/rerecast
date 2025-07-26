@@ -1,5 +1,5 @@
 [package]
-name = "avian_navmesh_editor_transmission"
+name = "bevy_rerecast_transmission"
 description = "TODO"
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,11 +1,11 @@
 //! The optional editor integration for authoring the navmesh.
 
-use avian_navmesh_editor_transmission::{SerializedMesh, serialize};
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
+use bevy_rerecast_transmission::{SerializedMesh, serialize};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -71,17 +71,4 @@ fn get_navmesh_input(
         message: format!("Failed to serialize navmesh input: {e}"),
         data: None,
     })
-}
-
-/// The BRP method that the navmesh editor uses to get the navmesh input.
-pub const BRP_GET_NAVMESH_INPUT_METHOD: &str = "avian_navmesh/get_navmesh_input";
-
-/// The response to [`BRP_GET_NAVMESH_INPUT_METHOD`] requests.
-#[derive(Serialize, Deserialize)]
-pub struct NavmeshInputResponse {
-    /// All meshes of the current scene.
-    pub meshes: Vec<(GlobalTransform, SerializedMesh)>,
-    /// The static rigid bodies of the current scene.
-    /// The inner vector is all the colliders of a given rigid body.
-    pub rigid_bodies: Vec<Vec<(GlobalTransform, Collider)>>,
 }

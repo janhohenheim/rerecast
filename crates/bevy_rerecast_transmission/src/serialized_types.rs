@@ -12,7 +12,8 @@ use bevy::{
 use serde::{Deserialize, Serialize};
 
 /// Proxy of [`Mesh`](bevy::render::mesh::Mesh).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Serialize, Deserialize)]
 pub struct SerializedMesh {
     /// Topology of the primitives.
     pub primitive_topology: SerializedPrimitiveTopology,
@@ -174,7 +175,8 @@ impl TryFrom<MeshVertexAttribute> for SerializedMeshVertexAttribute {
 /// Proxy of [`VertexAttributeValues`](bevy::render::mesh::VertexAttributeValues).
 /// Contains an array where each entry describes a property of a single vertex.
 /// Matches the [`VertexFormats`](VertexFormat).
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Reflect)]
+#[reflect(Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub enum SerializedVertexAttributeValues {
     Float32(Vec<f32>),
@@ -281,7 +283,8 @@ impl From<SerializedVertexAttributeValues> for VertexAttributeValues {
 /// An array of indices into the [`VertexAttributeValues`] for a mesh.
 ///
 /// It describes the order in which the vertex attributes should be joined into faces.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub enum SerializedIndices {
     U16(Vec<u16>),

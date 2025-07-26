@@ -1,5 +1,4 @@
 # Avian Navmesh
 
-[![crates.io](https://img.shields.io/crates/v/avian_navmesh)](https://crates.io/crates/avian_navmesh)
-[![docs.rs](https://docs.rs/avian_navmesh/badge.svg)](https://docs.rs/avian_navmesh)
-
+[![crates.io](https://img.shields.io/crates/v/bevy_rerecast)](https://crates.io/crates/bevy_rerecast)
+[![docs.rs](https://docs.rs/bevy_rerecast/badge.svg)](https://docs.rs/bevy_rerecast)
