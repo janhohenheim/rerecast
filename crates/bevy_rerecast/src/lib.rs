@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use bevy::prelude::*;
+use bevy::{app::PluginGroupBuilder, prelude::*};
 
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
@@ -11,7 +11,21 @@ pub use rerecast;
 
 /// Everything you need to get started with the NavMesh plugin.
 pub mod prelude {
-    pub use crate::{NavmeshAffector, RerecastPlugin};
+    pub use crate::{NavmeshAffector, NavmeshPlugins};
+}
+
+/// The plugin group of the crate.
+#[derive(Debug, Default)]
+#[non_exhaustive]
+pub struct NavmeshPlugins;
+
+impl PluginGroup for NavmeshPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        let builder = PluginGroupBuilder::start::<Self>().add(RerecastPlugin::default());
+        #[cfg(feature = "editor_integration")]
+        let builder = builder.add(editor_integration::RerecastEditorIntegrationPlugin::default());
+        builder
+    }
 }
 
 /// The plugin of the crate.
@@ -21,8 +35,6 @@ pub struct RerecastPlugin;
 
 impl Plugin for RerecastPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(feature = "editor_integration")]
-        app.add_plugins(editor_integration::plugin);
         app.register_type::<NavmeshAffector<Mesh3d>>();
     }
 }

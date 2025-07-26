@@ -33,3 +33,6 @@ bevy = ["dep:bevy"]
 
 [lints]
 workspace = true
+
+[package.metadata]
+all-features = true

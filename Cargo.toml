@@ -13,6 +13,9 @@ keywords = ["bevy", "recast", "navmesh", "navigation", "ai"]
 categories = ["game-development"]
 readme = "../../readme.md"
 
+[workspace.package.metadata.docs.rs]
+all-features = true
+
 [workspace.dependencies]
 avian3d = "0.3.1"
 serde = "1.0.219"

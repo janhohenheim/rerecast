@@ -34,3 +34,6 @@ editor_integration = [
 
 [lints]
 workspace = true
+
+[package.metadata]
+all-features = true

@@ -21,7 +21,7 @@ fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
-        .add_plugins(RerecastPlugin::default())
+        .add_plugins(NavmeshPlugins::default())
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,

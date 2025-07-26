@@ -54,6 +54,7 @@ fn fetch_navmesh_input(
                 ..default()
             })),
             NavmeshAffector::<Mesh3d>::default(),
+            Visibility::Hidden,
         ));
     }
 

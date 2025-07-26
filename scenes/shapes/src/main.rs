@@ -1,20 +1,20 @@
 //! A test scene that only uses primitive shapes.
 
-use avian_rerecast::AvianRerecastPlugin;
+use avian_rerecast::prelude::*;
 use avian3d::prelude::*;
 use bevy::{
     color::palettes::tailwind,
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
-use bevy_rerecast::RerecastPlugin;
+use bevy_rerecast::prelude::*;
 
 fn main() -> AppExit {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((RerecastPlugin::default(), AvianRerecastPlugin::default()))
+        .add_plugins((NavmeshPlugins::default(), AvianRerecastPlugin::default()))
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()
