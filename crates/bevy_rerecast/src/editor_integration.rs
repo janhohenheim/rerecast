@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
     remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
 };
-use bevy_rerecast_transmission::{serialize, SerializedMesh};
+use bevy_rerecast_transmission::{SerializedMesh, serialize};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
