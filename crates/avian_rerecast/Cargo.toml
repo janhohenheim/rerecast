@@ -19,20 +19,8 @@ anyhow = { workspace = true }
 rerecast = { version = "0.0.1", path = "../rerecast", features = ["bevy"] }
 
 # Editor integration
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
 bevy_rerecast = { version = "0.0.1", path = "../bevy_rerecast" }
-bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_transmission", optional = true }
-
-[features]
-default = ["editor_integration"]
-serialize = ["dep:serde", "avian3d/serialize", "rerecast/serialize"]
-editor_integration = [
-    "serialize",
-    "dep:serde_json",
-    "dep:bevy_rerecast_transmission",
-    "bevy/bevy_remote",
-]
+bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_transmission" }
 
 [lints]
 workspace = true

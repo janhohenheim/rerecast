@@ -18,7 +18,7 @@ pub(super) fn plugin(app: &mut App) {
     );
     app.init_resource::<RasterizerSystems>();
     app.register_type::<EditorHidden>();
-    app.add_rasterizer(mesh_rasterizer);
+    app.add_rasterizer(rasterize_meshes);
 }
 
 /// Extension used to implement [`AppExt::add_rasterizer`] on [`App`]
@@ -26,14 +26,14 @@ pub trait RerecastAppExt {
     /// Add a system for rasterizing navmesh data. This will be called when the editor is fetching navmesh data.
     fn add_rasterizer<M>(
         &mut self,
-        system: impl IntoSystem<(), NavmeshInputResponse, M> + 'static,
+        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
     ) -> &mut App;
 }
 
 impl RerecastAppExt for App {
     fn add_rasterizer<M>(
         &mut self,
-        system: impl IntoSystem<(), NavmeshInputResponse, M> + 'static,
+        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
     ) -> &mut App {
         let id = self.register_system(system);
         let systems = self.world_mut().get_resource_mut::<RasterizerSystems>();
@@ -49,14 +49,13 @@ impl RerecastAppExt for App {
 }
 
 #[derive(Resource, Default, Clone, Deref, DerefMut)]
-struct RasterizerSystems(Vec<SystemId<(), NavmeshInputResponse>>);
+struct RasterizerSystems(Vec<SystemId<(), Vec<(GlobalTransform, SerializedMesh)>>>);
 
-fn mesh_rasterizer(
+fn rasterize_meshes(
     meshes: Res<Assets<Mesh>>,
-    affectors: Query<(&GlobalTransform, &Mesh3d), With<NavmeshAffector>>,
-    visuals: Query<(&GlobalTransform, &Mesh3d), (Without<EditorHidden>, Without<NavmeshAffector>)>,
-) -> NavmeshInputResponse {
-    let affectors = affectors
+    affectors: Query<(&GlobalTransform, &Mesh3d), With<NavmeshAffector<Mesh3d>>>,
+) -> Vec<(GlobalTransform, SerializedMesh)> {
+    affectors
         .iter()
         .filter_map(|(transform, mesh)| {
             let transform = *transform;
@@ -64,20 +63,7 @@ fn mesh_rasterizer(
             let proxy_mesh = SerializedMesh::from_mesh(mesh);
             Some((transform, proxy_mesh))
         })
-        .collect::<Vec<_>>();
-    let visuals = visuals
-        .iter()
-        .filter_map(|(transform, mesh)| {
-            let transform = *transform;
-            let mesh = meshes.get(mesh)?;
-            let proxy_mesh = SerializedMesh::from_mesh(mesh);
-            Some((transform, proxy_mesh))
-        })
-        .collect::<Vec<_>>();
-    NavmeshInputResponse {
-        affector_meshes: affectors,
-        visual_meshes: visuals,
-    }
+        .collect::<Vec<_>>()
 }
 
 /// Component used to mark [`Mesh`]es so that they're not sent to the editor.
@@ -87,6 +73,8 @@ fn mesh_rasterizer(
 ///
 /// Has no effect on entities with [`NavmeshAffector`](crate::NavmeshAffector).
 #[derive(Debug, Component, Reflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
 #[reflect(Component)]
 pub struct EditorHidden;
 
@@ -115,13 +103,36 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
             data: None,
         });
     };
-    let mut response = NavmeshInputResponse::default();
+    let mut affectors = Vec::new();
     for id in system_ids.iter() {
         let rasterizer_result = world.run_system(*id);
         if let Ok(rasterizer_response) = rasterizer_result {
-            response.extend(rasterizer_response);
+            affectors.extend(rasterizer_response);
         }
     }
+
+    let mut visuals = world.query_filtered::<(&GlobalTransform, &Mesh3d),
+    (Without<EditorHidden>, Without<NavmeshAffector<Mesh3d>>)>();
+    let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
+        return Err(BrpError {
+            code: bevy::remote::error_codes::INTERNAL_ERROR,
+            message: "Failed to get meshes".to_string(),
+            data: None,
+        });
+    };
+    let visuals = visuals
+        .iter(world)
+        .filter_map(|(transform, mesh)| {
+            let transform = *transform;
+            let mesh = meshes.get(mesh)?;
+            let proxy_mesh = SerializedMesh::from_mesh(mesh);
+            Some((transform, proxy_mesh))
+        })
+        .collect::<Vec<_>>();
+    let response = NavmeshInputResponse {
+        affector_meshes: affectors,
+        visual_meshes: visuals,
+    };
 
     serialize(&response).map_err(|e| BrpError {
         code: bevy::remote::error_codes::INTERNAL_ERROR,
@@ -141,12 +152,4 @@ pub struct NavmeshInputResponse {
     pub affector_meshes: Vec<(GlobalTransform, SerializedMesh)>,
     /// Additional meshes that don't affect the navmesh, but are sent to the editor for visualization.
     pub visual_meshes: Vec<(GlobalTransform, SerializedMesh)>,
-}
-
-impl NavmeshInputResponse {
-    /// Merge another response into this one.
-    pub fn extend(&mut self, other: Self) {
-        self.affector_meshes.extend(other.affector_meshes);
-        self.visual_meshes.extend(other.visual_meshes);
-    }
 }

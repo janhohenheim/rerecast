@@ -48,19 +48,7 @@ fn get_navmesh_input(
             Some((transform, proxy_mesh))
         })
         .collect::<Vec<_>>();
-    let rigid_bodies = rigid_bodies
-        .iter()
-        .filter(|&(rigid_body, _colliders)| rigid_body.is_static())
-        .map(|(_rigid_body, colliders)| {
-            colliders
-                .iter()
-                .filter_map(|entity| {
-                    let (transform, collider) = q_colliders.get(entity).ok()?;
-                    Some((*transform, collider.clone()))
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
+
     let response = NavmeshInputResponse {
         meshes,
         rigid_bodies,

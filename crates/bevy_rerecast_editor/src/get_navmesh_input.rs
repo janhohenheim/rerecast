@@ -53,7 +53,7 @@ fn fetch_navmesh_input(
                 base_color: Color::WHITE,
                 ..default()
             })),
-            NavmeshAffector,
+            NavmeshAffector::<Mesh3d>::default(),
         ));
     }
     for (transform, mesh) in response.visual_meshes {

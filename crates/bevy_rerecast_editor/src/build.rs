@@ -38,7 +38,7 @@ impl Default for BuildNavmeshConfig {
 
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
-    affectors: Query<&Mesh3d, With<NavmeshAffector>>,
+    affectors: Query<&Mesh3d, With<NavmeshAffector<Mesh3d>>>,
     meshes: Res<Assets<Mesh>>,
     config: Res<BuildNavmeshConfig>,
 ) -> Result {

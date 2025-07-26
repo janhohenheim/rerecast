@@ -1,5 +1,7 @@
 #![doc = include_str!("../../../readme.md")]
 
+use std::marker::PhantomData;
+
 use bevy::prelude::*;
 
 #[cfg(feature = "editor_integration")]
@@ -21,12 +23,23 @@ impl Plugin for RerecastPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(feature = "editor_integration")]
         app.add_plugins(editor_integration::plugin);
-        app.register_type::<NavmeshAffector>();
+        app.register_type::<NavmeshAffector<Mesh3d>>();
     }
 }
 
 /// Component used to mark [`Mesh`]es as navmesh affectors.
 /// Only meshes with this component will be considered when building the navmesh.
 #[derive(Debug, Component, Reflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
 #[reflect(Component)]
-pub struct NavmeshAffector;
+pub struct NavmeshAffector<T> {
+    #[reflect(ignore)]
+    _pd: PhantomData<T>,
+}
+
+impl<T> Default for NavmeshAffector<T> {
+    fn default() -> Self {
+        Self { _pd: PhantomData }
+    }
+}

@@ -380,8 +380,6 @@ dependencies = [
  "bevy_rerecast",
  "bevy_rerecast_transmission",
  "rerecast",
- "serde",
- "serde_json",
  "slotmap",
  "thiserror 2.0.12",
 ]
