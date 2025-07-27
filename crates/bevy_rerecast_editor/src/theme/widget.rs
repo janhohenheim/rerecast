@@ -44,8 +44,43 @@ pub fn label(text: impl Into<String>) -> impl Bundle {
     (
         Name::new("Label"),
         Text(text.into()),
-        TextFont::from_font_size(24.0),
+        TextFont::from_font_size(18.0),
         TextColor(LABEL_TEXT),
+    )
+}
+
+pub fn hspace(px: f32) -> impl Bundle {
+    (
+        Name::new("Space"),
+        Node {
+            width: Px(px),
+            ..default()
+        },
+    )
+}
+
+/// A small square button with text and an action defined as an [`Observer`].
+pub(crate) fn button_small<E, B, M, I>(text: impl Into<String>, action: I) -> impl Bundle
+where
+    E: Event,
+    B: Bundle,
+    I: IntoObserverSystem<E, B, M>,
+{
+    button_base(
+        text,
+        action,
+        (
+            Node {
+                width: Px(25.0),
+                height: Px(25.0),
+                border: UiRect::all(Px(2.0)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            BorderRadius::all(Px(5.0)),
+        ),
+        (TextFont::from_font_size(24.0),),
     )
 }
 
@@ -117,5 +152,21 @@ where
                 .insert(button_bundle)
                 .observe(action);
         })),
+    )
+}
+
+pub fn checkbox<E, B, M, I>(text: impl Into<String>, action: I) -> impl Bundle
+where
+    E: Event,
+    B: Bundle,
+    I: IntoObserverSystem<E, B, M>,
+{
+    (
+        Name::new("Checkbox"),
+        Node {
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        children![label(text), hspace(10.0), button_small("", action)],
     )
 }

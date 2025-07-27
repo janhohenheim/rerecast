@@ -1,5 +1,5 @@
 use anyhow::Context as _;
-use bevy::{prelude::*, remote::BrpRequest};
+use bevy::{color::palettes::tailwind, prelude::*, remote::BrpRequest};
 use bevy_rerecast::{
     NavmeshAffector,
     editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
@@ -50,7 +50,9 @@ fn fetch_navmesh_input(
             transform.compute_transform(),
             Mesh3d(mesh),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::WHITE,
+                base_color: Color::from(tailwind::RED_700).with_alpha(0.5),
+                unlit: true,
+                alpha_mode: AlphaMode::Blend,
                 ..default()
             })),
             NavmeshAffector::<Mesh3d>::default(),
