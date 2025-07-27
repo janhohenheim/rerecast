@@ -90,7 +90,7 @@ impl TriMeshExt for TriMesh {
         trimesh.vertices = float.iter().map(|v| Vec3A::from(*v)).collect();
 
         let indices: Vec<_> = mesh.indices()?.iter().collect();
-        if indices.len() % 3 != 0 {
+        if !indices.len().is_multiple_of(3) {
             return None;
         }
         trimesh.indices = indices
