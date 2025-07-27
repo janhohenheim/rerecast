@@ -1,4 +1,9 @@
-use bevy::{color::palettes::tailwind, prelude::*};
+use bevy::{
+    asset::RenderAssetUsages,
+    color::palettes::tailwind,
+    prelude::*,
+    render::mesh::{Indices, PrimitiveTopology},
+};
 use bevy_rerecast::{
     prelude::*,
     rerecast::{DetailPolygonMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
@@ -106,23 +111,28 @@ fn draw_poly_mesh(
 }
 
 fn draw_detail_mesh(
-    gizmo: Single<&Gizmo, With<DetailMeshGizmo>>,
+    gizmo: Single<(Entity, &Gizmo), With<DetailMeshGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
     navmesh: Res<Navmesh>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
 ) {
+    let (entity, gizmo) = gizmo.into_inner();
     let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
         error!("Failed to get gizmo asset");
         return;
     };
 
     gizmo.clear();
+
     let mesh = &navmesh.detail_mesh;
     for submesh in &mesh.meshes {
         let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
         let submesh_tris =
             &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
-        for (tris, _data) in submesh_tris {
-            let mut verts = tris
+        for (tri, _data) in submesh_tris {
+            let mut verts = tri
                 .to_array()
                 .iter()
                 .map(|i| Vec3::from(submesh_verts[*i as usize]))
@@ -133,6 +143,37 @@ fn draw_detail_mesh(
             gizmo.linestrip(verts, tailwind::GREEN_700);
         }
     }
+
+    let mut visual_mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
+    let mut visual_verts = Vec::new();
+    let mut visual_indices = Vec::new();
+
+    for submesh in &mesh.meshes {
+        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
+
+        let submesh_tris =
+            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
+        for (tri, _data) in submesh_tris.iter() {
+            for i in tri.to_array() {
+                visual_indices.push(i as u32 + visual_verts.len() as u32);
+            }
+        }
+        visual_verts.extend(submesh_verts.iter().map(|v| Vec3::from(*v)));
+    }
+    visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
+    visual_mesh.insert_indices(Indices::U32(visual_indices));
+
+    let standard_material = StandardMaterial {
+        base_color: tailwind::EMERALD_300.with_alpha(0.5).into(),
+        unlit: true,
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    };
+
+    commands.entity(entity).insert((
+        Mesh3d(meshes.add(visual_mesh)),
+        MeshMaterial3d(materials.add(standard_material)),
+    ));
 }
 
 fn draw_navmesh_affector(
