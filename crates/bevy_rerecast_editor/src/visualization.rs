@@ -33,8 +33,8 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
-                perspective: true,
-                width: 10.0,
+                perspective: false,
+                width: 2.0,
                 ..default()
             },
             depth_bias: -0.001,

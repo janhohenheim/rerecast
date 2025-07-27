@@ -138,9 +138,6 @@ fn build_navmesh(
         config.detail_sample_max_error,
     )?;
 
-    let json = serde_json::to_string(&poly_mesh)?;
-    std::fs::write("navmesh.json", json)?;
-
     commands.insert_resource(Navmesh {
         poly_mesh,
         detail_mesh,
