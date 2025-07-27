@@ -1,28 +1,6 @@
-use crate::{
-    heightfield::Heightfield, math::TriangleIndices as _, rasterize::RasterizationError,
-    span::AreaType, trimesh::TriMesh,
-};
+use crate::{heightfield::Heightfield, rasterize::RasterizationError, trimesh::TriMesh};
 
-impl TriMesh {
-    /// Marks the triangles as walkable or not based on the threshold angle.
-    ///
-    /// The triangles are marked as walkable if the normal angle is greater than the threshold angle.
-    ///
-    /// # Arguments
-    ///
-    /// * `threshold_rad` - The threshold angle in radians.
-    ///
-    pub fn mark_walkable_triangles(&mut self, threshold_rad: f32) {
-        let threshold_cos = threshold_rad.cos();
-        for (i, indices) in self.indices.iter().enumerate() {
-            let normal = indices.normal(&self.vertices);
-
-            if normal.y > threshold_cos {
-                self.area_types[i] = AreaType::DEFAULT_WALKABLE;
-            }
-        }
-    }
-}
+impl TriMesh {}
 
 impl Heightfield {
     /// Rasterizes the triangles of a [`TriMesh`] into a [`Heightfield`].

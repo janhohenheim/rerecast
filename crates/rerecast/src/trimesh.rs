@@ -1,10 +1,11 @@
 //! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
 
-#[cfg(feature = "bevy")]
-use bevy::render::mesh::{Mesh, PrimitiveTopology};
 use glam::{UVec3, Vec3A};
 
-use crate::{math::Aabb3d, span::AreaType};
+use crate::{
+    math::{Aabb3d, TriangleIndices as _},
+    span::AreaType,
+};
 
 /// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -41,30 +42,23 @@ impl TriMesh {
     pub fn compute_aabb(&self) -> Option<Aabb3d> {
         Aabb3d::from_verts(&self.vertices)
     }
-}
 
-impl TriMesh {
-    #[cfg(feature = "bevy")]
-    /// Converts a [`Mesh`] into a [`TriMesh`].
-    pub fn from_mesh(mesh: &Mesh) -> Option<TriMesh> {
-        if mesh.primitive_topology() != PrimitiveTopology::TriangleList {
-            return None;
+    /// Marks the triangles as walkable or not based on the threshold angle.
+    ///
+    /// The triangles are marked as walkable if the normal angle is greater than the threshold angle.
+    ///
+    /// # Arguments
+    ///
+    /// * `threshold_rad` - The threshold angle in radians.
+    ///
+    pub fn mark_walkable_triangles(&mut self, threshold_rad: f32) {
+        let threshold_cos = threshold_rad.cos();
+        for (i, indices) in self.indices.iter().enumerate() {
+            let normal = indices.normal(&self.vertices);
+
+            if normal.y > threshold_cos {
+                self.area_types[i] = AreaType::DEFAULT_WALKABLE;
+            }
         }
-
-        let mut trimesh = TriMesh::default();
-        let position = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
-        let float = position.as_float3()?;
-        trimesh.vertices = float.iter().map(|v| Vec3A::from(*v)).collect();
-
-        let indices: Vec<_> = mesh.indices()?.iter().collect();
-        trimesh.indices = indices
-            .windows(3)
-            .map(|indices| {
-                UVec3::from_array([indices[0] as u32, indices[1] as u32, indices[2] as u32])
-            })
-            .collect();
-        // TODO: accept vertex attributes for this?
-        trimesh.area_types = vec![AreaType::NOT_WALKABLE; trimesh.indices.len()];
-        Some(trimesh)
     }
 }

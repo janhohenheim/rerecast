@@ -20,7 +20,6 @@ bevy_rerecast = { version = "0.0.1", path = "../bevy_rerecast", features = [
     "serialize",
 ] }
 bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_transmission" }
-avian3d = { workspace = true, features = ["serialize"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
@@ -30,5 +29,5 @@ thiserror = { workspace = true }
 [lints]
 workspace = true
 
-[package.metadata]
+[package.metadata.docs.rs]
 all-features = true

@@ -1,6 +1,5 @@
 //! The editor for the NavMesh plugin.
 
-use avian3d::prelude::*;
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},
     prelude::*,
@@ -12,6 +11,7 @@ mod camera;
 mod get_navmesh_input;
 mod theme;
 mod ui;
+mod visualization;
 
 fn main() -> AppExit {
     GLOBAL_ERROR_HANDLER
@@ -20,7 +20,6 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins((PhysicsPlugins::default(), PhysicsDebugPlugin::default()))
         .add_plugins(NavmeshPlugins::default())
         .add_plugins((
             camera::plugin,
@@ -28,6 +27,7 @@ fn main() -> AppExit {
             ui::plugin,
             theme::plugin,
             build::plugin,
+            visualization::plugin,
         ))
         .run()
 }

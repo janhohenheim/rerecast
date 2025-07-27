@@ -1,11 +1,14 @@
 //! The optional editor integration for authoring the navmesh.
 
-use bevy::{
-    ecs::system::SystemId,
-    prelude::*,
-    remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods},
-};
+use bevy_app::prelude::*;
+use bevy_asset::prelude::*;
+use bevy_derive::{Deref, DerefMut};
+use bevy_ecs::{prelude::*, system::SystemId};
+use bevy_reflect::prelude::*;
+use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
+use bevy_render::prelude::*;
 use bevy_rerecast_transmission::{SerializedMesh, serialize};
+use bevy_transform::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -68,7 +71,7 @@ impl RerecastAppExt for App {
         let id = self.register_system(system);
         let systems = self.world_mut().get_resource_mut::<RasterizerSystems>();
         let Some(mut systems) = systems else {
-            error!(
+            tracing::error!(
                 "Failed to add rasterizer: internal resource not initialized. Did you forget to add the `RerecastPlugin`?"
             );
             return self;
@@ -113,7 +116,7 @@ fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
 fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpResult {
     if let Some(params) = params {
         return Err(BrpError {
-            code: bevy::remote::error_codes::INVALID_PARAMS,
+            code: bevy_remote::error_codes::INVALID_PARAMS,
             message: format!(
                 "BRP method `{BRP_GET_NAVMESH_INPUT_METHOD}` requires no parameters, but received {params}"
             ),
@@ -123,7 +126,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
 
     let Some(system_ids) = world.get_resource::<RasterizerSystems>().cloned() else {
         return Err(BrpError {
-            code: bevy::remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
             message: "Failed to get rasterizer systems".to_string(),
             data: None,
         });
@@ -140,7 +143,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         .query_filtered::<(&GlobalTransform, &Mesh3d, &InheritedVisibility), With<EditorVisible>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
-            code: bevy::remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
             message: "Failed to get meshes".to_string(),
             data: None,
         });
@@ -163,7 +166,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
     };
 
     serialize(&response).map_err(|e| BrpError {
-        code: bevy::remote::error_codes::INTERNAL_ERROR,
+        code: bevy_remote::error_codes::INTERNAL_ERROR,
         message: format!("Failed to serialize navmesh input: {e}"),
         data: None,
     })

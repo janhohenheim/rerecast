@@ -14,6 +14,8 @@ use serde_json::Value;
 fn validate_navmesh_against_cpp_implementation() {
     let geometry = load_json::<CppGeometry>("geometry");
     let mut trimesh = geometry.to_trimesh();
+    let cell_size = 0.3;
+    let cell_height = 0.2;
     let walkable_slope = 45.0_f32.to_radians();
     let walkable_height = 10;
     let walkable_climb = 4;
@@ -34,8 +36,8 @@ fn validate_navmesh_against_cpp_implementation() {
 
     let mut heightfield = HeightfieldBuilder {
         aabb,
-        cell_size: 0.3,
-        cell_height: 0.2,
+        cell_size,
+        cell_height,
     }
     .build()
     .unwrap();
