@@ -16,7 +16,7 @@ avian3d = { workspace = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-rerecast = { version = "0.0.1", path = "../rerecast", features = ["bevy"] }
+rerecast = { version = "0.0.1", path = "../rerecast" }
 
 # Editor integration
 bevy_rerecast = { version = "0.0.1", path = "../bevy_rerecast" }

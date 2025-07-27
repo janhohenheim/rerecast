@@ -1211,13 +1211,23 @@ name = "bevy_rerecast"
 version = "0.0.1"
 dependencies = [
  "anyhow",
- "bevy",
+ "bevy_app",
+ "bevy_asset",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_mesh",
+ "bevy_reflect",
+ "bevy_remote",
+ "bevy_render",
  "bevy_rerecast_transmission",
+ "bevy_transform",
+ "glam",
  "rerecast",
  "serde",
  "serde_json",
  "slotmap",
  "thiserror 2.0.12",
+ "tracing",
 ]
 
 [[package]]
@@ -4509,7 +4519,7 @@ name = "rerecast"
 version = "0.0.1"
 dependencies = [
  "anyhow",
- "bevy",
+ "bevy_reflect",
  "bitflags 2.9.1",
  "glam",
  "serde",

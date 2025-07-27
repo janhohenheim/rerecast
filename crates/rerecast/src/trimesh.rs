@@ -1,7 +1,5 @@
 //! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
 
-#[cfg(feature = "bevy")]
-use bevy::render::mesh::{Mesh, PrimitiveTopology};
 use glam::{UVec3, Vec3A};
 
 use crate::{
@@ -62,31 +60,5 @@ impl TriMesh {
                 self.area_types[i] = AreaType::DEFAULT_WALKABLE;
             }
         }
-    }
-}
-
-impl TriMesh {
-    #[cfg(feature = "bevy")]
-    /// Converts a [`Mesh`] into a [`TriMesh`].
-    pub fn from_mesh(mesh: &Mesh) -> Option<TriMesh> {
-        if mesh.primitive_topology() != PrimitiveTopology::TriangleList {
-            return None;
-        }
-
-        let mut trimesh = TriMesh::default();
-        let position = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
-        let float = position.as_float3()?;
-        trimesh.vertices = float.iter().map(|v| Vec3A::from(*v)).collect();
-
-        let indices: Vec<_> = mesh.indices()?.iter().collect();
-        trimesh.indices = indices
-            .windows(3)
-            .map(|indices| {
-                UVec3::from_array([indices[0] as u32, indices[1] as u32, indices[2] as u32])
-            })
-            .collect();
-        // TODO: accept vertex attributes for this?
-        trimesh.area_types = vec![AreaType::NOT_WALKABLE; trimesh.indices.len()];
-        Some(trimesh)
     }
 }

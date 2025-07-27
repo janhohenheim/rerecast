@@ -22,7 +22,15 @@ slotmap = "1.0.7"
 thiserror = "2.0.12"
 ureq = "3.0.12"
 bevy = { version = "0.16.0", default-features = false }
-bevy_math = "0.16.0"
+bevy_reflect = { version = "0.16.0", default-features = false }
+bevy_app = { version = "0.16.0", default-features = false }
+bevy_remote = { version = "0.16.0", default-features = false }
+bevy_mesh = { version = "0.16.0", default-features = false }
+bevy_ecs = { version = "0.16.0", default-features = false }
+bevy_render = { version = "0.16.0", default-features = false }
+bevy_transform = { version = "0.16.0", default-features = false }
+bevy_asset = { version = "0.16.0", default-features = false }
+bevy_derive = { version = "0.16.0", default-features = false }
 glam = "0.29.3"
 # In sync with Bevy
 wgpu-types = "24"

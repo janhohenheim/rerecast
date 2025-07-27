@@ -18,8 +18,7 @@ glam = { workspace = true }
 bitflags = { workspace = true }
 tracing = { workspace = true }
 
-# Bevy integration
-bevy = { workspace = true, optional = true }
+bevy_reflect = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 [dev-dependencies]
@@ -29,7 +28,7 @@ serde_json = { workspace = true }
 [features]
 default = []
 serialize = ["dep:serde", "glam/serde", "slotmap/serde"]
-bevy = ["dep:bevy"]
+bevy_reflect = ["dep:bevy_reflect"]
 
 [lints]
 workspace = true

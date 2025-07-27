@@ -11,26 +11,46 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_reflect = { workspace = true }
+bevy_app = { workspace = true }
 slotmap = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-rerecast = { version = "0.0.1", path = "../rerecast", features = ["bevy"] }
+glam = { workspace = true }
+rerecast = { version = "0.0.1", path = "../rerecast", features = [
+    "bevy_reflect",
+] }
+
+# from_mesh
+bevy_mesh = { workspace = true, optional = true }
+bevy_render = { workspace = true, optional = true }
 
 # Editor integration
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+bevy_remote = { workspace = true, optional = true }
+bevy_asset = { workspace = true, optional = true }
+bevy_derive = { workspace = true, optional = true }
+bevy_transform = { workspace = true, optional = true }
 bevy_rerecast_transmission = { version = "0.0.1", path = "../bevy_rerecast_transmission", optional = true }
+tracing = { workspace = true, optional = true }
 
 [features]
 default = ["editor_integration"]
-serialize = ["dep:serde", "rerecast/serialize"]
 editor_integration = [
     "serialize",
+    "from_mesh",
+    "dep:bevy_transform",
+    "dep:bevy_remote",
+    "dep:bevy_derive",
     "dep:serde_json",
+    "dep:tracing",
     "dep:bevy_rerecast_transmission",
-    "bevy/bevy_remote",
+    "dep:bevy_asset",
 ]
+serialize = ["dep:serde", "rerecast/serialize"]
+from_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
 
 [lints]
 workspace = true

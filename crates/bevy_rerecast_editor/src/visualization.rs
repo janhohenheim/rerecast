@@ -1,13 +1,17 @@
-use std::iter;
-
 use bevy::{color::palettes::tailwind, prelude::*};
-use bevy_rerecast::rerecast::{DetailPolygonMesh, PolygonMesh, RC_MESH_NULL_IDX};
+use bevy_rerecast::{
+    prelude::*,
+    rerecast::{DetailPolygonMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
+};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn_gizmo);
+    app.add_systems(Startup, spawn_gizmos);
     app.add_systems(
         Update,
-        draw_navmesh.run_if(resource_exists_and_changed::<Navmesh>),
+        (
+            draw_poly_mesh.run_if(resource_exists_and_changed::<Navmesh>),
+            draw_navmesh_affector.run_if(|| false),
+        ),
     );
 }
 
@@ -20,18 +24,38 @@ pub(crate) struct Navmesh {
 #[derive(Component)]
 struct NavmeshGizmo;
 
-fn spawn_gizmo(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
+#[derive(Component)]
+struct NavmeshAffectorGizmo;
+
+fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
     commands.spawn((
         NavmeshGizmo,
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
+            line_config: GizmoLineConfig {
+                perspective: true,
+                width: 10.0,
+                ..default()
+            },
             depth_bias: -0.001,
-            ..default()
+        },
+    ));
+
+    commands.spawn((
+        NavmeshAffectorGizmo,
+        Gizmo {
+            handle: gizmos.add(GizmoAsset::new()),
+            line_config: GizmoLineConfig {
+                perspective: true,
+                width: 10.0,
+                ..default()
+            },
+            depth_bias: -0.001,
         },
     ));
 }
 
-fn draw_navmesh(
+fn draw_poly_mesh(
     gizmo: Single<&Gizmo, With<NavmeshGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
     navmesh: Res<Navmesh>,
@@ -44,23 +68,52 @@ fn draw_navmesh(
     gizmo.clear();
     let mesh = &navmesh.poly_mesh;
     let nvp = mesh.vertices_per_polygon;
-    let origin = mesh.aabb.min;
-    let to_local = vec3a(mesh.cell_size, mesh.cell_height, mesh.cell_size);
+    let origin = Vec3::from(mesh.aabb.min);
+    let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
         let poly = &mesh.polygons[i * 2 * nvp..];
-        let a_range = &poly[..nvp];
-        let b_range = poly[1..nvp].iter().chain(iter::once(&poly[0]));
-        for (&a_index, &b_index) in a_range.iter().zip(b_range) {
-            if a_index == RC_MESH_NULL_IDX || b_index == RC_MESH_NULL_IDX {
-                continue;
-            }
+        let mut verts = poly[..nvp]
+            .iter()
+            .filter(|i| **i != RC_MESH_NULL_IDX)
+            .map(|i| {
+                let vert_local = mesh.vertices[*i as usize];
 
-            let a_vert_local = mesh.vertices[a_index as usize];
-            let b_vert_local = mesh.vertices[b_index as usize];
+                origin + vert_local.as_vec3() * to_local
+            })
+            .collect::<Vec<_>>();
+        // Connect back to first vertex to finish the polygon
+        verts.push(verts[0]);
 
-            let a = origin + a_vert_local.as_vec3a() * to_local;
-            let b = origin + b_vert_local.as_vec3a() * to_local;
-            gizmo.line(a.into(), b.into(), tailwind::SKY_700);
-        }
+        gizmo.linestrip(verts, tailwind::SKY_700);
+    }
+}
+
+fn draw_navmesh_affector(
+    gizmo: Single<&Gizmo, With<NavmeshAffectorGizmo>>,
+    mut gizmos: ResMut<Assets<GizmoAsset>>,
+    affector: Single<&Mesh3d, (With<NavmeshAffector<Mesh3d>>, Changed<Mesh3d>)>,
+    meshes: Res<Assets<Mesh>>,
+) {
+    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
+        error!("Failed to get gizmo asset");
+        return;
+    };
+    let Some(mesh) = meshes.get(&affector.0) else {
+        error!("Failed to get mesh asset");
+        return;
+    };
+
+    gizmo.clear();
+    let mesh = TriMesh::from_mesh(mesh).unwrap();
+    for indices in mesh.indices {
+        let mut verts = indices
+            .to_array()
+            .iter()
+            .map(|i| Vec3::from(mesh.vertices[*i as usize]))
+            .collect::<Vec<_>>();
+        // Connect back to first vertex to finish the polygon
+        verts.push(verts[0]);
+
+        gizmo.linestrip(verts, tailwind::ORANGE_700);
     }
 }
