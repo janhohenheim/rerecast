@@ -9,7 +9,10 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
         (
-            draw_poly_mesh.run_if(resource_exists_and_changed::<Navmesh>),
+            draw_poly_mesh
+                .run_if(resource_exists_and_changed::<Navmesh>)
+                .run_if(|| false),
+            draw_detail_mesh.run_if(resource_exists_and_changed::<Navmesh>),
             draw_navmesh_affector.run_if(|| false),
         ),
     );
@@ -22,14 +25,29 @@ pub(crate) struct Navmesh {
 }
 
 #[derive(Component)]
-struct NavmeshGizmo;
+struct PolyMeshGizmo;
+
+#[derive(Component)]
+struct DetailMeshGizmo;
 
 #[derive(Component)]
 struct NavmeshAffectorGizmo;
 
 fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
     commands.spawn((
-        NavmeshGizmo,
+        PolyMeshGizmo,
+        Gizmo {
+            handle: gizmos.add(GizmoAsset::new()),
+            line_config: GizmoLineConfig {
+                perspective: false,
+                width: 2.0,
+                ..default()
+            },
+            depth_bias: -0.002,
+        },
+    ));
+    commands.spawn((
+        DetailMeshGizmo,
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
@@ -40,7 +58,6 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
             depth_bias: -0.001,
         },
     ));
-
     commands.spawn((
         NavmeshAffectorGizmo,
         Gizmo {
@@ -56,7 +73,7 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
 }
 
 fn draw_poly_mesh(
-    gizmo: Single<&Gizmo, With<NavmeshGizmo>>,
+    gizmo: Single<&Gizmo, With<PolyMeshGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
     navmesh: Res<Navmesh>,
 ) {
@@ -85,6 +102,36 @@ fn draw_poly_mesh(
         verts.push(verts[0]);
 
         gizmo.linestrip(verts, tailwind::SKY_700);
+    }
+}
+
+fn draw_detail_mesh(
+    gizmo: Single<&Gizmo, With<DetailMeshGizmo>>,
+    mut gizmos: ResMut<Assets<GizmoAsset>>,
+    navmesh: Res<Navmesh>,
+) {
+    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
+        error!("Failed to get gizmo asset");
+        return;
+    };
+
+    gizmo.clear();
+    let mesh = &navmesh.detail_mesh;
+    for submesh in &mesh.meshes {
+        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
+        let submesh_tris =
+            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
+        for (tris, _data) in submesh_tris {
+            let mut verts = tris
+                .to_array()
+                .iter()
+                .map(|i| Vec3::from(submesh_verts[*i as usize]))
+                .collect::<Vec<_>>();
+            // Connect back to first vertex to finish the polygon
+            verts.push(verts[0]);
+
+            gizmo.linestrip(verts, tailwind::GREEN_700);
+        }
     }
 }
 
