@@ -22,7 +22,7 @@ by Unreal, Unity, Godot, and other game engines.
 - Editor
   - [x] Extract meshes from running game
   - [ ] Configure navmesh generation
-  - [ ] Visualize navmesh
+  - [x] Visualize navmesh
   - [ ] Send navmesh to running game
   - [ ] Save and load navmesh
 - API
