@@ -1,6 +1,14 @@
-use bevy::{color::palettes::tailwind, prelude::*, ui::Val::*};
+use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
 
-use crate::{build::BuildNavmesh, get_navmesh_input::GetNavmeshInput, theme::widget::button};
+use crate::{
+    build::BuildNavmesh,
+    get_navmesh_input::GetNavmeshInput,
+    theme::{
+        palette::BEVY_GRAY,
+        widget::{button, checkbox},
+    },
+    visualization::{AvailableGizmos, GizmosToDraw},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_ui);
@@ -44,9 +52,20 @@ fn spawn_ui(mut commands: Commands) {
                 Node {
                     width: Px(300.0),
                     justify_self: JustifySelf::End,
+                    flex_direction: FlexDirection::Column,
+                    padding: UiRect::all(Px(30.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.3, 0.1, 0.1)),
+                children![
+                    checkbox("Show Visual", toggle_gizmo(AvailableGizmos::Visual)),
+                    checkbox("Show Affector", toggle_gizmo(AvailableGizmos::Affector)),
+                    checkbox("Show Polygon Mesh", toggle_gizmo(AvailableGizmos::PolyMesh)),
+                    checkbox(
+                        "Show Detail Mesh",
+                        toggle_gizmo(AvailableGizmos::DetailMesh)
+                    )
+                ],
+                BackgroundColor(BEVY_GRAY.with_alpha(0.6)),
             ),
             (
                 Name::new("Status Bar"),
@@ -59,7 +78,7 @@ fn spawn_ui(mut commands: Commands) {
                 BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
                 children![
                     status_bar_text("Status Bar"),
-                    status_bar_text("Avian Navmesh Editor v0.1.0")
+                    status_bar_text("Rerecast Editor v0.1.0")
                 ],
             )
         ],
@@ -180,5 +199,13 @@ fn status_bar_text(text: impl Into<String>) -> impl Bundle {
         Text::new(text),
         TextFont::from_font_size(15.0),
         TextColor(Color::srgb(0.9, 0.9, 0.9)),
+    )
+}
+
+fn toggle_gizmo(gizmo: AvailableGizmos) -> impl ObserverSystem<Pointer<Click>, (), ()> {
+    IntoSystem::into_system(
+        move |_: Trigger<Pointer<Click>>, mut gizmos: ResMut<GizmosToDraw>| {
+            gizmos.toggle(gizmo);
+        },
     )
 }

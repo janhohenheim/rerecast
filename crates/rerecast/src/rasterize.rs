@@ -206,7 +206,7 @@ fn divide_poly(
     if in_vert_count > 12 {
         return Err(PolygonDivisionError::TooManyVertices(in_vert_count));
     } else if in_vert_count == 0 {
-        return Err(PolygonDivisionError::NoVertices);
+        return Ok(());
     }
     let in_vert_count = in_vert_count as usize;
     let axis_dir = axis_dir as usize;

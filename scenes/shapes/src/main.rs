@@ -27,7 +27,7 @@ fn setup(
 ) {
     let material_gray = materials.add(Color::from(tailwind::GRAY_300));
     let material_red = materials.add(Color::from(tailwind::RED_500));
-    let shape = Plane3d::new(Vec3::Y, Vec2::splat(25.0));
+    let shape = Cuboid::new(50.0, 0.1, 50.0);
     commands.spawn((
         Name::new("Ground"),
         Mesh3d(meshes.add(shape)),
@@ -54,7 +54,7 @@ fn setup(
         MeshMaterial3d(material_gray.clone()),
     ));
 
-    let shape = Cuboid::new(5.0, 1.0, 5.0);
+    let shape = Cuboid::new(10.0, 1.0, 10.0);
     commands.spawn((
         Name::new("Cube"),
         Mesh3d(meshes.add(shape)),
