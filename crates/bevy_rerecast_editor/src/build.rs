@@ -58,22 +58,26 @@ impl Default for BuildNavmeshConfig {
 
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
-    affectors: Query<&Mesh3d, With<NavmeshAffector<Mesh3d>>>,
+    affectors: Query<(&Mesh3d, &GlobalTransform), With<NavmeshAffector<Mesh3d>>>,
     meshes: Res<Assets<Mesh>>,
     config: Res<BuildNavmeshConfig>,
     mut commands: Commands,
 ) -> Result {
     let mut trimesh = TriMesh::default();
-    for mesh in affectors.iter() {
+    for (mesh, transform) in affectors.iter() {
         let Some(mesh) = meshes.get(mesh) else {
             warn!("Failed to get mesh for navmesh build. Skipping.");
             continue;
         };
-        let Some(collider) = TriMesh::from_mesh(mesh) else {
+        let Some(mut current_trimesh) = TriMesh::from_mesh(mesh) else {
             warn!("Failed to convert collider to trimesh. Skipping.");
             continue;
         };
-        trimesh.extend(collider);
+        let transform = transform.compute_transform();
+        for vertex in &mut current_trimesh.vertices {
+            *vertex = transform.transform_point(Vec3::from(*vertex)).into();
+        }
+        trimesh.extend(current_trimesh);
     }
 
     let aabb = trimesh.compute_aabb().context("Trimesh is empty")?;
