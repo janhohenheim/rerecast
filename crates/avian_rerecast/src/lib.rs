@@ -79,25 +79,30 @@ fn rasterize_colliders(
     colliders
         .iter()
         .filter_map(|(transform, collider)| {
-            let trimesh = collider.to_trimesh(10)?;
-            let attr_id =
-                SerializedMeshVertexAttributeId::try_from(Mesh::ATTRIBUTE_POSITION.id).unwrap();
-            let attr_values = SerializedVertexAttributeValues::Float32x3(
-                trimesh.vertices.into_iter().map(|v| v.to_array()).collect(),
-            );
-            let indices = SerializedIndices::U32(
-                trimesh
-                    .indices
-                    .into_iter()
-                    .flat_map(|i| i.to_array())
-                    .collect(),
-            );
-            let serialized_mesh = SerializedMesh {
-                primitive_topology: SerializedPrimitiveTopology::TriangleList,
-                attributes: vec![(attr_id, attr_values)],
-                indices: Some(indices),
-            };
-            Some((*transform, serialized_mesh))
+            let subdivisions = 10;
+            let mesh = rasterize_collider(collider, subdivisions)?;
+            Some((*transform, mesh))
         })
         .collect::<Vec<_>>()
+}
+
+fn rasterize_collider(collider: &Collider, subdivisions: u32) -> Option<SerializedMesh> {
+    let trimesh = collider.to_trimesh(subdivisions)?;
+    let attr_id = SerializedMeshVertexAttributeId::try_from(Mesh::ATTRIBUTE_POSITION.id).unwrap();
+    let attr_values = SerializedVertexAttributeValues::Float32x3(
+        trimesh.vertices.into_iter().map(|v| v.to_array()).collect(),
+    );
+    let indices = SerializedIndices::U32(
+        trimesh
+            .indices
+            .into_iter()
+            .flat_map(|i| i.to_array())
+            .collect(),
+    );
+    let serialized_mesh = SerializedMesh {
+        primitive_topology: SerializedPrimitiveTopology::TriangleList,
+        attributes: vec![(attr_id, attr_values)],
+        indices: Some(indices),
+    };
+    Some(serialized_mesh)
 }

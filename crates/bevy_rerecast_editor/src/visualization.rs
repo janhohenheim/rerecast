@@ -298,31 +298,32 @@ fn draw_detail_mesh(
 fn draw_navmesh_affector(
     gizmo: Single<&Gizmo, With<NavmeshAffectorGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
-    affector: Single<&Mesh3d, With<NavmeshAffector<Mesh3d>>>,
+    affector: Query<&Mesh3d, With<NavmeshAffector<Mesh3d>>>,
     meshes: Res<Assets<Mesh>>,
 ) {
     let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
         error!("Failed to get gizmo asset");
         return;
     };
-    let Some(mesh) = meshes.get(&affector.0) else {
-        error!("Failed to get mesh asset");
-        return;
-    };
-    //*visibility = Visibility::Inherited;
+    for mesh in &affector {
+        let Some(mesh) = meshes.get(&mesh.0) else {
+            error!("Failed to get mesh asset");
+            return;
+        };
 
-    gizmo.clear();
-    let mesh = TriMesh::from_mesh(mesh).unwrap();
-    for indices in mesh.indices {
-        let mut verts = indices
-            .to_array()
-            .iter()
-            .map(|i| Vec3::from(mesh.vertices[*i as usize]))
-            .collect::<Vec<_>>();
-        // Connect back to first vertex to finish the polygon
-        verts.push(verts[0]);
+        gizmo.clear();
+        let mesh = TriMesh::from_mesh(mesh).unwrap();
+        for indices in mesh.indices {
+            let mut verts = indices
+                .to_array()
+                .iter()
+                .map(|i| Vec3::from(mesh.vertices[*i as usize]))
+                .collect::<Vec<_>>();
+            // Connect back to first vertex to finish the polygon
+            verts.push(verts[0]);
 
-        gizmo.linestrip(verts, tailwind::ORANGE_700);
+            gizmo.linestrip(verts, tailwind::ORANGE_700);
+        }
     }
 }
 
