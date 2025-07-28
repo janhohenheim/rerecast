@@ -68,6 +68,16 @@ fn fetch_navmesh_input(
             Mesh3d(meshes.add(mesh)),
             NavmeshAffector::<Mesh3d>::default(),
             Visibility::Hidden,
+            Gizmo {
+                handle: gizmos.add(GizmoAsset::new()),
+                line_config: GizmoLineConfig {
+                    perspective: true,
+                    width: 20.0,
+                    joints: GizmoLineJoint::Bevel,
+                    ..default()
+                },
+                depth_bias: -0.001,
+            },
         ));
     }
 
