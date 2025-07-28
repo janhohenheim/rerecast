@@ -100,7 +100,7 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
                 perspective: false,
-                width: 2.0,
+                width: 1.3,
                 ..default()
             },
             depth_bias: -0.003,
@@ -113,7 +113,7 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
                 perspective: false,
-                width: 2.0,
+                width: 1.3,
                 ..default()
             },
             depth_bias: -0.002,
@@ -125,7 +125,7 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
                 perspective: false,
-                width: 1.0,
+                width: 1.3,
                 ..default()
             },
             depth_bias: -0.001,
@@ -177,24 +177,28 @@ fn draw_poly_mesh(
 
     for i in 0..mesh.polygon_count() {
         let poly = &mesh.polygons[i * 2 * nvp..];
-        let a_idx = poly[0];
-        let a = origin + mesh.vertices[a_idx as usize].as_vec3() * to_local;
+        let a = origin + mesh.vertices[poly[0] as usize].as_vec3() * to_local;
+        let a_idx = visual_verts.len() as u32;
+        visual_verts.push(a);
 
+        // Fan triangulation
         for val in poly[1..nvp].windows(2) {
-            let b_idx = val[0];
-            let c_idx = val[1];
-            if b_idx == RC_MESH_NULL_IDX || c_idx == RC_MESH_NULL_IDX {
+            let b = val[0];
+            let c = val[1];
+            if b == RC_MESH_NULL_IDX || c == RC_MESH_NULL_IDX {
                 continue;
             }
-            let b = origin + mesh.vertices[b_idx as usize].as_vec3() * to_local;
-            let c = origin + mesh.vertices[c_idx as usize].as_vec3() * to_local;
+            let b = origin + mesh.vertices[b as usize].as_vec3() * to_local;
+            let c = origin + mesh.vertices[c as usize].as_vec3() * to_local;
 
-            visual_verts.push(a);
+            let b_vi = visual_verts.len() as u32;
             visual_verts.push(b);
+            let c_vi = visual_verts.len() as u32;
             visual_verts.push(c);
-            visual_indices.push(a_idx as u32);
-            visual_indices.push(b_idx as u32);
-            visual_indices.push(c_idx as u32);
+
+            visual_indices.push(a_idx);
+            visual_indices.push(b_vi);
+            visual_indices.push(c_vi);
         }
     }
     visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
@@ -203,7 +207,7 @@ fn draw_poly_mesh(
     let standard_material = StandardMaterial {
         base_color: tailwind::BLUE_700.with_alpha(0.5).into(),
         unlit: true,
-        alpha_mode: AlphaMode::Blend,
+        alpha_mode: AlphaMode::AlphaToCoverage,
         ..default()
     };
 
@@ -270,7 +274,7 @@ fn draw_detail_mesh(
     let standard_material = StandardMaterial {
         base_color: tailwind::EMERALD_300.with_alpha(0.5).into(),
         unlit: true,
-        alpha_mode: AlphaMode::Blend,
+        alpha_mode: AlphaMode::AlphaToCoverage,
         ..default()
     };
 

@@ -1,14 +1,12 @@
-use bevy::{
-    color::palettes::tailwind,
-    ecs::system::{IntoObserverSystem, ObserverSystem},
-    prelude::*,
-    ui::Val::*,
-};
+use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
 
 use crate::{
     build::BuildNavmesh,
     get_navmesh_input::GetNavmeshInput,
-    theme::widget::{button, checkbox},
+    theme::{
+        palette::BEVY_GRAY,
+        widget::{button, checkbox},
+    },
     visualization::{AvailableGizmos, GizmosToDraw},
 };
 
@@ -55,6 +53,7 @@ fn spawn_ui(mut commands: Commands) {
                     width: Px(300.0),
                     justify_self: JustifySelf::End,
                     flex_direction: FlexDirection::Column,
+                    padding: UiRect::all(Px(30.0)),
                     ..default()
                 },
                 children![
@@ -65,7 +64,7 @@ fn spawn_ui(mut commands: Commands) {
                         toggle_gizmo(AvailableGizmos::DetailMesh)
                     )
                 ],
-                BackgroundColor(Color::srgb(0.3, 0.1, 0.1).with_alpha(0.2)),
+                BackgroundColor(BEVY_GRAY.with_alpha(0.6)),
             ),
             (
                 Name::new("Status Bar"),
