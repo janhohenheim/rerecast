@@ -298,18 +298,19 @@ fn draw_detail_mesh(
 fn draw_navmesh_affector(
     gizmo: Single<&Gizmo, With<NavmeshAffectorGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
-    affector: Query<&Mesh3d, With<NavmeshAffector<Mesh3d>>>,
+    affector: Query<(&Mesh3d, &GlobalTransform), With<NavmeshAffector<Mesh3d>>>,
     meshes: Res<Assets<Mesh>>,
 ) {
     let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
         error!("Failed to get gizmo asset");
         return;
     };
-    for mesh in &affector {
+    for (mesh, transform) in &affector {
         let Some(mesh) = meshes.get(&mesh.0) else {
             error!("Failed to get mesh asset");
             return;
         };
+        let transform = transform.compute_transform();
 
         gizmo.clear();
         let mesh = TriMesh::from_mesh(mesh).unwrap();
@@ -318,6 +319,7 @@ fn draw_navmesh_affector(
                 .to_array()
                 .iter()
                 .map(|i| Vec3::from(mesh.vertices[*i as usize]))
+                .map(|v| transform.transform_point(v))
                 .collect::<Vec<_>>();
             // Connect back to first vertex to finish the polygon
             verts.push(verts[0]);
