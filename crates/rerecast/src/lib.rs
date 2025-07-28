@@ -1,4 +1,4 @@
-#![doc = include_str!("../../../readme.md")]
+#![doc = include_str!("../readme.md")]
 
 mod compact_cell;
 mod compact_heightfield;

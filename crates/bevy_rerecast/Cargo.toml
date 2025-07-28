@@ -49,7 +49,7 @@ editor_integration = [
     "dep:bevy_rerecast_transmission",
     "dep:bevy_asset",
 ]
-serialize = ["dep:serde", "rerecast/serialize"]
+serialize = ["dep:serde", "rerecast/serialize", "bevy_transform?/serialize"]
 from_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
 
 [lints]
