@@ -1,8 +1,8 @@
 use anyhow::Context as _;
-use bevy::{color::palettes::tailwind, prelude::*, remote::BrpRequest};
+use bevy::{prelude::*, remote::BrpRequest};
 use bevy_rerecast::{
     NavmeshAffector,
-    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, EditorVisible, NavmeshInputResponse},
+    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
 };
 use bevy_rerecast_transmission::deserialize;
 
