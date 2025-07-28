@@ -25,6 +25,7 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
 thiserror = { workspace = true }
+bevy_ui_text_input = { workspace = true }
 
 [lints]
 workspace = true

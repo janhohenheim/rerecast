@@ -31,6 +31,7 @@ bevy_render = { version = "0.16.0", default-features = false }
 bevy_transform = { version = "0.16.0", default-features = false }
 bevy_asset = { version = "0.16.0", default-features = false }
 bevy_derive = { version = "0.16.0", default-features = false }
+bevy_ui_text_input = { version = "0.5.0" }
 glam = "0.29.3"
 # In sync with Bevy
 wgpu-types = "24"
