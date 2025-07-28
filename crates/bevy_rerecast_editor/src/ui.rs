@@ -57,6 +57,7 @@ fn spawn_ui(mut commands: Commands) {
                     ..default()
                 },
                 children![
+                    checkbox("Show Visual", toggle_gizmo(AvailableGizmos::Visual)),
                     checkbox("Show Affector", toggle_gizmo(AvailableGizmos::Affector)),
                     checkbox("Show Polygon Mesh", toggle_gizmo(AvailableGizmos::PolyMesh)),
                     checkbox(

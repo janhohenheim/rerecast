@@ -2,9 +2,11 @@ use anyhow::Context as _;
 use bevy::{color::palettes::tailwind, prelude::*, remote::BrpRequest};
 use bevy_rerecast::{
     NavmeshAffector,
-    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, EditorVisible, NavmeshInputResponse},
 };
 use bevy_rerecast_transmission::deserialize;
+
+use crate::visualization::VisualMesh;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);
@@ -49,12 +51,6 @@ fn fetch_navmesh_input(
         commands.spawn((
             transform.compute_transform(),
             Mesh3d(mesh),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::from(tailwind::RED_700).with_alpha(0.5),
-                unlit: true,
-                alpha_mode: AlphaMode::Blend,
-                ..default()
-            })),
             NavmeshAffector::<Mesh3d>::default(),
             Visibility::Hidden,
         ));
@@ -70,6 +66,7 @@ fn fetch_navmesh_input(
                 base_color: Color::WHITE,
                 ..default()
             })),
+            VisualMesh,
         ));
     }
 

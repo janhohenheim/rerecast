@@ -28,9 +28,11 @@ pub(super) fn plugin(app: &mut App) {
                 ),
             )),
             draw_navmesh_affector.run_if(toggled_gizmo_on(AvailableGizmos::Affector)),
+            draw_visual.run_if(toggled_gizmo_on(AvailableGizmos::Visual)),
             hide_poly_mesh.run_if(toggled_gizmo_off(AvailableGizmos::PolyMesh)),
             hide_detail_mesh.run_if(toggled_gizmo_off(AvailableGizmos::DetailMesh)),
             hide_affector.run_if(toggled_gizmo_off(AvailableGizmos::Affector)),
+            hide_visual.run_if(toggled_gizmo_off(AvailableGizmos::Visual)),
         ),
     );
 }
@@ -56,6 +58,7 @@ impl GizmosToDraw {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub(crate) enum AvailableGizmos {
+    Visual,
     Affector,
     PolyMesh,
     DetailMesh,
@@ -79,7 +82,11 @@ fn gizmo_enabled(gizmo: AvailableGizmos) -> impl Condition<()> {
 
 impl Default for GizmosToDraw {
     fn default() -> Self {
-        Self(vec![AvailableGizmos::DetailMesh].into_iter().collect())
+        Self(
+            vec![AvailableGizmos::DetailMesh, AvailableGizmos::Visual]
+                .into_iter()
+                .collect(),
+        )
     }
 }
 
@@ -99,11 +106,11 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
-                perspective: false,
-                width: 1.3,
+                perspective: true,
+                width: 20.0,
                 ..default()
             },
-            depth_bias: -0.003,
+            depth_bias: -0.001,
         },
     ));
     commands.spawn((
@@ -112,11 +119,12 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
-                perspective: false,
-                width: 1.3,
+                perspective: true,
+                width: 20.0,
+                joints: GizmoLineJoint::Bevel,
                 ..default()
             },
-            depth_bias: -0.002,
+            depth_bias: -0.001,
         },
     ));
     commands.spawn((
@@ -124,8 +132,9 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
         Gizmo {
             handle: gizmos.add(GizmoAsset::new()),
             line_config: GizmoLineConfig {
-                perspective: false,
-                width: 1.3,
+                perspective: true,
+                width: 20.0,
+                joints: GizmoLineJoint::Bevel,
                 ..default()
             },
             depth_bias: -0.001,
@@ -205,8 +214,9 @@ fn draw_poly_mesh(
     visual_mesh.insert_indices(Indices::U32(visual_indices));
 
     let standard_material = StandardMaterial {
-        base_color: tailwind::BLUE_700.with_alpha(0.5).into(),
+        base_color: tailwind::BLUE_600.with_alpha(0.7).into(),
         unlit: true,
+        double_sided: true,
         alpha_mode: AlphaMode::AlphaToCoverage,
         ..default()
     };
@@ -272,8 +282,9 @@ fn draw_detail_mesh(
     visual_mesh.insert_indices(Indices::U32(visual_indices));
 
     let standard_material = StandardMaterial {
-        base_color: tailwind::EMERALD_300.with_alpha(0.5).into(),
+        base_color: tailwind::EMERALD_200.with_alpha(0.7).into(),
         unlit: true,
+        double_sided: true,
         alpha_mode: AlphaMode::AlphaToCoverage,
         ..default()
     };
@@ -315,6 +326,12 @@ fn draw_navmesh_affector(
     }
 }
 
+fn draw_visual(mut visibility: Query<&mut Visibility, With<VisualMesh>>) {
+    for mut visibility in visibility.iter_mut() {
+        *visibility = Visibility::Inherited;
+    }
+}
+
 fn hide_poly_mesh(
     gizmo: Single<(&Gizmo, &mut Visibility), With<PolyMeshGizmo>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
@@ -351,3 +368,12 @@ fn hide_detail_mesh(
     gizmo.clear();
     *visibility = Visibility::Hidden;
 }
+
+fn hide_visual(mut visibility: Query<&mut Visibility, With<VisualMesh>>) {
+    for mut visibility in visibility.iter_mut() {
+        *visibility = Visibility::Hidden;
+    }
+}
+
+#[derive(Component)]
+pub(crate) struct VisualMesh;
