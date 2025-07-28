@@ -54,7 +54,7 @@ fn setup(
         MeshMaterial3d(material_gray.clone()),
     ));
 
-    let shape = Cuboid::new(5.0, 1.0, 5.0);
+    let shape = Cuboid::new(10.0, 1.0, 10.0);
     commands.spawn((
         Name::new("Cube"),
         Mesh3d(meshes.add(shape)),
