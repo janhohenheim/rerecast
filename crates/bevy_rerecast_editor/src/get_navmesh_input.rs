@@ -4,9 +4,7 @@ use bevy_rerecast::{
     NavmeshAffector,
     editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
 };
-use bevy_rerecast_transmission::{
-    SerializedImage, SerializedMesh, SerializedStandardMaterial, deserialize,
-};
+use bevy_rerecast_transmission::deserialize;
 
 use crate::visualization::VisualMesh;
 

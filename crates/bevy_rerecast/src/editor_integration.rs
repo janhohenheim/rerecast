@@ -209,7 +209,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
                             match SerializedStandardMaterial::try_from_standard_material(
                                 material.clone(),
                                 &mut image_indices,
-                                &images,
+                                images,
                                 &mut serialized_images,
                             ) {
                                 Ok(serialized_material) => {

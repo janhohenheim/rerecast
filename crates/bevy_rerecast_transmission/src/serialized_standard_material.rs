@@ -112,8 +112,10 @@ pub struct SerializedStandardMaterial {
     uv_transform: Affine2,
 }
 
+/// Errors that can occur when serializing a [`StandardMaterial`] into a [`SerializedStandardMaterial`] via [`SerializedStandardMaterial::try_from_standard_material`].
 #[derive(Error, Debug)]
 pub enum SerializedStandardMaterialError {
+    /// An image handle was not found in `Assets<Image>`
     #[error("Image not found: {0}")]
     ImageNotFound(&'static str),
 }
