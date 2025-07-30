@@ -10,20 +10,16 @@ use bevy_render::mesh::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Proxy of [`Mesh`](bevy::render::mesh::Mesh).
+/// Serialized version of [`Mesh`].
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[reflect(Serialize, Deserialize)]
 pub struct SerializedMesh {
-    /// Topology of the primitives.
-    pub primitive_topology: SerializedPrimitiveTopology,
-    /// attributes in the form that [`Mesh::insert_attribute`] expects
-    /// The key is the [`MeshVertexAttributeId`] of the attribute.
-    pub attributes: Vec<(
+    primitive_topology: SerializedPrimitiveTopology,
+    attributes: Vec<(
         SerializedMeshVertexAttributeId,
         SerializedVertexAttributeValues,
     )>,
-    /// Indices of the mesh.
-    pub indices: Option<SerializedIndices>,
+    indices: Option<SerializedIndices>,
 }
 
 impl SerializedMesh {
@@ -82,7 +78,6 @@ impl SerializedMesh {
     }
 }
 
-/// Proxy of [`MeshVertexAttributeId`](bevy::render::mesh::MeshVertexAttributeId).
 #[derive(
     Reflect,
     Debug,
@@ -99,7 +94,7 @@ impl SerializedMesh {
     DerefMut,
 )]
 #[reflect(Serialize, Deserialize)]
-pub struct SerializedMeshVertexAttributeId(pub u64);
+struct SerializedMeshVertexAttributeId(u64);
 
 impl TryFrom<MeshVertexAttributeId> for SerializedMeshVertexAttributeId {
     type Error = ();
@@ -146,19 +141,11 @@ impl TryFrom<SerializedMeshVertexAttributeId> for MeshVertexAttributeId {
     }
 }
 
-/// Proxy of [`MeshVertexAttribute`](bevy::render::mesh::MeshVertexAttribute).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SerializedMeshVertexAttribute {
-    /// The friendly name of the vertex attribute
-    pub name: String,
-
-    /// The _unique_ id of the vertex attribute. This will also determine sort ordering
-    /// when generating vertex buffers. Built-in / standard attributes will use "close to zero"
-    /// indices. When in doubt, use a random / very large u64 to avoid conflicts.
-    pub id: SerializedMeshVertexAttributeId,
-
-    /// The format of the vertex attribute.
-    pub format: VertexFormat,
+struct SerializedMeshVertexAttribute {
+    name: String,
+    id: SerializedMeshVertexAttributeId,
+    format: VertexFormat,
 }
 
 impl TryFrom<MeshVertexAttribute> for SerializedMeshVertexAttribute {
@@ -173,13 +160,10 @@ impl TryFrom<MeshVertexAttribute> for SerializedMeshVertexAttribute {
     }
 }
 
-/// Proxy of [`VertexAttributeValues`](bevy::render::mesh::VertexAttributeValues).
-/// Contains an array where each entry describes a property of a single vertex.
-/// Matches the [`VertexFormats`](VertexFormat).
 #[derive(Clone, Debug, Serialize, Deserialize, Reflect)]
 #[reflect(Serialize, Deserialize)]
 #[allow(missing_docs)]
-pub enum SerializedVertexAttributeValues {
+enum SerializedVertexAttributeValues {
     Float32(Vec<f32>),
     Sint32(Vec<i32>),
     Uint32(Vec<u32>),
@@ -280,14 +264,10 @@ impl From<SerializedVertexAttributeValues> for VertexAttributeValues {
     }
 }
 
-/// Proxy of [`Indices`](bevy::render::mesh::Indices).
-/// An array of indices into the [`VertexAttributeValues`] for a mesh.
-///
-/// It describes the order in which the vertex attributes should be joined into faces.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[reflect(Serialize, Deserialize)]
 #[allow(missing_docs)]
-pub enum SerializedIndices {
+enum SerializedIndices {
     U16(Vec<u16>),
     U32(Vec<u32>),
 }
@@ -310,32 +290,14 @@ impl From<SerializedIndices> for Indices {
     }
 }
 
-/// Proxy of [`PrimitiveTopology`](bevy::render::mesh::PrimitiveTopology).
-/// Primitive type the input mesh is composed of.
-///
-/// Corresponds to [WebGPU `GPUPrimitiveTopology`](
-/// https://gpuweb.github.io/gpuweb/#enumdef-gpuprimitivetopology).
 #[derive(Reflect, Copy, Clone, Debug, Default, Hash, Eq, PartialEq, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
-pub enum SerializedPrimitiveTopology {
-    /// Vertex data is a list of points. Each vertex is a new point.
+enum SerializedPrimitiveTopology {
     PointList = 0,
-    /// Vertex data is a list of lines. Each pair of vertices composes a new line.
-    ///
-    /// Vertices `0 1 2 3` create two lines `0 1` and `2 3`
     LineList = 1,
-    /// Vertex data is a strip of lines. Each set of two adjacent vertices form a line.
-    ///
-    /// Vertices `0 1 2 3` create three lines `0 1`, `1 2`, and `2 3`.
     LineStrip = 2,
-    /// Vertex data is a list of triangles. Each set of 3 vertices composes a new triangle.
-    ///
-    /// Vertices `0 1 2 3 4 5` create two triangles `0 1 2` and `3 4 5`
     #[default]
     TriangleList = 3,
-    /// Vertex data is a triangle strip. Each set of three adjacent vertices form a triangle.
-    ///
-    /// Vertices `0 1 2 3 4 5` create four triangles `0 1 2`, `2 1 3`, `2 3 4`, and `4 3 5`
     TriangleStrip = 4,
 }
 
