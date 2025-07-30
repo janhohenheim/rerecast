@@ -1,14 +1,16 @@
 #![doc = include_str!("../../../readme.md")]
 
 use avian3d::prelude::*;
-use bevy::{ecs::entity_disabling::Disabled, prelude::*};
+use bevy::{
+    asset::RenderAssetUsages,
+    ecs::entity_disabling::Disabled,
+    prelude::*,
+    render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues},
+};
 
 mod collider_to_trimesh;
 use bevy_rerecast::{NavmeshAffector, editor_integration::RerecastAppExt as _};
-use bevy_rerecast_transmission::{
-    SerializedIndices, SerializedMesh, SerializedMeshVertexAttributeId,
-    SerializedPrimitiveTopology, SerializedVertexAttributeValues,
-};
+use bevy_rerecast_transmission::SerializedMesh;
 
 pub use rerecast;
 
@@ -88,21 +90,19 @@ fn rasterize_colliders(
 
 fn rasterize_collider(collider: &Collider, subdivisions: u32) -> Option<SerializedMesh> {
     let trimesh = collider.to_trimesh(subdivisions)?;
-    let attr_id = SerializedMeshVertexAttributeId::try_from(Mesh::ATTRIBUTE_POSITION.id).unwrap();
-    let attr_values = SerializedVertexAttributeValues::Float32x3(
-        trimesh.vertices.into_iter().map(|v| v.to_array()).collect(),
-    );
-    let indices = SerializedIndices::U32(
-        trimesh
-            .indices
-            .into_iter()
-            .flat_map(|i| i.to_array())
-            .collect(),
-    );
-    let serialized_mesh = SerializedMesh {
-        primitive_topology: SerializedPrimitiveTopology::TriangleList,
-        attributes: vec![(attr_id, attr_values)],
-        indices: Some(indices),
-    };
-    Some(serialized_mesh)
+    let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
+        .with_inserted_attribute(
+            Mesh::ATTRIBUTE_POSITION,
+            VertexAttributeValues::Float32x3(
+                trimesh.vertices.into_iter().map(|v| v.to_array()).collect(),
+            ),
+        )
+        .with_inserted_indices(Indices::U32(
+            trimesh
+                .indices
+                .into_iter()
+                .flat_map(|i| i.to_array())
+                .collect(),
+        ));
+    Some(SerializedMesh::from_mesh(&mesh))
 }
