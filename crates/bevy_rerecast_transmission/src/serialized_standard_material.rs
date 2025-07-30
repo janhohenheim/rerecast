@@ -27,18 +27,24 @@ pub struct SerializedStandardMaterial {
     specular_tint: Color,
     diffuse_transmission: f32,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     diffuse_transmission_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     diffuse_transmission_texture: Option<SerializedImage>,
     specular_transmission: f32,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     specular_transmission_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     specular_transmission_texture: Option<SerializedImage>,
     thickness: f32,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     thickness_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
+    #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     thickness_texture: Option<SerializedImage>,
     ior: f32,
     attenuation_distance: f32,
@@ -49,31 +55,43 @@ pub struct SerializedStandardMaterial {
     occlusion_channel: SerializedUvChannel,
     occlusion_texture: Option<SerializedImage>,
     #[cfg(feature = "pbr_specular_textures")]
+    #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_specular_textures")]
+    #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_texture: Option<SerializedImage>,
     #[cfg(feature = "pbr_specular_textures")]
+    #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_tint_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_specular_textures")]
+    #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_tint_texture: Option<SerializedImage>,
     clearcoat: f32,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_texture: Option<SerializedImage>,
     clearcoat_perceptual_roughness: f32,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_roughness_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_roughness_texture: Option<SerializedImage>,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_normal_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
+    #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_normal_texture: Option<SerializedImage>,
     anisotropy_strength: f32,
     anisotropy_rotation: f32,
     #[cfg(feature = "pbr_anisotropy_texture")]
+    #[cfg_attr(feature = "pbr_anisotropy_texture", serde(default))]
     anisotropy_channel: SerializedUvChannel,
+    #[cfg_attr(feature = "pbr_anisotropy_texture", serde(default))]
     #[cfg(feature = "pbr_anisotropy_texture")]
     anisotropy_texture: Option<SerializedImage>,
     double_sided: bool,
@@ -417,8 +435,9 @@ impl SerializedStandardMaterial {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 enum SerializedUvChannel {
+    #[default]
     Uv0,
     Uv1,
 }
