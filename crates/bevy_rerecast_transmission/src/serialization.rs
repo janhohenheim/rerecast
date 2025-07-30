@@ -2,7 +2,7 @@
 
 use anyhow::Context as _;
 use base64::prelude::*;
-use bevy::prelude::*;
+use bevy_ecs::prelude::*;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
