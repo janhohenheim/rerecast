@@ -5,8 +5,7 @@ use bevy_asset::RenderAssetUsages;
 use bevy_derive::{Deref, DerefMut};
 use bevy_reflect::prelude::*;
 use bevy_render::mesh::{
-    Indices, Mesh, MeshVertexAttribute, MeshVertexAttributeId, PrimitiveTopology,
-    VertexAttributeValues, VertexFormat,
+    Indices, Mesh, MeshVertexAttributeId, PrimitiveTopology, VertexAttributeValues,
 };
 use serde::{Deserialize, Serialize};
 
@@ -138,25 +137,6 @@ impl TryFrom<SerializedMeshVertexAttributeId> for MeshVertexAttributeId {
             SerializedMeshVertexAttributeId(7) => Ok(Mesh::ATTRIBUTE_JOINT_INDEX.id),
             _ => Err(()),
         }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct SerializedMeshVertexAttribute {
-    name: String,
-    id: SerializedMeshVertexAttributeId,
-    format: VertexFormat,
-}
-
-impl TryFrom<MeshVertexAttribute> for SerializedMeshVertexAttribute {
-    type Error = ();
-
-    fn try_from(attribute: MeshVertexAttribute) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: attribute.name.to_string(),
-            id: attribute.id.try_into()?,
-            format: attribute.format,
-        })
     }
 }
 
