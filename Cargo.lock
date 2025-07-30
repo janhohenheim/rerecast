@@ -1250,11 +1250,20 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "bevy",
+ "bevy_asset",
+ "bevy_color",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_image",
+ "bevy_math",
+ "bevy_pbr",
+ "bevy_reflect",
+ "bevy_render",
  "bincode",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
+ "tracing",
  "wgpu-types",
 ]
 

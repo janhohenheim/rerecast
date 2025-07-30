@@ -1,13 +1,12 @@
 //! Contains proxy types needed to serialize and deserialize types that need to be transmitted
 //! to and from the editor.
 
-use bevy::{
-    asset::RenderAssetUsages,
-    prelude::*,
-    render::mesh::{
-        Indices, MeshVertexAttribute, MeshVertexAttributeId, PrimitiveTopology,
-        VertexAttributeValues, VertexFormat,
-    },
+use bevy_asset::RenderAssetUsages;
+use bevy_derive::{Deref, DerefMut};
+use bevy_reflect::prelude::*;
+use bevy_render::mesh::{
+    Indices, Mesh, MeshVertexAttribute, MeshVertexAttributeId, PrimitiveTopology,
+    VertexAttributeValues, VertexFormat,
 };
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +35,7 @@ impl SerializedMesh {
                 .attributes()
                 .filter_map(|(attribute, values)| {
                     let Some(id) = attribute.id.try_into().ok() else {
-                        warn!(
+                        tracing::warn!(
                             "Failed to serialize mesh: unknown attribute id: {:?}",
                             attribute.id
                         );
@@ -69,7 +68,9 @@ impl SerializedMesh {
                 .iter()
                 .find(|attribute| attribute.id == attribute_id)
             else {
-                warn!("Failed to deserialize mesh: unknown attribute id: {attribute_id:?}");
+                tracing::warn!(
+                    "Failed to deserialize mesh: unknown attribute id: {attribute_id:?}"
+                );
                 continue;
             };
             mesh.insert_attribute(*attribute, values);
