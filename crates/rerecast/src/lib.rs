@@ -3,6 +3,7 @@
 mod compact_cell;
 mod compact_heightfield;
 mod compact_span;
+mod config;
 mod contours;
 mod detail_mesh;
 mod erosion;
@@ -22,8 +23,9 @@ mod watershed_distance_field;
 pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;
 pub use compact_span::CompactSpan;
+pub use config::Config;
 pub use contours::{BuildContoursFlags, ContourSet};
-pub use detail_mesh::DetailPolygonMesh;
+pub use detail_mesh::DetailNavMesh;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;
 pub use math::{Aabb2d, Aabb3d};

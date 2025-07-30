@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{DetailPolygonMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
+    rerecast::{DetailNavMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -40,7 +40,7 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Resource)]
 pub(crate) struct Navmesh {
     pub(crate) poly_mesh: PolygonMesh,
-    pub(crate) detail_mesh: DetailPolygonMesh,
+    pub(crate) detail_mesh: DetailNavMesh,
 }
 
 #[derive(Resource, Deref, DerefMut)]

@@ -13,7 +13,7 @@ use crate::{
 pub struct TriMesh {
     /// The vertices composing the collider.
     /// Follows the convention of a triangle list.
-    pub vertices: Vec<Vec3A>,
+    pub vertices: Vec<Vec3>,
 
     /// The indices composing the collider.
     /// Follows the convention of a triangle list.

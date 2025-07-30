@@ -511,6 +511,9 @@ fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
 }
 
 /// Represents a group of related contours.
+/// All contours within the set share the minimum bounds and cell sizes of the set.
+///
+/// The standard process for building a contour set is to use [`CompactHeightfield::build_contours`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContourSet {
     /// An array of the contours in the set.
@@ -527,13 +530,13 @@ pub struct ContourSet {
     pub height: u16,
     /// The AABB border size used to generate the source data from which the contours were derived.
     pub border_size: u16,
-    /// The max edge error that this contour set was simplified with.
+    /// The max edge error that this contour set was simplified with. See [`Config::max_simplification_error`](crate::Config::max_simplification_error).
     pub max_error: f32,
 }
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct RegionVertexId: u32 {
+    pub(crate) struct RegionVertexId: u32 {
         const NONE = 0;
 
         /// Applied to the region id field of contour vertices in order to extract the region id.
@@ -578,9 +581,45 @@ impl From<RegionVertexId> for RegionId {
 }
 
 /// Represents a simple, non-overlapping contour in field space.
+///
+/// A contour only exists within the context of a [`ContourSet`] object.
+///
+/// While the height of the contour's border may vary, the contour will always form a simple polygon when projected onto the xz-plane.
+///
+/// Example of converting vertices into world space:
+///
+/// ```rust
+/// // Where cset is the ContourSet object to which the contour belongs.
+/// float worldX = cset.bmin[0] + vertX * cset.cs;
+/// float worldY = cset.bmin[1] + vertY * cset.ch;
+/// float worldZ = cset.bmin[2] + vertZ * cset.cs;
+/// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Contour {
     /// Simplified contour vertex and connection data.
+    ///
+    /// The simplified contour is a version of the raw contour with all 'unnecessary' vertices removed.
+    /// Whether a vertex is considered unnecessary depends on the contour build process.
+    ///
+    /// The data format is as follows: ((x, y, z), r)
+    ///
+    /// A contour edge is formed by the current and next vertex. The r-value represents region and connection information for the edge.
+    /// For example:
+    /// ```rust
+    /// int r = verts[i*4+3];
+    ///
+    /// int regionId = r & RC_CONTOUR_REG_MASK;
+    ///
+    /// if (r & RC_BORDER_VERTEX)
+    /// {
+    ///     // The edge represents a solid border.
+    /// }
+    ///
+    /// if (r & RC_AREA_BORDER)
+    /// {
+    ///     // The edge represents a transition between different areas.
+    /// }
+    /// ```
     pub vertices: Vec<(U16Vec3, usize)>,
     /// Raw contour vertex and connection data.
     pub raw_vertices: Vec<(U16Vec3, RegionVertexId)>,

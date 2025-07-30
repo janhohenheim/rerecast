@@ -8,7 +8,80 @@ use crate::{
     span::AreaType,
 };
 
-/// A packed representation of a [`Heightfield`].
+/// A compact, static heightfield representing unobstructed space.
+///
+/// For this type of heightfield, the spans represent the open (unobstructed) space above the solid surfaces of a voxel field.
+/// It is usually created from a [`Heightfield`] object. Data is stored in a compact, efficient manner,
+/// but the structure is not condusive to adding and removing spans.
+///
+/// The standard process for buidling a compact heightfield is to build it using [`Heightfield::into_compact`], then run it through the various helper functions to generate neighbor and region data.
+///
+/// Connected neighbor spans form non-overlapping surfaces. When neighbor information is generated, spans will include data that can be used to locate axis-neighbors. Axis-neighbors are connected spans that are offset from the current cell column as follows:
+///
+/// ```txt
+/// Direction 0 = (-1, 0)
+/// Direction 1 = (0, 1)
+/// Direction 2 = (1, 0)
+/// Direction 3 = (0, -1)
+/// ```
+/// Example of iterating and inspecting spans, including connected neighbors:
+///
+/// ```rust
+/// // Where chf is an instance of a rcCompactHeightfield.
+/// const float cs = chf.cs;
+/// const float ch = chf.ch;
+///
+/// for (int y = 0; y < chf.height; ++y)
+/// {
+///     for (int x = 0; x < chf.width; ++x)
+///     {
+///         // Deriving the minimum corner of the grid location.
+///         const float fx = chf.bmin[0] + x*cs;
+///         const float fz = chf.bmin[2] + y*cs;
+///
+///         // Get the cell for the grid location then iterate
+///         // up the column.
+///         const rcCompactCell& c = chf.cells[x+y*chf.width];
+///         for (unsigned i = c.index, ni = c.index+c.count; i < ni; ++i)
+///         {
+///             const rcCompactSpan& s = chf.spans[i];
+///
+///             Deriving the minimum (floor) of the span.
+///             const float fy = chf.bmin[1] + (s.y+1)*ch;
+///
+///             // Testing the area assignment of the span.
+///             if (chf.areas[i] == RC_WALKABLE_AREA)
+///             {
+///                 // The span is in the default 'walkable area'.
+///             }
+///             else if (chf.areas[i] == RC_NULL_AREA)
+///             {
+///                 // The surface is not considered walkable.
+///                 // E.g. It was filtered out during the build processes.
+///             }
+///             else
+///             {
+///                 // Do something. (Only applicable for custom build
+///                 // build processes.)
+///             }
+///
+///             // Iterating the connected axis-neighbor spans.
+///             for (int dir = 0; dir < 4; ++dir)
+///             {
+///                 if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
+///                 {
+///                     // There is a neighbor in this direction.
+///                     const int nx = x + rcGetDirOffsetX(dir);
+///                     const int ny = y + rcGetDirOffsetY(dir);
+///                     const int ni = (int)chf.cells[nx+ny*w].index + rcGetCon(s, 0);
+///                     const rcCompactSpan& ns = chf.spans[ni];
+///                     // Do something with the neighbor span.
+///                 }
+///             }
+///         }
+///     }
+/// }
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactHeightfield {
@@ -17,10 +90,13 @@ pub struct CompactHeightfield {
     /// The height of the heightfield along the z-axis in cell units
     pub height: u16,
     /// The walkable height used during the build of the field
+    /// (See: [`Config::walkable_height`](crate::Config::walkable_height))
     pub walkable_height: u16,
     /// The walkable climb used during the build of the field.
+    /// (See: [`Config::walkable_climb`](crate::Config::walkable_climb))
     pub walkable_climb: u16,
     /// The AABB border size used during the build of the field.
+    /// (See: [`Config::border_size`](crate::Config::border_size))
     pub border_size: u16,
     /// The maximum distance value of any span within the field.
     pub max_distance: u16,

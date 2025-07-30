@@ -4,7 +4,7 @@ use std::env;
 
 use glam::{U8Vec3, UVec3, Vec2, Vec3A};
 use rerecast::{
-    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailPolygonMesh,
+    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavMesh,
     Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
@@ -98,7 +98,7 @@ fn validate_navmesh_against_cpp_implementation() {
         .unwrap();
     assert_eq_poly_mesh(&poly_mesh, "poly_mesh");
 
-    let detail_mesh = DetailPolygonMesh::new(
+    let detail_mesh = DetailNavMesh::new(
         &poly_mesh,
         &compact_heightfield,
         detail_sample_dist,
@@ -515,7 +515,7 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
 }
 
 #[track_caller]
-fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) {
+fn assert_eq_detail_mesh(detail_mesh: &DetailNavMesh, reference_name: &str) {
     let cpp_detail_mesh = load_json::<CppDetailPolyMesh>(reference_name);
 
     assert_eq!(

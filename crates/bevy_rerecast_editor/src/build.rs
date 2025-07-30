@@ -2,7 +2,7 @@ use anyhow::Context;
 use bevy::prelude::*;
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{BuildContoursFlags, DetailPolygonMesh, HeightfieldBuilder, TriMesh},
+    rerecast::{BuildContoursFlags, DetailNavMesh, HeightfieldBuilder, TriMesh},
 };
 
 use crate::visualization::Navmesh;
@@ -135,7 +135,7 @@ fn build_navmesh(
 
     let poly_mesh = contours.into_polygon_mesh(config.max_vertices_per_polygon)?;
 
-    let detail_mesh = DetailPolygonMesh::new(
+    let detail_mesh = DetailNavMesh::new(
         &poly_mesh,
         &compact_heightfield,
         config.detail_sample_dist,

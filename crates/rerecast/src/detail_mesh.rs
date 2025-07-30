@@ -19,7 +19,7 @@ use crate::{
 /// with the polygons in its associated polygon mesh object.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-pub struct DetailPolygonMesh {
+pub struct DetailNavMesh {
     /// The sub-mesh data
     pub meshes: Vec<SubMesh>,
     /// The mesh vertices
@@ -37,7 +37,7 @@ pub struct SubMesh {
     pub triangle_count: usize,
 }
 
-impl DetailPolygonMesh {
+impl DetailNavMesh {
     /// Builds a detail mesh from the provided polygon mesh.
     pub fn new(
         mesh: &PolygonMesh,
@@ -45,7 +45,7 @@ impl DetailPolygonMesh {
         sample_distance: f32,
         sample_max_error: f32,
     ) -> Result<Self, DetailPolygonMeshError> {
-        let mut dmesh = DetailPolygonMesh::default();
+        let mut dmesh = DetailNavMesh::default();
         if mesh.vertices.is_empty() || mesh.polygon_count() == 0 {
             return Ok(dmesh);
         }

@@ -1,6 +1,12 @@
 use std::ops::Range;
 
-/// Provides information on the content of a cell column in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
+/// Provides information on the content of a cell column in a [`CompactHeightfield`].
+///
+/// See the rcCompactHeightfield documentation for an example of how compact cells are used to iterate the heightfield.
+///
+/// Useful instances of this type can only by obtained from a [`CompactHeightfield`].
+///
+/// [`CompactHeightfield`]: crate::compact_heightfield::CompactHeightfield
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactCell {
