@@ -33,6 +33,7 @@ bevy_reflect = { workspace = true }
 bevy_derive = { workspace = true }
 bevy_math = { workspace = true }
 bevy_color = { workspace = true }
+bevy_platform = { workspace = true }
 bevy_image = { workspace = true, features = ["serialize"] }
 tracing = { workspace = true }
 thiserror = { workspace = true }

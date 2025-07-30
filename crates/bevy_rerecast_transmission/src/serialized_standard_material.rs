@@ -1,10 +1,12 @@
-use bevy_asset::Assets;
+use bevy_asset::{Assets, Handle};
 use bevy_color::prelude::*;
 use bevy_image::Image;
 use bevy_math::Affine2;
 use bevy_pbr::{OpaqueRendererMethod, UvChannel, prelude::*};
+use bevy_platform::collections::HashMap;
 use bevy_render::alpha::AlphaMode;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use wgpu_types::Face;
 
 use crate::SerializedImage;
@@ -14,15 +16,15 @@ use crate::SerializedImage;
 pub struct SerializedStandardMaterial {
     base_color: Color,
     base_color_channel: SerializedUvChannel,
-    base_color_texture: Option<SerializedImage>,
+    base_color_texture: Option<u32>,
     emissive: LinearRgba,
     emissive_exposure_weight: f32,
     emissive_channel: SerializedUvChannel,
-    emissive_texture: Option<SerializedImage>,
+    emissive_texture: Option<u32>,
     perceptual_roughness: f32,
     metallic: f32,
     metallic_roughness_channel: SerializedUvChannel,
-    metallic_roughness_texture: Option<SerializedImage>,
+    metallic_roughness_texture: Option<u32>,
     reflectance: f32,
     specular_tint: Color,
     diffuse_transmission: f32,
@@ -31,61 +33,61 @@ pub struct SerializedStandardMaterial {
     diffuse_transmission_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
     #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
-    diffuse_transmission_texture: Option<SerializedImage>,
+    diffuse_transmission_texture: Option<u32>,
     specular_transmission: f32,
     #[cfg(feature = "pbr_transmission_textures")]
     #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     specular_transmission_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
     #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
-    specular_transmission_texture: Option<SerializedImage>,
+    specular_transmission_texture: Option<u32>,
     thickness: f32,
     #[cfg(feature = "pbr_transmission_textures")]
     #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
     thickness_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_transmission_textures")]
     #[cfg_attr(feature = "pbr_transmission_textures", serde(default))]
-    thickness_texture: Option<SerializedImage>,
+    thickness_texture: Option<u32>,
     ior: f32,
     attenuation_distance: f32,
     attenuation_color: Color,
     normal_map_channel: SerializedUvChannel,
-    normal_map_texture: Option<SerializedImage>,
+    normal_map_texture: Option<u32>,
     flip_normal_map_y: bool,
     occlusion_channel: SerializedUvChannel,
-    occlusion_texture: Option<SerializedImage>,
+    occlusion_texture: Option<u32>,
     #[cfg(feature = "pbr_specular_textures")]
     #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_specular_textures")]
     #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
-    specular_texture: Option<SerializedImage>,
+    specular_texture: Option<u32>,
     #[cfg(feature = "pbr_specular_textures")]
     #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
     specular_tint_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_specular_textures")]
     #[cfg_attr(feature = "pbr_specular_textures", serde(default))]
-    specular_tint_texture: Option<SerializedImage>,
+    specular_tint_texture: Option<u32>,
     clearcoat: f32,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
-    clearcoat_texture: Option<SerializedImage>,
+    clearcoat_texture: Option<u32>,
     clearcoat_perceptual_roughness: f32,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_roughness_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
-    clearcoat_roughness_texture: Option<SerializedImage>,
+    clearcoat_roughness_texture: Option<u32>,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
     clearcoat_normal_channel: SerializedUvChannel,
     #[cfg(feature = "pbr_multi_layer_material_textures")]
     #[cfg_attr(feature = "pbr_multi_layer_material_textures", serde(default))]
-    clearcoat_normal_texture: Option<SerializedImage>,
+    clearcoat_normal_texture: Option<u32>,
     anisotropy_strength: f32,
     anisotropy_rotation: f32,
     #[cfg(feature = "pbr_anisotropy_texture")]
@@ -93,14 +95,14 @@ pub struct SerializedStandardMaterial {
     anisotropy_channel: SerializedUvChannel,
     #[cfg_attr(feature = "pbr_anisotropy_texture", serde(default))]
     #[cfg(feature = "pbr_anisotropy_texture")]
-    anisotropy_texture: Option<SerializedImage>,
+    anisotropy_texture: Option<u32>,
     double_sided: bool,
     cull_mode: Option<Face>,
     unlit: bool,
     fog_enabled: bool,
     alpha_mode: SerializedAlphaMode,
     depth_bias: f32,
-    depth_map: Option<SerializedImage>,
+    depth_map: Option<u32>,
     parallax_depth_scale: f32,
     parallax_mapping_method: SerializedParallaxMappingMethod,
     max_parallax_layer_count: f32,
@@ -110,47 +112,56 @@ pub struct SerializedStandardMaterial {
     uv_transform: Affine2,
 }
 
+#[derive(Error, Debug)]
+pub enum SerializedStandardMaterialError {
+    #[error("Image not found: {0}")]
+    ImageNotFound(&'static str),
+}
+
 impl SerializedStandardMaterial {
     /// Serialize a [`StandardMaterial`] into a [`SerializedStandardMaterial`]. Returns `None` if any of the images are not found in `images`.
     pub fn try_from_standard_material(
         material: StandardMaterial,
+        indices: &mut HashMap<Handle<Image>, u32>,
         images: &Assets<Image>,
-    ) -> Option<Self> {
-        Some(Self {
+        cache: &mut Vec<SerializedImage>,
+    ) -> Result<Self, SerializedStandardMaterialError> {
+        let mut serialize_image = |image_handle, name| {
+            if let Some(image_handle) = image_handle {
+                let index = match indices.get(&image_handle) {
+                    Some(&index) => index,
+                    None => {
+                        let Some(image) = images.get(&image_handle) else {
+                            return Err(SerializedStandardMaterialError::ImageNotFound(name));
+                        };
+                        let index = cache.len() as u32;
+                        cache.push(SerializedImage::from_image(image.clone()));
+                        indices.insert(image_handle, index);
+                        index
+                    }
+                };
+                Ok(Some(index))
+            } else {
+                Ok(None)
+            }
+        };
+        Ok(Self {
             base_color: material.base_color,
             base_color_channel: SerializedUvChannel::from_uv_channel(material.base_color_channel),
-            base_color_texture: if let Some(image) = material.base_color_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            base_color_texture: serialize_image(material.base_color_texture, "base_color_texture")?,
             emissive: material.emissive,
             emissive_exposure_weight: material.emissive_exposure_weight,
             emissive_channel: SerializedUvChannel::from_uv_channel(material.emissive_channel),
-            emissive_texture: if let Some(image) = material.emissive_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            emissive_texture: serialize_image(material.emissive_texture, "emissive_texture")?,
             perceptual_roughness: material.perceptual_roughness,
             metallic: material.metallic,
             metallic_roughness_channel: SerializedUvChannel::from_uv_channel(
                 material.metallic_roughness_channel,
             ),
-            metallic_roughness_texture: if let Some(image) = material.metallic_roughness_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            metallic_roughness_texture: serialize_image(
+                material.metallic_roughness_texture,
+                "metallic_roughness_texture",
+            )?,
             reflectance: material.reflectance,
             specular_tint: material.specular_tint,
             diffuse_transmission: material.diffuse_transmission,
@@ -159,155 +170,83 @@ impl SerializedStandardMaterial {
                 material.diffuse_transmission_channel,
             ),
             #[cfg(feature = "pbr_transmission_textures")]
-            diffuse_transmission_texture: if let Some(image) = material.diffuse_transmission_texture
-            {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            diffuse_transmission_texture: serialize_image(
+                material.diffuse_transmission_texture,
+                "diffuse_transmission_texture",
+            )?,
             specular_transmission: material.specular_transmission,
             #[cfg(feature = "pbr_transmission_textures")]
             specular_transmission_channel: SerializedUvChannel::from_uv_channel(
                 material.specular_transmission_channel,
             ),
             #[cfg(feature = "pbr_transmission_textures")]
-            specular_transmission_texture: if let Some(image) =
-                material.specular_transmission_texture
-            {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            specular_transmission_texture: serialize_image(
+                material.specular_transmission_texture,
+                "specular_transmission_texture",
+            )?,
             thickness: material.thickness,
             #[cfg(feature = "pbr_transmission_textures")]
             thickness_channel: SerializedUvChannel::from_uv_channel(material.thickness_channel),
             #[cfg(feature = "pbr_transmission_textures")]
-            thickness_texture: if let Some(image) = material.thickness_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            thickness_texture: serialize_image(material.thickness_texture, "thickness_texture")?,
             ior: material.ior,
             attenuation_distance: material.attenuation_distance,
             attenuation_color: material.attenuation_color,
             normal_map_channel: SerializedUvChannel::from_uv_channel(material.normal_map_channel),
-            normal_map_texture: if let Some(image) = material.normal_map_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            normal_map_texture: serialize_image(material.normal_map_texture, "normal_map_texture")?,
             flip_normal_map_y: material.flip_normal_map_y,
             occlusion_channel: SerializedUvChannel::from_uv_channel(material.occlusion_channel),
-            occlusion_texture: if let Some(image) = material.occlusion_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            occlusion_texture: serialize_image(material.occlusion_texture, "occlusion_texture")?,
             #[cfg(feature = "pbr_specular_textures")]
             specular_channel: SerializedUvChannel::from_uv_channel(material.specular_channel),
             #[cfg(feature = "pbr_specular_textures")]
-            specular_texture: if let Some(image) = material.specular_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            specular_texture: serialize_image(material.specular_texture, "specular_texture")?,
             #[cfg(feature = "pbr_specular_textures")]
             specular_tint_channel: SerializedUvChannel::from_uv_channel(
                 material.specular_tint_channel,
             ),
             #[cfg(feature = "pbr_specular_textures")]
-            specular_tint_texture: if let Some(image) = material.specular_tint_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            specular_tint_texture: serialize_image(
+                material.specular_tint_texture,
+                "specular_tint_texture",
+            )?,
             clearcoat: material.clearcoat,
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_channel: SerializedUvChannel::from_uv_channel(material.clearcoat_channel),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_texture: if let Some(image) = material.clearcoat_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            clearcoat_texture: serialize_image(material.clearcoat_texture, "clearcoat_texture")?,
             clearcoat_perceptual_roughness: material.clearcoat_perceptual_roughness,
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_roughness_channel: SerializedUvChannel::from_uv_channel(
                 material.clearcoat_roughness_channel,
             ),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_roughness_texture: if let Some(image) = material.clearcoat_roughness_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            clearcoat_roughness_texture: serialize_image(
+                material.clearcoat_roughness_texture,
+                "clearcoat_roughness_texture",
+            )?,
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_normal_channel: SerializedUvChannel::from_uv_channel(
                 material.clearcoat_normal_channel,
             ),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_normal_texture: if let Some(image) = material.clearcoat_normal_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            clearcoat_normal_texture: serialize_image(
+                material.clearcoat_normal_texture,
+                "clearcoat_normal_texture",
+            )?,
             anisotropy_strength: material.anisotropy_strength,
             anisotropy_rotation: material.anisotropy_rotation,
             #[cfg(feature = "pbr_anisotropy_texture")]
             anisotropy_channel: SerializedUvChannel::from_uv_channel(material.anisotropy_channel),
             #[cfg(feature = "pbr_anisotropy_texture")]
-            anisotropy_texture: if let Some(image) = material.anisotropy_texture {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            anisotropy_texture: serialize_image(material.anisotropy_texture, "anisotropy_texture")?,
             double_sided: material.double_sided,
             cull_mode: material.cull_mode,
             unlit: material.unlit,
             fog_enabled: material.fog_enabled,
             alpha_mode: SerializedAlphaMode::from_alpha_mode(material.alpha_mode),
             depth_bias: material.depth_bias,
-            depth_map: if let Some(image) = material.depth_map {
-                let Some(image) = images.get(&image) else {
-                    return None;
-                };
-                Some(SerializedImage::from_image(image.clone()))
-            } else {
-                None
-            },
+            depth_map: serialize_image(material.depth_map, "depth_map")?,
             parallax_depth_scale: material.parallax_depth_scale,
             parallax_mapping_method: SerializedParallaxMappingMethod::from_parallax_mapping_method(
                 material.parallax_mapping_method,
@@ -323,107 +262,96 @@ impl SerializedStandardMaterial {
     }
 
     /// Deserialize a [`SerializedStandardMaterial`] into a [`StandardMaterial`].
-    pub fn into_standard_material(self, images: &mut Assets<Image>) -> StandardMaterial {
+    pub fn into_standard_material(
+        self,
+        indices: &mut HashMap<u32, Handle<Image>>,
+        images: &mut Assets<Image>,
+        serialized_images: &[SerializedImage],
+    ) -> StandardMaterial {
+        let mut deserialize_image = |index| {
+            let index = index?;
+            let handle = if let Some(handle) = indices.get(&index) {
+                handle.clone()
+            } else {
+                let image = serialized_images[index as usize].clone().into_image();
+                let handle = images.add(image);
+                indices.insert(index, handle.clone());
+                handle
+            };
+            Some(handle)
+        };
         StandardMaterial {
             base_color: self.base_color,
             base_color_channel: self.base_color_channel.into_uv_channel(),
-            base_color_texture: self
-                .base_color_texture
-                .map(|image| images.add(image.into_image())),
+            base_color_texture: deserialize_image(self.base_color_texture),
             emissive: self.emissive,
             emissive_exposure_weight: self.emissive_exposure_weight,
             emissive_channel: self.emissive_channel.into_uv_channel(),
-            emissive_texture: self
-                .emissive_texture
-                .map(|image| images.add(image.into_image())),
+            emissive_texture: deserialize_image(self.emissive_texture),
             perceptual_roughness: self.perceptual_roughness,
             metallic: self.metallic,
             metallic_roughness_channel: self.metallic_roughness_channel.into_uv_channel(),
-            metallic_roughness_texture: self
-                .metallic_roughness_texture
-                .map(|image| images.add(image.into_image())),
+            metallic_roughness_texture: deserialize_image(self.metallic_roughness_texture),
             reflectance: self.reflectance,
             specular_tint: self.specular_tint,
             diffuse_transmission: self.diffuse_transmission,
             #[cfg(feature = "pbr_transmission_textures")]
             diffuse_transmission_channel: self.diffuse_transmission_channel.into_uv_channel(),
             #[cfg(feature = "pbr_transmission_textures")]
-            diffuse_transmission_texture: self
-                .diffuse_transmission_texture
-                .map(|image| images.add(image.into_image())),
+            diffuse_transmission_texture: deserialize_image(self.diffuse_transmission_texture),
             specular_transmission: self.specular_transmission,
             #[cfg(feature = "pbr_transmission_textures")]
             specular_transmission_channel: self.specular_transmission_channel.into_uv_channel(),
             #[cfg(feature = "pbr_transmission_textures")]
-            specular_transmission_texture: self
-                .specular_transmission_texture
-                .map(|image| images.add(image.into_image())),
+            specular_transmission_texture: deserialize_image(self.specular_transmission_texture),
             thickness: self.thickness,
             #[cfg(feature = "pbr_transmission_textures")]
             thickness_channel: self.thickness_channel.into_uv_channel(),
             #[cfg(feature = "pbr_transmission_textures")]
-            thickness_texture: self
-                .thickness_texture
-                .map(|image| images.add(image.into_image())),
+            thickness_texture: deserialize_image(self.thickness_texture),
             ior: self.ior,
             attenuation_distance: self.attenuation_distance,
             attenuation_color: self.attenuation_color,
             normal_map_channel: self.normal_map_channel.into_uv_channel(),
-            normal_map_texture: self
-                .normal_map_texture
-                .map(|image| images.add(image.into_image())),
+            normal_map_texture: deserialize_image(self.normal_map_texture),
             flip_normal_map_y: self.flip_normal_map_y,
             occlusion_channel: self.occlusion_channel.into_uv_channel(),
-            occlusion_texture: self
-                .occlusion_texture
-                .map(|image| images.add(image.into_image())),
+            occlusion_texture: deserialize_image(self.occlusion_texture),
             #[cfg(feature = "pbr_specular_textures")]
             specular_channel: self.specular_channel.into_uv_channel(),
             #[cfg(feature = "pbr_specular_textures")]
-            specular_texture: self
-                .specular_texture
-                .map(|image| images.add(image.into_image())),
+            specular_texture: deserialize_image(self.specular_texture),
             #[cfg(feature = "pbr_specular_textures")]
             specular_tint_channel: self.specular_tint_channel.into_uv_channel(),
             #[cfg(feature = "pbr_specular_textures")]
-            specular_tint_texture: self
-                .specular_tint_texture
-                .map(|image| images.add(image.into_image())),
+            specular_tint_texture: deserialize_image(self.specular_tint_texture),
             clearcoat: self.clearcoat,
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_channel: self.clearcoat_channel.into_uv_channel(),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_texture: self
-                .clearcoat_texture
-                .map(|image| images.add(image.into_image())),
+            clearcoat_texture: deserialize_image(self.clearcoat_texture),
             clearcoat_perceptual_roughness: self.clearcoat_perceptual_roughness,
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_roughness_channel: self.clearcoat_roughness_channel.into_uv_channel(),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_roughness_texture: self
-                .clearcoat_roughness_texture
-                .map(|image| images.add(image.into_image())),
+            clearcoat_roughness_texture: deserialize_image(self.clearcoat_roughness_texture),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
             clearcoat_normal_channel: self.clearcoat_normal_channel.into_uv_channel(),
             #[cfg(feature = "pbr_multi_layer_material_textures")]
-            clearcoat_normal_texture: self
-                .clearcoat_normal_texture
-                .map(|image| images.add(image.into_image())),
+            clearcoat_normal_texture: deserialize_image(self.clearcoat_normal_texture),
             anisotropy_strength: self.anisotropy_strength,
             anisotropy_rotation: self.anisotropy_rotation,
             #[cfg(feature = "pbr_anisotropy_texture")]
             anisotropy_channel: self.anisotropy_channel.into_uv_channel(),
             #[cfg(feature = "pbr_anisotropy_texture")]
-            anisotropy_texture: self
-                .anisotropy_texture
-                .map(|image| images.add(image.into_image())),
+            anisotropy_texture: deserialize_image(self.anisotropy_texture),
             double_sided: self.double_sided,
             cull_mode: self.cull_mode,
             unlit: self.unlit,
             fog_enabled: self.fog_enabled,
             alpha_mode: self.alpha_mode.into_alpha_mode(),
             depth_bias: self.depth_bias,
-            depth_map: self.depth_map.map(|image| images.add(image.into_image())),
+            depth_map: deserialize_image(self.depth_map),
             parallax_depth_scale: self.parallax_depth_scale,
             parallax_mapping_method: self.parallax_mapping_method.into_parallax_mapping_method(),
             max_parallax_layer_count: self.max_parallax_layer_count,

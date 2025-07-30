@@ -4,10 +4,15 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemId};
+use bevy_image::Image;
+use bevy_pbr::{MeshMaterial3d, StandardMaterial};
+use bevy_platform::collections::HashMap;
 use bevy_reflect::prelude::*;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-use bevy_rerecast_transmission::{SerializedMesh, serialize};
+use bevy_rerecast_transmission::{
+    SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize,
+};
 use bevy_transform::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -135,12 +140,20 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
     for id in system_ids.iter() {
         let rasterizer_result = world.run_system(*id);
         if let Ok(rasterizer_response) = rasterizer_result {
-            affectors.extend(rasterizer_response);
+            affectors.extend(
+                rasterizer_response
+                    .into_iter()
+                    .map(|(transform, mesh)| AffectorMesh { transform, mesh }),
+            );
         }
     }
 
-    let mut visuals = world
-        .query_filtered::<(&GlobalTransform, &Mesh3d, &InheritedVisibility), With<EditorVisible>>();
+    let mut visuals = world.query_filtered::<(
+        &GlobalTransform,
+        &Mesh3d,
+        &InheritedVisibility,
+        Option<&MeshMaterial3d<StandardMaterial>>,
+    ), With<EditorVisible>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INTERNAL_ERROR,
@@ -148,21 +161,85 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
             data: None,
         });
     };
+    let Some(images) = world.get_resource::<Assets<Image>>() else {
+        return Err(BrpError {
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            message: "Failed to get images".to_string(),
+            data: None,
+        });
+    };
+    let Some(materials) = world.get_resource::<Assets<StandardMaterial>>() else {
+        return Err(BrpError {
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            message: "Failed to get images".to_string(),
+            data: None,
+        });
+    };
+
+    let mut image_indices: HashMap<Handle<Image>, u32> = HashMap::new();
+    let mut material_indices: HashMap<Handle<StandardMaterial>, u32> = HashMap::new();
+    let mut mesh_indices: HashMap<Handle<Mesh>, u32> = HashMap::new();
+    let mut serialized_images: Vec<SerializedImage> = Vec::new();
+    let mut serialized_materials: Vec<SerializedStandardMaterial> = Vec::new();
+    let mut serialized_meshes: Vec<SerializedMesh> = Vec::new();
+
     let visuals = visuals
         .iter(world)
-        .filter_map(|(transform, mesh, visibility)| {
+        .filter_map(|(transform, mesh_handle, visibility, material_handle)| {
             if !matches!(*visibility, InheritedVisibility::VISIBLE) {
                 return None;
             }
             let transform = *transform;
-            let mesh = meshes.get(mesh)?;
-            let proxy_mesh = SerializedMesh::from_mesh(mesh);
-            Some((transform, proxy_mesh))
+            let mesh_index = if let Some(&index) = mesh_indices.get(&mesh_handle.0) {
+                index
+            } else {
+                let mesh = meshes.get(mesh_handle)?;
+                let index = serialized_meshes.len() as u32;
+                serialized_meshes.push(SerializedMesh::from_mesh(mesh));
+                mesh_indices.insert(mesh_handle.0.clone(), index);
+                index
+            };
+            let material_index = if let Some(material_handle) = material_handle {
+                if let Some(&index) = material_indices.get(&material_handle.0) {
+                    Some(index)
+                } else {
+                    match materials.get(material_handle) {
+                        Some(material) => {
+                            let index = serialized_materials.len() as u32;
+                            match SerializedStandardMaterial::try_from_standard_material(
+                                material.clone(),
+                                &mut image_indices,
+                                &images,
+                                &mut serialized_images,
+                            ) {
+                                Ok(serialized_material) => {
+                                    serialized_materials.push(serialized_material);
+                                    material_indices.insert(material_handle.0.clone(), index);
+                                    Some(index)
+                                }
+                                Err(_e) => None,
+                            }
+                        }
+                        None => None,
+                    }
+                }
+            } else {
+                None
+            };
+
+            Some(VisualMesh {
+                transform,
+                mesh: mesh_index,
+                material: material_index,
+            })
         })
         .collect::<Vec<_>>();
     let response = NavmeshInputResponse {
         affector_meshes: affectors,
         visual_meshes: visuals,
+        materials: serialized_materials,
+        meshes: serialized_meshes,
+        images: serialized_images,
     };
 
     serialize(&response).map_err(|e| BrpError {
@@ -176,11 +253,36 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
 pub const BRP_GET_NAVMESH_INPUT_METHOD: &str = "bevy_rerecast/get_navmesh_input";
 
 /// The response to [`BRP_GET_NAVMESH_INPUT_METHOD`] requests.
-#[derive(Debug, Default, Reflect, Serialize, Deserialize)]
-#[reflect(Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct NavmeshInputResponse {
     /// The meshes that affect the navmesh.
-    pub affector_meshes: Vec<(GlobalTransform, SerializedMesh)>,
+    pub affector_meshes: Vec<AffectorMesh>,
     /// Additional meshes that don't affect the navmesh, but are sent to the editor for visualization.
-    pub visual_meshes: Vec<(GlobalTransform, SerializedMesh)>,
+    pub visual_meshes: Vec<VisualMesh>,
+    /// Materials indexed by [`Self::visual_meshes`].
+    pub materials: Vec<SerializedStandardMaterial>,
+    /// Meshes indexed by [`Self::visual_meshes`].
+    pub meshes: Vec<SerializedMesh>,
+    /// Images indexed by [`Self::materials`].
+    pub images: Vec<SerializedImage>,
+}
+
+/// A mesh that affects the navmesh.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AffectorMesh {
+    /// The transform of the mesh.
+    pub transform: GlobalTransform,
+    /// The mesh data.
+    pub mesh: SerializedMesh,
+}
+
+/// A mesh that doesn't affect the navmesh, but is sent to the editor for visualization.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VisualMesh {
+    /// The transform of the mesh.
+    pub transform: GlobalTransform,
+    /// The index of the mesh in [`NavmeshInputResponse::meshes`].
+    pub mesh: u32,
+    /// The index of the material in [`NavmeshInputResponse::materials`].
+    pub material: Option<u32>,
 }
