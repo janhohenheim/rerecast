@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{DetailPolygonMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
+    rerecast::{DetailNavmesh, PolygonNavmesh, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,8 +39,8 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Resource)]
 pub(crate) struct Navmesh {
-    pub(crate) poly_mesh: PolygonMesh,
-    pub(crate) detail_mesh: DetailPolygonMesh,
+    pub(crate) poly_mesh: PolygonNavmesh,
+    pub(crate) detail_mesh: DetailNavmesh,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -144,14 +144,14 @@ fn draw_poly_mesh(
     *visibility = Visibility::Inherited;
 
     let mesh = &navmesh.poly_mesh;
-    let nvp = mesh.vertices_per_polygon;
-    let origin = Vec3::from(mesh.aabb.min);
+    let nvp = mesh.max_vertices_per_polygon as usize;
+    let origin = mesh.aabb.min;
     let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * 2 * nvp..];
+        let poly = &mesh.polygons[i * nvp..];
         let mut verts = poly[..nvp]
             .iter()
-            .filter(|i| **i != RC_MESH_NULL_IDX)
+            .filter(|i| **i != PolygonNavmesh::NO_INDEX)
             .map(|i| {
                 let vert_local = mesh.vertices[*i as usize];
 
@@ -169,7 +169,7 @@ fn draw_poly_mesh(
     let mut visual_indices = Vec::new();
 
     for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * 2 * nvp..];
+        let poly = &mesh.polygons[i * nvp..];
         let a = origin + mesh.vertices[poly[0] as usize].as_vec3() * to_local;
         let a_idx = visual_verts.len() as u32;
         visual_verts.push(a);
@@ -178,7 +178,7 @@ fn draw_poly_mesh(
         for val in poly[1..nvp].windows(2) {
             let b = val[0];
             let c = val[1];
-            if b == RC_MESH_NULL_IDX || c == RC_MESH_NULL_IDX {
+            if b == PolygonNavmesh::NO_INDEX || c == PolygonNavmesh::NO_INDEX {
                 continue;
             }
             let b = origin + mesh.vertices[b as usize].as_vec3() * to_local;
@@ -230,14 +230,14 @@ fn draw_detail_mesh(
 
     let mesh = &navmesh.detail_mesh;
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
-        let submesh_tris =
-            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
-        for (tri, _data) in submesh_tris {
+        let submesh_verts =
+            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
+            [..submesh.triangle_count as usize];
+        for tri in submesh_tris {
             let mut verts = tri
-                .to_array()
                 .iter()
-                .map(|i| Vec3::from(submesh_verts[*i as usize]))
+                .map(|i| submesh_verts[*i as usize])
                 .collect::<Vec<_>>();
             // Connect back to first vertex to finish the polygon
             verts.push(verts[0]);
@@ -251,16 +251,17 @@ fn draw_detail_mesh(
     let mut visual_indices = Vec::new();
 
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
+        let submesh_verts =
+            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
 
-        let submesh_tris =
-            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
-        for (tri, _data) in submesh_tris.iter() {
-            for i in tri.to_array() {
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
+            [..submesh.triangle_count as usize];
+        for tri in submesh_tris.iter() {
+            for &i in tri {
                 visual_indices.push(i as u32 + visual_verts.len() as u32);
             }
         }
-        visual_verts.extend(submesh_verts.iter().map(|v| Vec3::from(*v)));
+        visual_verts.extend(submesh_verts.iter().copied());
     }
     visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
     visual_mesh.insert_indices(Indices::U32(visual_indices));

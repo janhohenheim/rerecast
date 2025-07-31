@@ -20,7 +20,7 @@ pub use rerecast;
 #[cfg(feature = "from_mesh")]
 use rerecast::{AreaType, TriMesh};
 
-/// Everything you need to get started with the NavMesh plugin.
+/// Everything you need to get started with the Navmesh plugins.
 pub mod prelude {
     #[cfg(feature = "from_mesh")]
     pub use crate::TriMeshExt as _;

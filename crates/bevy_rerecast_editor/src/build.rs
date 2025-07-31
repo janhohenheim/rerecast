@@ -2,7 +2,7 @@ use anyhow::Context;
 use bevy::prelude::*;
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{BuildContoursFlags, DetailPolygonMesh, HeightfieldBuilder, TriMesh},
+    rerecast::{self, DetailNavmesh, HeightfieldBuilder, TriMesh},
 };
 
 use crate::visualization::Navmesh;
@@ -15,46 +15,8 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Event)]
 pub(crate) struct BuildNavmesh;
 
-#[derive(Resource)]
-pub(crate) struct BuildNavmeshConfig {
-    pub(crate) cell_size: f32,
-    pub(crate) cell_height: f32,
-    pub(crate) walkable_slope: f32,
-    pub(crate) walkable_height: u16,
-    pub(crate) walkable_climb: u16,
-    pub(crate) walkable_radius: u16,
-    pub(crate) min_region_area: u16,
-    pub(crate) merge_region_area: u16,
-    pub(crate) border_size: u16,
-    pub(crate) max_simplification_error: f32,
-    pub(crate) max_edge_len: u16,
-    pub(crate) max_vertices_per_polygon: usize,
-    pub(crate) contour_flags: BuildContoursFlags,
-    pub(crate) detail_sample_dist: f32,
-    pub(crate) detail_sample_max_error: f32,
-}
-
-impl Default for BuildNavmeshConfig {
-    fn default() -> Self {
-        Self {
-            cell_size: 0.3,
-            cell_height: 0.2,
-            walkable_slope: 45.0_f32.to_radians(),
-            walkable_height: 10,
-            walkable_climb: 4,
-            walkable_radius: 2,
-            min_region_area: 64,
-            merge_region_area: 400,
-            border_size: 5,
-            max_simplification_error: 1.3,
-            max_edge_len: 40,
-            max_vertices_per_polygon: 6,
-            contour_flags: BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES,
-            detail_sample_dist: 1.8,
-            detail_sample_max_error: 0.2,
-        }
-    }
-}
+#[derive(Resource, Default, Deref, DerefMut)]
+pub(crate) struct BuildNavmeshConfig(rerecast::NavmeshConfig);
 
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
@@ -82,7 +44,7 @@ fn build_navmesh(
 
     let aabb = trimesh.compute_aabb().context("Trimesh is empty")?;
 
-    trimesh.mark_walkable_triangles(config.walkable_slope);
+    trimesh.mark_walkable_triangles(config.walkable_slope_angle);
 
     let mut heightfield = HeightfieldBuilder {
         aabb,
@@ -135,7 +97,7 @@ fn build_navmesh(
 
     let poly_mesh = contours.into_polygon_mesh(config.max_vertices_per_polygon)?;
 
-    let detail_mesh = DetailPolygonMesh::new(
+    let detail_mesh = DetailNavmesh::new(
         &poly_mesh,
         &compact_heightfield,
         config.detail_sample_dist,

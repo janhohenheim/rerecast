@@ -1,7 +1,13 @@
 use crate::region::RegionId;
 
-/// A span in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
-/// Packed for memory efficiency.
+/// Represents a span of unobstructed space within a compact heightfield.
+///
+/// The span represents open, unobstructed space within a compact heightfield column.
+/// See the [`CompactHeightfield`] documentation for an example of iterating spans and searching span connections.
+///
+/// Useful instances of this type can only by obtained from a [`CompactHeightfield`] object.
+///
+/// [`CompactHeightfield`]: crate::CompactHeightfield
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactSpan {
@@ -10,7 +16,7 @@ pub struct CompactSpan {
     /// The id of the region the span belongs to. (Or [`RegionId::NONE`] if not in a region.)
     pub region: RegionId,
     /// 24 bits: packed neighbor connection data
-    /// 8 bits: the height of the span
+    /// 8 bits: the height of the span, measured from [`Self::y`]
     pub data: u32,
 }
 

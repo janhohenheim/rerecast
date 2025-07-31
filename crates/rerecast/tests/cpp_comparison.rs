@@ -2,10 +2,10 @@
 
 use std::env;
 
-use glam::{U8Vec3, UVec3, Vec2, Vec3A};
+use glam::{U8Vec3, UVec3, Vec2, Vec3, Vec3A};
 use rerecast::{
-    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailPolygonMesh,
-    Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
+    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavmesh,
+    Heightfield, HeightfieldBuilder, PolygonNavmesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -98,7 +98,7 @@ fn validate_navmesh_against_cpp_implementation() {
         .unwrap();
     assert_eq_poly_mesh(&poly_mesh, "poly_mesh");
 
-    let detail_mesh = DetailPolygonMesh::new(
+    let detail_mesh = DetailNavmesh::new(
         &poly_mesh,
         &compact_heightfield,
         detail_sample_dist,
@@ -122,12 +122,12 @@ fn assert_eq_heightfield(heightfield: &Heightfield, reference_name: &str) {
     );
     assert_eq!(
         heightfield.aabb.min,
-        Vec3A::from(cpp_heightfield.bmin),
+        Vec3::from(cpp_heightfield.bmin),
         "heightfield aabb min"
     );
     assert_eq!(
         heightfield.aabb.max,
-        Vec3A::from(cpp_heightfield.bmax),
+        Vec3::from(cpp_heightfield.bmax),
         "heightfield aabb max"
     );
     assert_eq!(
@@ -165,20 +165,20 @@ fn assert_eq_heightfield(heightfield: &Heightfield, reference_name: &str) {
                 });
                 loop {
                     let span = heightfield.allocated_spans[span_key].clone();
-                    assert_eq!(span.min(), cpp_span.min, "[{x}, {z}, {layer}] span min");
-                    assert_eq!(span.max(), cpp_span.max, "[{x}, {z}, {layer}] span max");
+                    assert_eq!(span.min, cpp_span.min, "[{x}, {z}, {layer}] span min");
+                    assert_eq!(span.max, cpp_span.max, "[{x}, {z}, {layer}] span max");
                     let cpp_area = if cpp_span.area == 63 {
                         // We use u8::MAX currently, though this may change in the future.
                         AreaType::DEFAULT_WALKABLE
                     } else {
                         AreaType::from(cpp_span.area)
                     };
-                    assert_eq!(span.area(), cpp_area, "[{x}, {z}, {layer}] span area");
+                    assert_eq!(span.area, cpp_area, "[{x}, {z}, {layer}] span area");
                     if let EmptyOption::Some(next) = cpp_span.next {
-                        span_key = span.next().unwrap();
+                        span_key = span.next.unwrap();
                         cpp_span = *next;
                     } else {
-                        assert!(span.next().is_none());
+                        assert!(span.next.is_none());
                         break;
                     }
                     layer += 1;
@@ -228,12 +228,12 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
     );
     assert_eq!(
         compact_heightfield.aabb.min,
-        Vec3A::from(cpp_heightfield.bmin),
+        Vec3::from(cpp_heightfield.bmin),
         "compact_heightfield aabb min"
     );
     assert_eq!(
         compact_heightfield.aabb.max,
-        Vec3A::from(cpp_heightfield.bmax),
+        Vec3::from(cpp_heightfield.bmax),
         "compact_heightfield aabb max"
     );
     assert_eq!(
@@ -404,7 +404,7 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
                 coord.as_uvec3().to_array(),
                 "contour {i} vertex coordinates"
             );
-            assert_eq!(cpp_vert[3] as usize, *data, "contour {i} vertex data");
+            assert_eq!(cpp_vert[3], *data, "contour {i} vertex data");
         }
         for (cpp_vert, (coord, data)) in cpp_contour.rverts.iter().zip(contour.raw_vertices.iter())
         {
@@ -420,7 +420,7 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
 }
 
 #[track_caller]
-fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
+fn assert_eq_poly_mesh(poly_mesh: &PolygonNavmesh, reference_name: &str) {
     let cpp_poly_mesh = load_json::<CppPolyMesh>(reference_name);
     assert_eq!(
         cpp_poly_mesh.bmin,
@@ -442,7 +442,7 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     );
 
     assert_eq!(
-        cpp_poly_mesh.nvp, poly_mesh.vertices_per_polygon,
+        cpp_poly_mesh.nvp, poly_mesh.max_vertices_per_polygon,
         "poly mesh vertices per polygon"
     );
 
@@ -468,17 +468,35 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
         assert_eq!(cpp_vert, &vert.to_array(), "{i} poly mesh vertices");
     }
     assert_eq!(
-        cpp_poly_mesh.polys.len(),
+        cpp_poly_mesh.polys.len() / 2,
         poly_mesh.polygons.len(),
         "poly mesh polygons len"
     );
-    for (i, (cpp_poly, poly)) in cpp_poly_mesh
+    assert_eq!(
+        cpp_poly_mesh.polys.len() / 2,
+        poly_mesh.polygon_neighbors.len(),
+        "poly mesh polygons len"
+    );
+    let mut cpp_polys = Vec::new();
+    let mut cpp_neighbors = Vec::new();
+    for verts in cpp_poly_mesh
         .polys
+        .chunks_exact(cpp_poly_mesh.nvp as usize * 2)
+    {
+        let (verts, neighbors) = verts.split_at(cpp_poly_mesh.nvp as usize);
+        cpp_polys.extend_from_slice(verts);
+        cpp_neighbors.extend_from_slice(neighbors);
+    }
+    for (i, (cpp_poly, poly)) in cpp_polys.iter().zip(poly_mesh.polygons.iter()).enumerate() {
+        assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
+    }
+
+    for (i, (cpp_neighbor, neighbor)) in cpp_neighbors
         .iter()
-        .zip(poly_mesh.polygons.iter())
+        .zip(poly_mesh.polygon_neighbors.iter())
         .enumerate()
     {
-        assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
+        assert_eq!(cpp_neighbor, neighbor, "{i} poly mesh polygon neighbor");
     }
     assert_eq!(
         cpp_poly_mesh.flags.len(),
@@ -515,7 +533,7 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
 }
 
 #[track_caller]
-fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) {
+fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
     let cpp_detail_mesh = load_json::<CppDetailPolyMesh>(reference_name);
 
     assert_eq!(
@@ -530,19 +548,19 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         .enumerate()
     {
         assert_eq!(
-            cpp_mesh[0] as usize, mesh.first_vertex_index,
+            cpp_mesh[0] as u32, mesh.base_vertex_index,
             "{i} detail mesh first vertex index"
         );
         assert_eq!(
-            cpp_mesh[1] as usize, mesh.vertex_count,
+            cpp_mesh[1] as u32, mesh.vertex_count,
             "{i} detail mesh vertex_count"
         );
         assert_eq!(
-            cpp_mesh[2] as usize, mesh.first_triangle_index,
+            cpp_mesh[2] as u32, mesh.base_triangle_index,
             "{i} detail mesh first triangle index"
         );
         assert_eq!(
-            cpp_mesh[3] as usize, mesh.triangle_count,
+            cpp_mesh[3] as u32, mesh.triangle_count,
             "{i} detail mesh triangle_count"
         );
     }
@@ -552,15 +570,20 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
         detail_mesh.triangles.len(),
         "detail mesh triangles len"
     );
-    for (i, (cpp_tri, (tri, data))) in cpp_detail_mesh
+    for (i, ((cpp_tri, tri), flags)) in cpp_detail_mesh
         .tris
         .iter()
         .zip(detail_mesh.triangles.iter())
+        .zip(detail_mesh.triangle_flags.iter())
         .enumerate()
     {
-        let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
-        assert_eq!(cpp_tri_without_data, *tri, "{i} detail mesh triangle");
-        assert_eq!(cpp_tri[3] as usize, *data, "{i} detail mesh triangle data");
+        let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]);
+        assert_eq!(
+            cpp_tri_without_data,
+            U8Vec3::from_array(*tri),
+            "{i} detail mesh triangle"
+        );
+        assert_eq!(cpp_tri[3], *flags, "{i} detail mesh triangle data");
     }
 
     assert_eq!(
@@ -576,7 +599,7 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailPolygonMesh, reference_name: &str) 
     {
         // the jitter functions are sliiiiiightly different in Rust and C++
         assert!(
-            vert.distance(Vec3A::from_array(*cpp_vert)) < 1.0e-5,
+            vert.distance(Vec3::from_array(*cpp_vert)) < 1.0e-5,
             "{cpp_vert:?} != {vert} failed: {i} detail mesh vertex"
         );
     }
@@ -714,7 +737,7 @@ struct CppPolyMesh {
     polys: Vec<u16>,
     flags: Vec<u16>,
     areas: Vec<u8>,
-    nvp: usize,
+    nvp: u16,
     cs: f32,
     ch: f32,
     #[serde(rename = "borderSize")]
