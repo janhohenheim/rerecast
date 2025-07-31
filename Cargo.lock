@@ -373,14 +373,9 @@ dependencies = [
 name = "avian_rerecast"
 version = "0.0.2"
 dependencies = [
- "anyhow",
  "avian3d",
  "bevy",
  "bevy_rerecast",
- "bevy_rerecast_transmission",
- "rerecast",
- "slotmap",
- "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1210,26 +1205,25 @@ dependencies = [
 name = "bevy_rerecast"
 version = "0.0.2"
 dependencies = [
- "anyhow",
+ "bevy_rerecast_core",
+ "bevy_rerecast_editor_integration",
+]
+
+[[package]]
+name = "bevy_rerecast_core"
+version = "0.0.2"
+dependencies = [
  "bevy_app",
  "bevy_asset",
  "bevy_derive",
  "bevy_ecs",
- "bevy_image",
  "bevy_mesh",
- "bevy_pbr",
- "bevy_platform",
  "bevy_reflect",
- "bevy_remote",
  "bevy_render",
- "bevy_rerecast_transmission",
  "bevy_transform",
  "glam",
  "rerecast",
  "serde",
- "serde_json",
- "slotmap",
- "thiserror 2.0.12",
  "tracing",
 ]
 
@@ -1240,7 +1234,6 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy_rerecast",
- "bevy_rerecast_transmission",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -1248,11 +1241,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_rerecast_transmission"
+name = "bevy_rerecast_editor_integration"
 version = "0.0.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
+ "bevy_app",
  "bevy_asset",
  "bevy_color",
  "bevy_derive",
@@ -1262,8 +1256,11 @@ dependencies = [
  "bevy_pbr",
  "bevy_platform",
  "bevy_reflect",
+ "bevy_remote",
  "bevy_render",
+ "bevy_transform",
  "bincode",
+ "rerecast",
  "serde",
  "serde_json",
  "thiserror 2.0.12",

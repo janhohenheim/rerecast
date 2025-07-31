@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wgpu_types::Face;
 
-use crate::SerializedImage;
+use crate::transmission::SerializedImage;
 
 /// Serialized representation of a [`StandardMaterial`]
 #[derive(Debug, Clone, Serialize, Deserialize)]

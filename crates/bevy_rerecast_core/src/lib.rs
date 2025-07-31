@@ -2,9 +2,6 @@
 
 use bevy_app::{PluginGroupBuilder, prelude::*};
 use bevy_asset::prelude::*;
-
-#[cfg(feature = "editor_integration")]
-pub mod editor_integration;
 #[cfg(feature = "bevy_mesh")]
 mod mesh;
 use bevy_reflect::Reflect;

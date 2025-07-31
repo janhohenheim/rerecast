@@ -6,12 +6,9 @@ use bevy_ecs::prelude::*;
 use bevy_image::Image;
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
-use bevy_reflect::prelude::*;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-use bevy_rerecast_transmission::{
-    SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize,
-};
+
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
 use serde::{Deserialize, Serialize};
@@ -19,50 +16,12 @@ use serde_json::Value;
 
 use crate::NavmeshAffectorBackend;
 
-/// The optional editor integration for authoring the navmesh.
-#[derive(Debug, Default)]
-#[non_exhaustive]
-pub struct RerecastEditorIntegrationPlugin {
-    /// The settings for when [`EditorVisible`] is inserted automatically.
-    pub visibility_settings: EditorVisibilitySettings,
+pub(super) fn plugin(app: &mut App) {
+    app.add_systems(
+        Startup,
+        setup_methods.run_if(resource_exists::<RemoteMethods>),
+    );
 }
-
-impl Plugin for RerecastEditorIntegrationPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            Startup,
-            setup_methods.run_if(resource_exists::<RemoteMethods>),
-        );
-        app.register_type::<EditorVisible>();
-        match self.visibility_settings {
-            EditorVisibilitySettings::AllMeshes => {
-                app.add_observer(insert_editor_visible_to_meshes);
-            }
-            EditorVisibilitySettings::Manual => {}
-        }
-    }
-}
-
-fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
-    commands.entity(trigger.target()).insert(EditorVisible);
-}
-
-/// The settings for when [`EditorVisible`] is inserted automatically.
-#[derive(Debug, Default)]
-pub enum EditorVisibilitySettings {
-    /// All entities with [`Mesh3d`] will have [EditorVisible`] inserted automatically.
-    #[default]
-    AllMeshes,
-    /// [`EditorVisible`] will not be inserted automatically. The user must manually insert it.
-    Manual,
-}
-
-/// Component used to mark [`Mesh3d`]es so that they're sent to the editor for previewing the level.
-#[derive(Debug, Component, Reflect)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
-#[reflect(Component)]
-pub struct EditorVisible;
 
 fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
     methods.insert(

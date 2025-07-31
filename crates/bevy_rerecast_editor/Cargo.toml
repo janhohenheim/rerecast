@@ -17,9 +17,7 @@ bevy = { workspace = true, default-features = true, features = [
 ] }
 bevy_rerecast = { version = "0.0.2", path = "../bevy_rerecast", features = [
     "editor_integration",
-    "serialize",
 ] }
-bevy_rerecast_transmission = { version = "0.0.2", path = "../bevy_rerecast_transmission" }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }

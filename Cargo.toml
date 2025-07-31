@@ -28,7 +28,9 @@ glam = "0.29.3"
 
 # Bevy
 bevy = { version = "0.16.0", default-features = false }
-bevy_reflect = { version = "0.16.0", default-features = false }
+bevy_reflect = { version = "0.16.0", default-features = false, features = [
+    "glam",
+] }
 bevy_app = { version = "0.16.0", default-features = false }
 bevy_remote = { version = "0.16.0", default-features = false }
 bevy_mesh = { version = "0.16.0", default-features = false }

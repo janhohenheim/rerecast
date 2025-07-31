@@ -4,7 +4,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 mod collider_to_trimesh;
-use bevy_rerecast::NavmeshAffectorBackendAppExt as _;
+use bevy_rerecast::NavmeshApp as _;
 
 pub use rerecast;
 use rerecast::TriMesh;

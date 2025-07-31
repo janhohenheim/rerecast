@@ -13,14 +13,7 @@ readme = { workspace = true }
 [dependencies]
 bevy = { workspace = true }
 avian3d = { workspace = true }
-slotmap = { workspace = true }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-rerecast = { version = "0.0.2", path = "../rerecast" }
-
-# Editor integration
 bevy_rerecast = { version = "0.0.2", path = "../bevy_rerecast" }
-bevy_rerecast_transmission = { version = "0.0.2", path = "../bevy_rerecast_transmission" }
 
 [lints]
 workspace = true
