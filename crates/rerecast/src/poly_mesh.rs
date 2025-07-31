@@ -127,8 +127,8 @@ pub struct PolygonMesh {
 impl PolygonMesh {
     /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
     #[inline]
-    pub fn polygon_count(&self) -> u32 {
-        self.polygons.len() as u32 / (2 * self.vertices_per_polygon as u32)
+    pub fn polygon_count(&self) -> usize {
+        self.polygons.len() / (2 * self.vertices_per_polygon as usize)
     }
 }
 
@@ -136,7 +136,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
         value
             .polygons
-            .truncate(value.npolys * value.vertices_per_polygon * 2);
+            .truncate(value.npolys * value.vertices_per_polygon as usize * 2);
         value.vertices.truncate(value.nvertices as usize);
         value.areas.truncate(value.npolys);
         PolygonMesh {
@@ -159,7 +159,7 @@ impl ContourSet {
     /// Builds a polygon mesh from the provided contours.
     pub fn into_polygon_mesh(
         self,
-        max_vertices_per_polygon: usize,
+        max_vertices_per_polygon: u32,
     ) -> Result<PolygonMesh, PolygonMeshError> {
         let mut mesh = InternalPolygonMesh {
             aabb: self.aabb,
@@ -170,7 +170,7 @@ impl ContourSet {
             vertices_per_polygon: max_vertices_per_polygon,
             ..Default::default()
         };
-        let nvp = max_vertices_per_polygon;
+        let nvp = max_vertices_per_polygon as usize;
 
         let mut max_vertices = 0;
         let mut max_tris = 0;
@@ -398,7 +398,7 @@ struct Edge {
 
 impl InternalPolygonMesh {
     fn build_mesh_adjacency(&mut self) -> Result<(), PolygonMeshError> {
-        let nvp = self.vertices_per_polygon;
+        let nvp = self.vertices_per_polygon as usize;
         // Based on code by Eric Lengyel from:
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
@@ -476,7 +476,7 @@ impl InternalPolygonMesh {
     }
 
     fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
-        let nvp = self.vertices_per_polygon;
+        let nvp = self.vertices_per_polygon as usize;
 
         // Count number of polygons to remove.
         let mut num_removed_verts = 0;
@@ -744,7 +744,7 @@ impl InternalPolygonMesh {
     }
 
     fn can_remove_vertex(&self, rem: u16) -> bool {
-        let nvp = self.vertices_per_polygon;
+        let nvp = self.vertices_per_polygon as usize;
 
         // Count number of polygons to remove.
         let mut num_touched_verts = 0;

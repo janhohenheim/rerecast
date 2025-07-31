@@ -126,10 +126,10 @@ impl DetailNavmesh {
             return Ok(dmesh);
         }
         let chf = heightfield;
-        let nvp = mesh.vertices_per_polygon;
+        let nvp = mesh.vertices_per_polygon as usize;
         let cs = mesh.cell_size;
         let ch = mesh.cell_height;
-        let orig = mesh.aabb.min;
+        let orig = Vec3A::from(mesh.aabb.min);
         let border_size = mesh.border_size;
         let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
 
@@ -250,10 +250,10 @@ impl DetailNavmesh {
 
             // Store detail submesh
             let submesh = &mut dmesh.meshes[i];
-            submesh.base_vertex_index = dmesh.vertices.len();
-            submesh.vertex_count = nverts;
-            submesh.base_triangle_index = dmesh.triangles.len();
-            submesh.triangle_count = tris.len();
+            submesh.base_vertex_index = dmesh.vertices.len() as u32;
+            submesh.vertex_count = nverts as u32;
+            submesh.base_triangle_index = dmesh.triangles.len() as u32;
+            submesh.triangle_count = tris.len() as u32;
 
             // Store vertices, allocate more memory if necessary.
             if dmesh.vertices.len() + nverts > vcap {
@@ -292,7 +292,7 @@ fn build_poly_detail(
     hp: &HeightPatch,
     verts: &mut [Vec3A],
     nverts: &mut usize,
-    tris: &mut Vec<(U16Vec3, usize)>,
+    tris: &mut Vec<(U16Vec3, u32)>,
     edges: &mut Vec<Edges>,
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
@@ -430,12 +430,12 @@ fn build_poly_detail(
     if sample_dist > 0.0 {
         // Create sample locations in a grid.
         let mut aabb = Aabb3d {
-            min: in_[0],
-            max: in_[0],
+            min: in_[0].into(),
+            max: in_[0].into(),
         };
         for in_ in in_[..nin].iter().copied() {
-            aabb.min = aabb.min.min(in_);
-            aabb.max = aabb.max.max(in_);
+            aabb.min = aabb.min.min(in_.into());
+            aabb.max = aabb.max.max(in_.into());
         }
         let x0 = (aabb.min.x / sample_dist).floor() as i32;
         let x1 = (aabb.max.x / sample_dist).ceil() as i32;
@@ -529,7 +529,7 @@ fn delaunay_hull(
     pts: &[Vec3A],
     nhull: usize,
     hull: &mut [usize],
-    tris: &mut Vec<(U16Vec3, usize)>,
+    tris: &mut Vec<(U16Vec3, u32)>,
     edges: &mut Vec<Edges>,
 ) {
     let mut nfaces = 0;
@@ -630,7 +630,7 @@ fn delaunay_hull(
         p.y = edge[1].unwrap() as u16;
         p.z = edge[2].unwrap() as u16;
         // Will be overwritten by set_tri_flags
-        *d = edge[3].unwrap_or_zero();
+        *d = edge[3].unwrap_or_zero() as u32;
     }
 }
 
@@ -909,7 +909,7 @@ impl Default for Edge {
     }
 }
 
-fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, usize)]) -> Option<f32> {
+fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, u32)]) -> Option<f32> {
     let mut dmin = f32::MAX;
     for (tri, _) in tris {
         let va = verts[tri.x as usize];
@@ -982,9 +982,9 @@ fn dist_to_poly(nvert: usize, verts: &[Vec3A], p: Vec3A) -> f32 {
 }
 
 /// Find edges that lie on hull and mark them as such.
-fn set_tri_flags(tris: &mut Vec<(U16Vec3, usize)>, nhull: usize, hull: &[usize]) {
+fn set_tri_flags(tris: &mut Vec<(U16Vec3, u32)>, nhull: usize, hull: &[usize]) {
     // Matches DT_DETAIL_EDGE_BOUNDARY
-    const DETAIL_EDGE_BOUNDARY: usize = 0x1;
+    const DETAIL_EDGE_BOUNDARY: u32 = 0x1;
 
     for (tri, tri_flags) in tris {
         let mut flags = 0;
@@ -1027,7 +1027,7 @@ fn triangulate_hull(
     nhull: usize,
     hull: &[usize],
     nin: usize,
-    tris: &mut Vec<(U16Vec3, usize)>,
+    tris: &mut Vec<(U16Vec3, u32)>,
 ) {
     let mut start = 0;
     let mut left = 1;
