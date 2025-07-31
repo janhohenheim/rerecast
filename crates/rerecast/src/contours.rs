@@ -606,8 +606,9 @@ pub struct Contour {
     /// A contour edge is formed by the current and next vertex. The r-value represents region and connection information for the edge.
     /// For example:
     /// ```rust
-    /// let contour = Contour::default();
-    /// let i = 0;
+    /// # use rerecast::*;
+    /// # let contour = Contour::default();
+    /// # let i = 0;
     /// let r = contour.vertices[i * 4].1;
     ///
     /// let region_id = r & RegionVertexId::REGION_MASK.bits();
