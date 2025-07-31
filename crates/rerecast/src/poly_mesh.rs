@@ -109,13 +109,11 @@ pub struct PolygonNavmesh {
     /// Edges 3->4 and 4->8 are border edges not shared with any other polygon.
     /// ```
     pub polygons: Vec<u16>,
-    /// Corresponds to [`Self::polygons`]. Each entry is [`Self::max_vertices_per_polygon] in length.
-    ///
     /// Contains indices to each edge's connected polygons.
     /// A value of [`Self::NO_CONNECTION`] indicates no connection for the associated edge.
     /// (i.e. The edge is a solid border.)
     pub polygon_neighbors: Vec<u16>,
-    /// The flags assigned to each polygon.
+    /// The user-defined flags assigned to each polygon.
     pub flags: Vec<u16>,
     /// The region id assigned to each polygon.
     pub regions: Vec<RegionId>,

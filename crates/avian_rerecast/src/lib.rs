@@ -16,7 +16,7 @@ pub use rerecast;
 
 use crate::collider_to_trimesh::ToTriMesh;
 
-/// Everything you need to get started with the NavMesh plugin.
+/// Everything you need to get started with the Navmesh plugin.
 pub mod prelude {
     pub use crate::AvianRerecastPlugin;
 }

@@ -65,7 +65,7 @@ impl From<SpanBuilder> for Span {
     }
 }
 
-/// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L294>
+/// A span in the heightfield. This represents a single cell in a vertical column that is not occupied.
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Span {
