@@ -535,8 +535,10 @@ pub struct ContourSet {
 }
 
 bitflags::bitflags! {
+    /// Flags used by [`Contour::vertices`]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct RegionVertexId: u32 {
+        ///No flags
         const NONE = 0;
 
         /// Applied to the region id field of contour vertices in order to extract the region id.
