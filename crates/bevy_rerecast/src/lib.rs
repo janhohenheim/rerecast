@@ -1,30 +1,29 @@
 #![doc = include_str!("../../../readme.md")]
 
-use std::marker::PhantomData;
-
 use bevy_app::{PluginGroupBuilder, prelude::*};
-use bevy_ecs::prelude::*;
-use bevy_reflect::prelude::*;
+use bevy_derive::{Deref, DerefMut};
+use bevy_ecs::{prelude::*, system::SystemId};
 
 #[cfg(feature = "from_mesh")]
 use bevy_mesh::PrimitiveTopology;
 #[cfg(feature = "from_mesh")]
 use bevy_render::prelude::*;
+use bevy_transform::components::GlobalTransform;
 #[cfg(feature = "from_mesh")]
 use glam::{UVec3, Vec3A};
 
 #[cfg(feature = "editor_integration")]
 pub mod editor_integration;
+#[cfg(feature = "bevy_mesh")]
+pub mod mesh;
 
 pub use rerecast;
-#[cfg(feature = "from_mesh")]
-use rerecast::{AreaType, TriMesh};
 
 /// Everything you need to get started with the Navmesh plugins.
 pub mod prelude {
+    pub use crate::NavmeshPlugins;
     #[cfg(feature = "from_mesh")]
     pub use crate::TriMeshExt as _;
-    pub use crate::{NavmeshAffector, NavmeshPlugins};
 }
 
 /// The plugin group of the crate.
@@ -46,27 +45,41 @@ impl PluginGroup for NavmeshPlugins {
 #[derive(Default)]
 pub struct RerecastPlugin;
 
-impl Plugin for RerecastPlugin {
-    fn build(&self, app: &mut App) {
-        #[cfg(feature = "from_mesh")]
-        app.register_type::<NavmeshAffector<Mesh3d>>();
+#[derive(Resource, Default, Clone, Deref, DerefMut)]
+struct NavmeshAffectorBackend(Option<SystemId<(), Vec<(GlobalTransform, TriMesh)>>>);
+
+/// Extension used to implement [`RerecastAppExt::add_rasterizer`] on [`App`]
+pub trait RerecastAppExt {
+    /// Add a system for rasterizing navmesh data. This will be called when the editor is fetching navmesh data.
+    fn set_navmesh_affector_backend<M>(
+        &mut self,
+        system: impl IntoSystem<(), Vec<(GlobalTransform, TriMesh)>, M> + 'static,
+    ) -> &mut App;
+}
+
+impl RerecastAppExt for App {
+    fn set_navmesh_affector_backend<M>(
+        &mut self,
+        system: impl IntoSystem<(), Vec<(GlobalTransform, TriMesh)>, M> + 'static,
+    ) -> &mut App {
+        let id = self.register_system(system);
+        let systems = self
+            .world_mut()
+            .get_resource_mut::<NavmeshAffectorBackend>();
+        let Some(mut systems) = systems else {
+            tracing::error!(
+                "Failed to add rasterizer: internal resource not initialized. Did you forget to add the `RerecastPlugin`?"
+            );
+            return self;
+        };
+        systems.replace(id);
+        self
     }
 }
 
-/// Component used to mark [`Mesh`]es as navmesh affectors.
-/// Only meshes with this component will be considered when building the navmesh.
-#[derive(Debug, Component, Reflect)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
-#[reflect(Component)]
-pub struct NavmeshAffector<T> {
-    #[reflect(ignore)]
-    _pd: PhantomData<T>,
-}
-
-impl<T> Default for NavmeshAffector<T> {
-    fn default() -> Self {
-        Self { _pd: PhantomData }
+impl Plugin for RerecastPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<NavmeshAffectorBackend>();
     }
 }
 

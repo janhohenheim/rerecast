@@ -17,8 +17,6 @@ use bevy_transform::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::NavmeshAffector;
-
 /// The optional editor integration for authoring the navmesh.
 #[derive(Debug, Default)]
 #[non_exhaustive]
@@ -33,7 +31,6 @@ impl Plugin for RerecastEditorIntegrationPlugin {
             Startup,
             setup_methods.run_if(resource_exists::<RemoteMethods>),
         );
-        app.init_resource::<RasterizerSystems>();
         app.register_type::<EditorVisible>();
         app.add_rasterizer(rasterize_meshes);
         match self.visibility_settings {
@@ -44,50 +41,6 @@ impl Plugin for RerecastEditorIntegrationPlugin {
         }
     }
 }
-
-fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
-    commands.entity(trigger.target()).insert(EditorVisible);
-}
-
-/// The settings for when [`EditorVisible`] is inserted automatically.
-#[derive(Debug, Default)]
-pub enum EditorVisibilitySettings {
-    /// All entities with [`Mesh3d`] will have [EditorVisible`] inserted automatically.
-    #[default]
-    AllMeshes,
-    /// [`EditorVisible`] will not be inserted automatically. The user must manually insert it.
-    Manual,
-}
-
-/// Extension used to implement [`RerecastAppExt::add_rasterizer`] on [`App`]
-pub trait RerecastAppExt {
-    /// Add a system for rasterizing navmesh data. This will be called when the editor is fetching navmesh data.
-    fn add_rasterizer<M>(
-        &mut self,
-        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
-    ) -> &mut App;
-}
-
-impl RerecastAppExt for App {
-    fn add_rasterizer<M>(
-        &mut self,
-        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
-    ) -> &mut App {
-        let id = self.register_system(system);
-        let systems = self.world_mut().get_resource_mut::<RasterizerSystems>();
-        let Some(mut systems) = systems else {
-            tracing::error!(
-                "Failed to add rasterizer: internal resource not initialized. Did you forget to add the `RerecastPlugin`?"
-            );
-            return self;
-        };
-        systems.push(id);
-        self
-    }
-}
-
-#[derive(Resource, Default, Clone, Deref, DerefMut)]
-struct RasterizerSystems(Vec<SystemId<(), Vec<(GlobalTransform, SerializedMesh)>>>);
 
 fn rasterize_meshes(
     meshes: Res<Assets<Mesh>>,
@@ -102,6 +55,20 @@ fn rasterize_meshes(
             Some((transform, proxy_mesh))
         })
         .collect::<Vec<_>>()
+}
+
+fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
+    commands.entity(trigger.target()).insert(EditorVisible);
+}
+
+/// The settings for when [`EditorVisible`] is inserted automatically.
+#[derive(Debug, Default)]
+pub enum EditorVisibilitySettings {
+    /// All entities with [`Mesh3d`] will have [EditorVisible`] inserted automatically.
+    #[default]
+    AllMeshes,
+    /// [`EditorVisible`] will not be inserted automatically. The user must manually insert it.
+    Manual,
 }
 
 /// Component used to mark [`Mesh3d`]es so that they're not sent to the editor for previewing the level.
