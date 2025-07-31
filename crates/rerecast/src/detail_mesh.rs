@@ -89,8 +89,9 @@ pub struct DetailNavmesh {
     /// Example: If the [`SubMesh::base_vertex_index`] is 5 and the triangle entry is (4, 8, 7), then the actual indices for the vertices are (4 + 5, 8 + 5, 7 + 5).
     pub triangles: Vec<[u8; 3]>,
     /// Flags corresponding to [`DetailNavmesh::triangles`].
-    /// Indicates which edges are internal and which are external to the sub-mesh. Internal edges connect to other triangles within the same sub-mesh.
-    ///  External edges represent portals to other sub-meshes or the null region.
+    /// Indicates which edges are internal and which are external to the sub-mesh.
+    /// Internal edges connect to other triangles within the same sub-mesh.
+    /// External edges represent portals to other sub-meshes or the null region.
     ///
     /// Each flag is stored in a 2-bit position. Where position 0 is the lowest 2-bits and position 4 is the highest 2-bits:
     ///
@@ -157,8 +158,8 @@ impl DetailNavmesh {
         let mut poly = vec![Vec3A::default(); nvp];
 
         // Find max size for a polygon area.
-        for (i, b) in bounds.iter_mut().enumerate().take(mesh.polygon_count()) {
-            let p = &mesh.polygons[i * nvp * 2..];
+        for (i, b) in bounds.iter_mut().enumerate() {
+            let p = &mesh.polygons[i * nvp..];
             let Bounds {
                 xmin,
                 xmax,
@@ -200,7 +201,7 @@ impl DetailNavmesh {
         dmesh.triangles = Vec::with_capacity(tcap);
 
         for (i, bounds_i) in bounds.iter().enumerate().take(mesh.polygon_count()) {
-            let p = &mesh.polygons[i * nvp * 2..];
+            let p = &mesh.polygons[i * nvp..];
 
             // Store polygon vertices for processing.
             let mut npoly = 0;

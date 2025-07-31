@@ -468,17 +468,35 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
         assert_eq!(cpp_vert, &vert.to_array(), "{i} poly mesh vertices");
     }
     assert_eq!(
-        cpp_poly_mesh.polys.len(),
+        cpp_poly_mesh.polys.len() / 2,
         poly_mesh.polygons.len(),
         "poly mesh polygons len"
     );
-    for (i, (cpp_poly, poly)) in cpp_poly_mesh
+    assert_eq!(
+        cpp_poly_mesh.polys.len() / 2,
+        poly_mesh.polygon_neighbors.len(),
+        "poly mesh polygons len"
+    );
+    let mut cpp_polys = Vec::new();
+    let mut cpp_neighbors = Vec::new();
+    for verts in cpp_poly_mesh
         .polys
+        .chunks_exact(cpp_poly_mesh.nvp as usize * 2)
+    {
+        let (verts, neighbors) = verts.split_at(cpp_poly_mesh.nvp as usize);
+        cpp_polys.extend_from_slice(verts);
+        cpp_neighbors.extend_from_slice(neighbors);
+    }
+    for (i, (cpp_poly, poly)) in cpp_polys.iter().zip(poly_mesh.polygons.iter()).enumerate() {
+        assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
+    }
+
+    for (i, (cpp_neighbor, neighbor)) in cpp_neighbors
         .iter()
-        .zip(poly_mesh.polygons.iter())
+        .zip(poly_mesh.polygon_neighbors.iter())
         .enumerate()
     {
-        assert_eq!(cpp_poly, poly, "{i} poly mesh polygon");
+        assert_eq!(cpp_neighbor, neighbor, "{i} poly mesh polygon neighbor");
     }
     assert_eq!(
         cpp_poly_mesh.flags.len(),

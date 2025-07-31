@@ -82,12 +82,10 @@ pub struct PolygonMesh {
     /// float worldZ = bmin[2] + verts[i*3+2] * cs
     /// ```
     pub vertices: Vec<U16Vec3>,
-    /// Polygon and neighbor data. [Length: maxpolys * 2 * nvp].
+    /// Polygon and neighbor data. [Length: maxpolys * nvp].
     ///
-    /// Each entry is 2 * nvp in length. The first half of the entry contains the indices of the polygon.
-    /// The first instance of RC_MESH_NULL_IDX indicates the end of the indices for the entry.
-    /// The second half contains indices to neighbor polygons. A value of RC_MESH_NULL_IDX indicates no connection for the associated edge.
-    /// (i.e. The edge is a solid border.)
+    /// Each entry is [`Self::vertices_per_polygon] in length.
+    /// The first instance of [`RC_MESH_NULL_IDX`] indicates the end of the indices for the entry.
     ///
     /// For example:
     /// ```ignore
@@ -101,10 +99,15 @@ pub struct PolygonMesh {
     /// Edges 3->4 and 4->8 are border edges not shared with any other polygon.
     /// ```
     pub polygons: Vec<u16>,
-    /// The region id assigned to each polygon.
-    pub regions: Vec<RegionId>,
+    /// Corresponds to [`Self::polygons`]. Each entry is [`Self::vertices_per_polygon] in length.
+    /// Contains indices to neighbor polygons.
+    /// A value of [`RC_MESH_NULL_IDX`] indicates no connection for the associated edge.
+    /// (i.e. The edge is a solid border.)
+    pub polygon_neighbors: Vec<u16>,
     /// The flags assigned to each polygon.
     pub flags: Vec<u16>,
+    /// The region id assigned to each polygon.
+    pub regions: Vec<RegionId>,
     /// The area id assigned to each polygon.
     ///
     /// The standard build process assigns the value of [`AreaType::DEFAULT_WALKABLE`] to all walkable polygons.
@@ -128,20 +131,27 @@ impl PolygonMesh {
     /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
     #[inline]
     pub fn polygon_count(&self) -> usize {
-        self.polygons.len() / (2 * self.vertices_per_polygon as usize)
+        self.polygons.len() / self.vertices_per_polygon as usize
     }
 }
 
 impl From<InternalPolygonMesh> for PolygonMesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
-        value
-            .polygons
-            .truncate(value.npolys * value.max_vertices_per_polygon as usize * 2);
+        let nvp = value.max_vertices_per_polygon as usize;
+        value.polygons.truncate(value.npolys * 2 * nvp as usize);
+        let mut polygons = Vec::with_capacity(value.polygons.len() / 2);
+        let mut polygon_neighbors = Vec::with_capacity(value.polygons.len() / 2);
+        for poly in value.polygons.chunks_exact(nvp * 2) {
+            let (vertices, neighbors) = poly.split_at(nvp);
+            polygons.extend_from_slice(vertices);
+            polygon_neighbors.extend_from_slice(neighbors);
+        }
         value.vertices.truncate(value.nvertices as usize);
         value.areas.truncate(value.npolys);
         PolygonMesh {
             vertices: value.vertices,
-            polygons: value.polygons,
+            polygons: polygons,
+            polygon_neighbors: polygon_neighbors,
             regions: value.regions,
             flags: value.flags,
             areas: value.areas,
@@ -195,7 +205,6 @@ impl ContourSet {
 
         let mut vflags = vec![false; max_vertices];
         mesh.vertices = vec![U16Vec3::ZERO; max_vertices];
-        // Jan: no clue why this might be initialized to 255 specifically??????
         mesh.polygons = vec![u16::MAX; max_tris * nvp * 2];
         mesh.regions = vec![RegionId::default(); max_tris];
         mesh.areas = vec![AreaType::default(); max_tris];

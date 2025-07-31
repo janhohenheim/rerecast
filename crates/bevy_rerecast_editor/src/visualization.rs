@@ -148,7 +148,7 @@ fn draw_poly_mesh(
     let origin = mesh.aabb.min;
     let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * 2 * nvp..];
+        let poly = &mesh.polygons[i * nvp..];
         let mut verts = poly[..nvp]
             .iter()
             .filter(|i| **i != RC_MESH_NULL_IDX)
@@ -169,7 +169,7 @@ fn draw_poly_mesh(
     let mut visual_indices = Vec::new();
 
     for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * 2 * nvp..];
+        let poly = &mesh.polygons[i * nvp..];
         let a = origin + mesh.vertices[poly[0] as usize].as_vec3() * to_local;
         let a_idx = visual_verts.len() as u32;
         visual_verts.push(a);
