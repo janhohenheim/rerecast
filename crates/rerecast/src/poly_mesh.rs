@@ -163,7 +163,7 @@ impl PolygonMesh {
 impl From<InternalPolygonMesh> for PolygonMesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
         let nvp = value.max_vertices_per_polygon as usize;
-        value.polygons.truncate(value.npolys * 2 * nvp as usize);
+        value.polygons.truncate(value.npolys * 2 * nvp);
         let mut polygons = Vec::with_capacity(value.polygons.len() / 2);
         let mut polygon_neighbors = Vec::with_capacity(value.polygons.len() / 2);
         for poly in value.polygons.chunks_exact(nvp * 2) {
@@ -175,8 +175,8 @@ impl From<InternalPolygonMesh> for PolygonMesh {
         value.areas.truncate(value.npolys);
         PolygonMesh {
             vertices: value.vertices,
-            polygons: polygons,
-            polygon_neighbors: polygon_neighbors,
+            polygons,
+            polygon_neighbors,
             regions: value.regions,
             flags: value.flags,
             areas: value.areas,
