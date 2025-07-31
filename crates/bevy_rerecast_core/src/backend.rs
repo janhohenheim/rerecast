@@ -8,7 +8,7 @@ use rerecast::TriMesh;
 #[derive(Resource, Clone, Deref, DerefMut)]
 pub struct NavmeshAffectorBackend(SystemId<(), Vec<(GlobalTransform, TriMesh)>>);
 
-/// Extension used to implement [`NavmeshAffectorBackendAppExt::set_navmesh_affector_backend`] on [`App`]
+/// Extension used to implement [`NavmeshApp::set_navmesh_affector_backend`] on [`App`]
 pub trait NavmeshApp {
     /// Set the backend for generating navmesh affectors. Only one backend can be set at a time.
     /// Setting a backend will replace any existing backend. By default, no backend is set.

@@ -9,8 +9,8 @@ use rerecast::{AreaType, TriMesh};
 
 use crate::NavmeshApp as _;
 
-/// A backend for [`crate::NavmeshPlugins`].
-/// Uses all entities with a [`Mesh3d`] component to generate navmeshes.
+/// A backend for navmesh generation.
+/// Uses all entities with a [`Mesh3d`] component as navmesh affectors.
 #[derive(Debug, Default)]
 #[non_exhaustive]
 pub struct Mesh3dNavmeshPlugin;
