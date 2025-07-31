@@ -2,8 +2,7 @@
 
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
-use bevy_derive::{Deref, DerefMut};
-use bevy_ecs::{prelude::*, system::SystemId};
+use bevy_ecs::prelude::*;
 use bevy_image::Image;
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
@@ -16,6 +15,8 @@ use bevy_rerecast_transmission::{
 use bevy_transform::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::NavmeshAffectorBackend;
 
 /// The optional editor integration for authoring the navmesh.
 #[derive(Debug, Default)]
@@ -32,7 +33,6 @@ impl Plugin for RerecastEditorIntegrationPlugin {
             setup_methods.run_if(resource_exists::<RemoteMethods>),
         );
         app.register_type::<EditorVisible>();
-        app.add_rasterizer(rasterize_meshes);
         match self.visibility_settings {
             EditorVisibilitySettings::AllMeshes => {
                 app.add_observer(insert_editor_visible_to_meshes);
@@ -40,21 +40,6 @@ impl Plugin for RerecastEditorIntegrationPlugin {
             EditorVisibilitySettings::Manual => {}
         }
     }
-}
-
-fn rasterize_meshes(
-    meshes: Res<Assets<Mesh>>,
-    affectors: Query<(&GlobalTransform, &Mesh3d), With<NavmeshAffector<Mesh3d>>>,
-) -> Vec<(GlobalTransform, SerializedMesh)> {
-    affectors
-        .iter()
-        .filter_map(|(transform, mesh)| {
-            let transform = *transform;
-            let mesh = meshes.get(mesh)?;
-            let proxy_mesh = SerializedMesh::from_mesh(mesh);
-            Some((transform, proxy_mesh))
-        })
-        .collect::<Vec<_>>()
 }
 
 fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
@@ -96,10 +81,10 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         });
     }
 
-    let Some(system_ids) = world.get_resource::<RasterizerSystems>().cloned() else {
+    let Some(maybe_backend) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "Failed to get rasterizer systems".to_string(),
+            message: "Failed to get `NavmeshAffectorBackend`".to_string(),
             data: None,
         });
     };

@@ -43,7 +43,6 @@ tracing = { workspace = true, optional = true }
 default = ["bevy_mesh", "editor_integration"]
 editor_integration = [
     "serialize",
-    "from_mesh",
     "dep:bevy_transform",
     "dep:bevy_remote",
     "dep:bevy_derive",
