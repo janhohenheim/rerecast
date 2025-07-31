@@ -375,7 +375,7 @@ version = "0.0.2"
 dependencies = [
  "avian3d",
  "bevy",
- "bevy_rerecast",
+ "bevy_rerecast_core",
 ]
 
 [[package]]
@@ -1205,6 +1205,7 @@ dependencies = [
 name = "bevy_rerecast"
 version = "0.0.2"
 dependencies = [
+ "bevy_app",
  "bevy_rerecast_core",
  "bevy_rerecast_editor_integration",
 ]
@@ -1217,6 +1218,7 @@ dependencies = [
  "bevy_asset",
  "bevy_derive",
  "bevy_ecs",
+ "bevy_math",
  "bevy_mesh",
  "bevy_reflect",
  "bevy_render",
@@ -1258,6 +1260,7 @@ dependencies = [
  "bevy_reflect",
  "bevy_remote",
  "bevy_render",
+ "bevy_rerecast_core",
  "bevy_transform",
  "bincode",
  "rerecast",

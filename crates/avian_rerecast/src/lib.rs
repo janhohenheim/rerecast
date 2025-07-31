@@ -2,13 +2,9 @@
 
 use avian3d::prelude::*;
 use bevy::prelude::*;
+use bevy_rerecast_core::{NavmeshApp as _, rerecast::TriMesh};
 
 mod collider_to_trimesh;
-use bevy_rerecast::NavmeshApp as _;
-
-pub use rerecast;
-use rerecast::TriMesh;
-
 use crate::collider_to_trimesh::ToTriMesh;
 
 /// Everything you need to get started with the Navmesh plugin.

@@ -36,13 +36,13 @@ fn mesh3d_backend(
         .collect::<Vec<_>>()
 }
 
-/// Used to add [`TriMeshExt::from_mesh`] to [`TriMesh`].
-trait TriMeshExt {
+/// Used to add [`TriMeshFromBevyMesh::from_mesh`] to [`TriMesh`].
+pub trait TriMeshFromBevyMesh {
     /// Converts a [`Mesh`] into a [`TriMesh`].
     fn from_mesh(mesh: &Mesh) -> Option<TriMesh>;
 }
 
-impl TriMeshExt for TriMesh {
+impl TriMeshFromBevyMesh for TriMesh {
     fn from_mesh(mesh: &Mesh) -> Option<TriMesh> {
         if mesh.primitive_topology() != PrimitiveTopology::TriangleList {
             return None;

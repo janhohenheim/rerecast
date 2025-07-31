@@ -1,10 +1,12 @@
+#![doc = include_str!("../../../readme.md")]
+
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_reflect::prelude::*;
 use bevy_render::mesh::Mesh3d;
 use serde::{Deserialize, Serialize};
 
-mod brp;
+pub mod brp;
 pub mod transmission;
 
 /// The optional editor integration for authoring the navmesh.

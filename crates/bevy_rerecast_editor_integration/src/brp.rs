@@ -8,13 +8,16 @@ use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-
+use bevy_rerecast_core::NavmeshAffectorBackend;
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::NavmeshAffectorBackend;
+use crate::{
+    EditorVisible,
+    transmission::{SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -41,19 +44,10 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         });
     }
 
-    let Some(maybe_backend) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
+    let Some(backend_id) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message:
-                "Internal error: Failed to get `NavmeshAffectorBackend`. Please open a bug report."
-                    .to_string(),
-            data: None,
-        });
-    };
-    let Some(backend_id) = maybe_backend.as_ref() else {
-        return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "No navmesh affector backend found.".to_string(),
+            message: "No navmesh affector backend found. Did you forget to add one?".to_string(),
             data: None,
         });
     };

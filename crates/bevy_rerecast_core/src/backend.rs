@@ -4,12 +4,9 @@ use bevy_ecs::{prelude::*, system::SystemId};
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
 
-pub(super) fn plugin(app: &mut App) {
-    app.init_resource::<NavmeshAffectorBackend>();
-}
-
-#[derive(Resource, Default, Clone, Deref, DerefMut)]
-pub(crate) struct NavmeshAffectorBackend(Option<SystemId<(), Vec<(GlobalTransform, TriMesh)>>>);
+/// The current backend registered through [`NavmeshApp::set_navmesh_affector_backend`]
+#[derive(Resource, Clone, Deref, DerefMut)]
+pub struct NavmeshAffectorBackend(SystemId<(), Vec<(GlobalTransform, TriMesh)>>);
 
 /// Extension used to implement [`NavmeshAffectorBackendAppExt::set_navmesh_affector_backend`] on [`App`]
 pub trait NavmeshApp {
@@ -27,16 +24,7 @@ impl NavmeshApp for App {
         system: impl IntoSystem<(), Vec<(GlobalTransform, TriMesh)>, M> + 'static,
     ) -> &mut App {
         let id = self.register_system(system);
-        let systems = self
-            .world_mut()
-            .get_resource_mut::<NavmeshAffectorBackend>();
-        let Some(mut systems) = systems else {
-            tracing::error!(
-                "Failed to set backend: internal resource not initialized. Did you forget to add the `NavmeshPlugins`?"
-            );
-            return self;
-        };
-        systems.replace(id);
+        self.world_mut().insert_resource(NavmeshAffectorBackend(id));
         self
     }
 }

@@ -13,7 +13,7 @@ readme = { workspace = true }
 [dependencies]
 bevy = { workspace = true }
 avian3d = { workspace = true }
-bevy_rerecast = { version = "0.0.2", path = "../bevy_rerecast" }
+bevy_rerecast_core = { version = "0.0.2", path = "../bevy_rerecast_core", default-features = false }
 
 [lints]
 workspace = true

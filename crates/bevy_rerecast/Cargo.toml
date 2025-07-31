@@ -11,13 +11,28 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_rerecast_core = { version = "0.0.2", path = "../bevy_rerecast_core" }
+bevy_app = { workspace = true }
+bevy_rerecast_core = { version = "0.0.2", path = "../bevy_rerecast_core", default-features = false }
 bevy_rerecast_editor_integration = { version = "0.0.2", path = "../bevy_rerecast_editor_integration", optional = true }
 
 [features]
 default = ["bevy_mesh", "editor_integration"]
-editor_integration = ["dep:bevy_rerecast_editor_integration"]
+serialize = ["bevy_rerecast_core/serialize"]
 bevy_mesh = ["bevy_rerecast_core/bevy_mesh"]
+editor_integration = ["dep:bevy_rerecast_editor_integration"]
+
+pbr_transmission_textures = [
+    "bevy_rerecast_editor_integration?/pbr_transmission_textures",
+]
+pbr_specular_textures = [
+    "bevy_rerecast_editor_integration?/pbr_specular_textures",
+]
+pbr_multi_layer_material_textures = [
+    "bevy_rerecast_editor_integration?/pbr_multi_layer_material_textures",
+]
+pbr_anisotropy_texture = [
+    "bevy_rerecast_editor_integration?/pbr_anisotropy_texture",
+]
 
 [lints]
 workspace = true

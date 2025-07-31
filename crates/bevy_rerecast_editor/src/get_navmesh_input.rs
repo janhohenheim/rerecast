@@ -6,10 +6,12 @@ use bevy::{
     remote::BrpRequest,
     render::mesh::{Indices, PrimitiveTopology},
 };
-use bevy_rerecast::editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse};
-use bevy_rerecast_transmission::deserialize;
+use bevy_rerecast::editor_integration::{
+    brp::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+    transmission::deserialize,
+};
 
-use crate::visualization::VisualMesh;
+use crate::{build::NavmeshAffector, visualization::VisualMesh};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);
@@ -24,13 +26,7 @@ fn fetch_navmesh_input(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mesh_handles: Query<
-        Entity,
-        (
-            With<Mesh3d>,
-            Or<(With<VisualMesh>, With<NavmeshAffector<Mesh3d>>)>,
-        ),
-    >,
+    mesh_handles: Query<Entity, (With<Mesh3d>, Or<(With<VisualMesh>, With<NavmeshAffector>)>)>,
     gizmo_handles: Query<&Gizmo>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
 ) -> Result {
@@ -79,7 +75,7 @@ fn fetch_navmesh_input(
         commands.spawn((
             affector.transform.compute_transform(),
             Mesh3d(meshes.add(mesh)),
-            NavmeshAffector::<Mesh3d>::default(),
+            NavmeshAffector,
             Visibility::Hidden,
             Gizmo {
                 handle: gizmos.add(GizmoAsset::new()),

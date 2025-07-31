@@ -310,7 +310,8 @@ mod tests {
     use std::f32::consts::PI;
 
     use bevy_render::{mesh::Indices, render_asset::RenderAssetUsages};
-    use bevy_rerecast_transmission::SerializedMesh;
+    use bevy_rerecast_core::TriMeshFromBevyMesh as _;
+    use rerecast::TriMesh;
 
     use super::*;
 
