@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use glam::{U16Vec3, Vec2, Vec3A, Vec3Swizzles as _, u16vec3};
+use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
@@ -27,34 +27,35 @@ use crate::{
 pub struct DetailNavmesh {
     /// The sub-mesh data.
     ///
-    /// Maximum number of vertices per sub-mesh: 127
-    /// Maximum number of triangles per sub-mesh: 255
+    /// Maximum number of vertices per sub-mesh: [`Self::MAX_VERTS`]
+    /// Maximum number of triangles per sub-mesh: [`Self::MAX_TRIS`]
     ///
     /// The sub-meshes are stored in the same order as the polygons from the [`PolygonNavmesh`] they represent.
     /// E.g. [`DetailNavmesh`] sub-mesh 5 is associated with [`PolygonNavmesh`] polygon 5.
     ///
     /// Example of iterating the triangles in a sub-mesh.
     /// ```rust
-    /// // Where dmesh is a reference to a rcPolyMeshDetail object.
-    ///
+    /// # use rerecast::*;
+    /// # let dmesh = DetailNavmesh::default();
+    /// // Where dmesh is a DetailNavmesh
+
     /// // Iterate the sub-meshes. (One for each source polygon.)
-    /// for (int i = 0; i < dmesh.nmeshes; ++i)
-    /// {
-    ///     const unsigned int* meshDef = &dmesh.meshes[i*4];
-    ///     const unsigned int baseVerts = meshDef[0];
-    ///     const unsigned int baseTri = meshDef[2];
-    ///     const int ntris = (int)meshDef[3];
-    ///
-    ///     const float* verts = &dmesh.verts[baseVerts*3];
-    ///     const unsigned char* tris = &dmesh.tris[baseTri*4];
-    ///
+    /// for mesh in &dmesh.meshes {
+    ///     let verts =
+    ///         &dmesh.vertices[mesh.base_vertex_index as usize..][..mesh.vertex_count as usize];
+    ///     let tris =
+    ///         &dmesh.triangles[mesh.base_triangle_index as usize..][..mesh.triangle_count as usize];
+
     ///     // Iterate the sub-mesh's triangles.
-    ///     for (int j = 0; j < ntris; ++j)
-    ///     {
-    ///         const float x = verts[tris[j*4+0]*3];
-    ///         const float y = verts[tris[j*4+1]*3];
-    ///         const float z = verts[tris[j*4+2]*3];
+    ///     for (tri_indices, _data) in tris {
+    ///         let a = verts[tri_indices[0] as usize];
+    ///         let b = verts[tri_indices[1] as usize];
+    ///         let c = verts[tri_indices[2] as usize];
+
     ///         // Do something with the vertex.
+    ///         println!("Vertex A: {a}");
+    ///         println!("Vertex B: {b}");
+    ///         println!("Vertex C: {c}");
     ///     }
     /// }
     /// ```
@@ -67,7 +68,7 @@ pub struct DetailNavmesh {
     /// The first group of vertices for each sub-mesh are in the same order as the vertices for the sub-mesh's associated [`PolygonNavmesh`] polygon.
     /// These vertices are followed by any additional detail vertices.
     /// So if the associated polygon has 5 vertices, the sub-mesh will have a minimum of 5 vertices and the first 5 vertices will be equivalent to the 5 polygon vertices.
-    pub vertices: Vec<Vec3A>,
+    pub vertices: Vec<Vec3>,
     /// The mesh triangles.
     ///
     /// The triangles are grouped by sub-mesh.
@@ -77,11 +78,11 @@ pub struct DetailNavmesh {
     /// The vertex indices in the triangle array are local to the sub-mesh, not global.
     /// To translate into an global index in the vertices array, the values must be offset by the sub-mesh's base vertex index.
     ///
-    /// Example: If the [`SubMesh::base_vertex_index`] is 5 and the triangle entry is (4, 8, 7, 0), then the actual indices for the vertices are (4 + 5, 8 + 5, 7 + 5).
-    ///
-    /// ## Flags
-    ///
-    /// The flags entry indicates which edges are internal and which are external to the sub-mesh. Internal edges connect to other triangles within the same sub-mesh. External edges represent portals to other sub-meshes or the null region.
+    /// Example: If the [`SubMesh::base_vertex_index`] is 5 and the triangle entry is (4, 8, 7), then the actual indices for the vertices are (4 + 5, 8 + 5, 7 + 5).
+    pub triangles: Vec<[u8; 3]>,
+    /// Flags corresponding to [`DetailNavmesh::triangles`].
+    /// Indicates which edges are internal and which are external to the sub-mesh. Internal edges connect to other triangles within the same sub-mesh.
+    ///  External edges represent portals to other sub-meshes or the null region.
     ///
     /// Each flag is stored in a 2-bit position. Where position 0 is the lowest 2-bits and position 4 is the highest 2-bits:
     ///
@@ -95,7 +96,7 @@ pub struct DetailNavmesh {
     /// {
     ///     // Edge BC is an external edge.
     /// }
-    pub triangles: Vec<(U16Vec3, u32)>,
+    pub triangle_flags: Vec<u8>,
 }
 
 /// A sub-mesh in [`DetailNavmesh::meshes`]
@@ -109,9 +110,9 @@ pub struct SubMesh {
 }
 
 impl DetailNavmesh {
-    const MAX_VERTS: usize = 127;
+    pub const MAX_VERTS: usize = 127;
     // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
-    const MAX_TRIS: usize = 255;
+    pub const MAX_TRIS: usize = u8::MAX as usize;
     const MAX_VERTS_PER_EDGE: usize = 32;
 
     /// Builds a detail mesh from the provided polygon mesh.
@@ -263,7 +264,7 @@ impl DetailNavmesh {
                 dmesh.vertices.reserve(vcap - dmesh.vertices.capacity());
             }
             for vert in &verts[..nverts] {
-                dmesh.vertices.push(*vert);
+                dmesh.vertices.push(Vec3::from(*vert));
             }
 
             // Store triangles, allocate more memory if necessary.
@@ -273,8 +274,11 @@ impl DetailNavmesh {
                 }
                 dmesh.triangles.reserve(tcap - dmesh.triangles.capacity());
             }
-            for tri in &tris {
-                dmesh.triangles.push(*tri);
+            for (tri, flags) in &tris {
+                dmesh
+                    .triangles
+                    .push([tri[0] as u8, tri[1] as u8, tri[2] as u8]);
+                dmesh.triangle_flags.push(*flags as u8);
             }
         }
 

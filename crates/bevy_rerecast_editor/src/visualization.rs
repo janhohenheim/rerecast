@@ -234,9 +234,8 @@ fn draw_detail_mesh(
             &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
         let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
             [..submesh.triangle_count as usize];
-        for (tri, _data) in submesh_tris {
+        for tri in submesh_tris {
             let mut verts = tri
-                .to_array()
                 .iter()
                 .map(|i| Vec3::from(submesh_verts[*i as usize]))
                 .collect::<Vec<_>>();
@@ -257,8 +256,8 @@ fn draw_detail_mesh(
 
         let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
             [..submesh.triangle_count as usize];
-        for (tri, _data) in submesh_tris.iter() {
-            for i in tri.to_array() {
+        for tri in submesh_tris.iter() {
+            for &i in tri {
                 visual_indices.push(i as u32 + visual_verts.len() as u32);
             }
         }

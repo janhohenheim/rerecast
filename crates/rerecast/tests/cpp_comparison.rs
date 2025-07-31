@@ -552,15 +552,20 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
         detail_mesh.triangles.len(),
         "detail mesh triangles len"
     );
-    for (i, (cpp_tri, (tri, data))) in cpp_detail_mesh
+    for (i, ((cpp_tri, tri), flags)) in cpp_detail_mesh
         .tris
         .iter()
         .zip(detail_mesh.triangles.iter())
+        .zip(detail_mesh.triangle_flags.iter())
         .enumerate()
     {
-        let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
-        assert_eq!(cpp_tri_without_data, *tri, "{i} detail mesh triangle");
-        assert_eq!(cpp_tri[3] as u32, *data, "{i} detail mesh triangle data");
+        let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]);
+        assert_eq!(
+            cpp_tri_without_data,
+            U8Vec3::from_array(*tri),
+            "{i} detail mesh triangle"
+        );
+        assert_eq!(cpp_tri[3], *flags, "{i} detail mesh triangle data");
     }
 
     assert_eq!(
@@ -576,7 +581,7 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
     {
         // the jitter functions are sliiiiiightly different in Rust and C++
         assert!(
-            vert.distance(Vec3A::from_array(*cpp_vert)) < 1.0e-5,
+            vert.distance(Vec3::from_array(*cpp_vert)) < 1.0e-5,
             "{cpp_vert:?} != {vert} failed: {i} detail mesh vertex"
         );
     }
