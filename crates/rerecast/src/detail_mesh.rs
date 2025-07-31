@@ -135,7 +135,7 @@ impl DetailNavmesh {
         heightfield: &CompactHeightfield,
         sample_distance: f32,
         sample_max_error: f32,
-    ) -> Result<Self, DetailPolygonMeshError> {
+    ) -> Result<Self, DetailNavmeshError> {
         let mut dmesh = DetailNavmesh::default();
         if mesh.vertices.is_empty() || mesh.polygon_count() == 0 {
             return Ok(dmesh);
@@ -316,7 +316,7 @@ fn build_poly_detail(
     flags: &mut Vec<u8>,
     edges: &mut Vec<Edges>,
     samples: &mut Vec<(U16Vec3, bool)>,
-) -> Result<(), DetailPolygonMeshError> {
+) -> Result<(), DetailNavmeshError> {
     let mut edge = [Vec3A::default(); DetailNavmesh::MAX_VERTS_PER_EDGE + 1];
     let mut hull = [0; DetailNavmesh::MAX_VERTICES_PER_SUBMESH];
     let mut nhull = 0;
@@ -1208,7 +1208,7 @@ fn poly_min_extent_squared(verts: &[Vec3A], nverts: usize) -> f32 {
 }
 
 #[derive(Error, Debug)]
-pub enum DetailPolygonMeshError {}
+pub enum DetailNavmeshError {}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct HeightPatch {

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq)]
-struct InternalPolygonMesh {
+struct InternalPolygonNavmesh {
     vertices: Vec<U16Vec3>,
     nvertices: u16,
     polygons: Vec<u16>,
@@ -35,9 +35,9 @@ struct InternalPolygonMesh {
 /// ```rust
 /// # use rerecast::*;
 /// # use glam::Vec3;
-/// # let mut mesh = PolygonMesh::default();
+/// # let mut mesh = PolygonNavmesh::default();
 /// # mesh.max_vertices_per_polygon = 1;
-/// // Where mesh is a reference to a PolygonMesh.
+/// // Where mesh is a reference to a PolygonNavmesh.
 /// let nvp = mesh.max_vertices_per_polygon as usize;
 /// let cs = mesh.cell_size;
 /// let ch = mesh.cell_height;
@@ -48,12 +48,12 @@ struct InternalPolygonMesh {
 ///
 ///     // Iterate the vertices.
 ///     for j in 0..nvp {
-///         if p[j] == PolygonMesh::NO_INDEX {
+///         if p[j] == PolygonNavmesh::NO_INDEX {
 ///             // End of vertices.
 ///             break;
 ///         }
 ///
-///         if p[j + nvp] == PolygonMesh::NO_CONNECTION {
+///         if p[j + nvp] == PolygonNavmesh::NO_CONNECTION {
 ///             // The edge beginning with this vertex is a solid border.
 ///         } else {
 ///             // The edge beginning with this vertex connects to
@@ -81,7 +81,7 @@ pub struct PolygonNavmesh {
     /// ```rust
     /// # use rerecast::*;
     /// # use glam::{Vec3, U16Vec3};
-    /// # let mut mesh = PolygonMesh::default();
+    /// # let mut mesh = PolygonNavmesh::default();
     /// # mesh.vertices = vec![U16Vec3::ZERO; 1];
     /// # let i = 0;
     /// let world_vertex = Vec3 {
@@ -160,8 +160,8 @@ impl PolygonNavmesh {
     }
 }
 
-impl From<InternalPolygonMesh> for PolygonNavmesh {
-    fn from(mut value: InternalPolygonMesh) -> Self {
+impl From<InternalPolygonNavmesh> for PolygonNavmesh {
+    fn from(mut value: InternalPolygonNavmesh) -> Self {
         let nvp = value.max_vertices_per_polygon as usize;
         value.polygons.truncate(value.npolys * 2 * nvp);
         let mut polygons = Vec::with_capacity(value.polygons.len() / 2);
@@ -195,8 +195,8 @@ impl ContourSet {
     pub fn into_polygon_mesh(
         self,
         max_vertices_per_polygon: u16,
-    ) -> Result<PolygonNavmesh, PolygonMeshError> {
-        let mut mesh = InternalPolygonMesh {
+    ) -> Result<PolygonNavmesh, PolygonNavmeshError> {
+        let mut mesh = InternalPolygonNavmesh {
             aabb: self.aabb,
             cell_size: self.cell_size,
             cell_height: self.cell_height,
@@ -222,7 +222,7 @@ impl ContourSet {
 
         if max_vertices > u16::MAX as usize {
             // Jan: Is this sensible? It's the original, but I suspect u32 is fine
-            return Err(PolygonMeshError::TooManyVertices {
+            return Err(PolygonNavmeshError::TooManyVertices {
                 actual: max_vertices,
                 max: u16::MAX as usize,
             });
@@ -351,7 +351,7 @@ impl ContourSet {
                 mesh.npolys += 1;
                 if mesh.npolys > max_tris {
                     // Jan: we are comparing polys with tris. Why? Shouldn't we compare polys with polys?
-                    return Err(PolygonMeshError::TooManyPolygons {
+                    return Err(PolygonNavmeshError::TooManyPolygons {
                         actual: mesh.npolys,
                         max: max_tris,
                     });
@@ -430,8 +430,8 @@ struct Edge {
     poly: U16Vec2,
 }
 
-impl InternalPolygonMesh {
-    fn build_mesh_adjacency(&mut self) -> Result<(), PolygonMeshError> {
+impl InternalPolygonNavmesh {
+    fn build_mesh_adjacency(&mut self) -> Result<(), PolygonNavmeshError> {
         let nvp = self.max_vertices_per_polygon as usize;
         // Based on code by Eric Lengyel from:
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
@@ -510,7 +510,7 @@ impl InternalPolygonMesh {
         Ok(())
     }
 
-    fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
+    fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonNavmeshError> {
         let nvp = self.max_vertices_per_polygon as usize;
 
         // Count number of polygons to remove.
@@ -768,7 +768,7 @@ impl InternalPolygonMesh {
             self.areas[self.npolys] = pareas[i];
             self.npolys += 1;
             if self.npolys > max_tris {
-                return Err(PolygonMeshError::TooManyPolygons {
+                return Err(PolygonNavmeshError::TooManyPolygons {
                     actual: self.npolys,
                     max: max_tris,
                 });
@@ -1033,7 +1033,7 @@ fn triangulate(
     verts: &[(U16Vec3, u32)],
     indices: &mut [usize],
     tris: &mut [U16Vec3],
-) -> Result<usize, PolygonMeshError> {
+) -> Result<usize, PolygonNavmeshError> {
     let mut ntris = 0;
 
     // The last bit of the index is used to indicate if the vertex can be removed.
@@ -1090,7 +1090,7 @@ fn triangulate(
         let Some(mini) = mini else {
             // The contour is messed up. This sometimes happens
             // if the contour simplification is too aggressive.
-            return Err(PolygonMeshError::InvalidContour);
+            return Err(PolygonNavmeshError::InvalidContour);
         };
 
         let mut i = mini;
@@ -1328,7 +1328,7 @@ fn is_diagonal_internal_or_external_loose(
 }
 
 #[derive(Error, Debug)]
-pub enum PolygonMeshError {
+pub enum PolygonNavmeshError {
     #[error("Too many vertices: {actual} > {max}")]
     TooManyVertices { actual: usize, max: usize },
     #[error("Too many polygons: {actual} > {max}")]
