@@ -7,6 +7,9 @@ use bevy::{
     prelude::*,
     ui::Val::*,
 };
+use bevy_ui_text_input::{
+    TextInputContents, TextInputFilter, TextInputMode, TextInputNode, TextInputPrompt,
+};
 
 use crate::theme::{interaction::InteractionPalette, palette::*};
 
@@ -168,5 +171,38 @@ where
             ..default()
         },
         children![label(text), hspace(10.0), button_small("", action)],
+    )
+}
+
+pub fn decimal_input<C: Component>(text: impl Into<String>, val: f32, marker: C) -> impl Bundle {
+    (
+        Node {
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        children![
+            label(text),
+            hspace(10.0),
+            (
+                Name::new("Number Input"),
+                TextInputNode {
+                    mode: TextInputMode::SingleLine,
+                    filter: Some(TextInputFilter::Decimal),
+                    max_chars: Some(5),
+                    clear_on_submit: false,
+                    ..Default::default()
+                },
+                TextInputPrompt::new(val.to_string()),
+                TextInputContents::default(),
+                TextFont::from_font_size(18.0),
+                marker,
+                Node {
+                    margin: UiRect::top(Val::Px(5.0)),
+                    width: Val::Px(100.),
+                    height: Val::Px(25.),
+                    ..default()
+                },
+            )
+        ],
     )
 }

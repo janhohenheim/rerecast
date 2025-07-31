@@ -1,17 +1,19 @@
 use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
+use bevy_ui_text_input::TextInputContents;
 
 use crate::{
-    build::BuildNavmesh,
+    build::{BuildNavmesh, BuildNavmeshConfig},
     get_navmesh_input::GetNavmeshInput,
     theme::{
         palette::BEVY_GRAY,
-        widget::{button, checkbox},
+        widget::{button, checkbox, decimal_input},
     },
     visualization::{AvailableGizmos, GizmosToDraw},
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_ui);
+    app.add_systems(Update, read_config_inputs);
     app.add_observer(close_modal);
 }
 
@@ -63,6 +65,21 @@ fn spawn_ui(mut commands: Commands) {
                     checkbox(
                         "Show Detail Mesh",
                         toggle_gizmo(AvailableGizmos::DetailMesh)
+                    ),
+                    decimal_input(
+                        "Cell Size",
+                        BuildNavmeshConfig::default().cell_size,
+                        CellSizeInput
+                    ),
+                    decimal_input(
+                        "Cell Height",
+                        BuildNavmeshConfig::default().cell_height,
+                        CellHeightInput
+                    ),
+                    decimal_input(
+                        "Walkable Slope",
+                        BuildNavmeshConfig::default().walkable_slope,
+                        WalkableSlopeInput
                     )
                 ],
                 BackgroundColor(BEVY_GRAY.with_alpha(0.6)),
@@ -83,6 +100,102 @@ fn spawn_ui(mut commands: Commands) {
             )
         ],
     ));
+}
+
+#[derive(Component)]
+struct CellSizeInput;
+
+#[derive(Component)]
+struct CellHeightInput;
+
+#[derive(Component)]
+struct WalkableSlopeInput;
+
+#[derive(Component)]
+struct WalkableHeightInput;
+
+#[derive(Component)]
+struct WalkableClimbInput;
+
+#[derive(Component)]
+struct WalkableRadiusInput;
+
+#[derive(Component)]
+struct MinRegionAreaInput;
+
+#[derive(Component)]
+struct MergeRegionAreaInput;
+
+#[derive(Component)]
+struct BorderSizeInput;
+
+#[derive(Component)]
+struct MaxSimplificationErrorInput;
+
+#[derive(Component)]
+struct MaxEdgeLenInput;
+
+#[derive(Component)]
+struct MaxVerticesPerPolygonInput;
+
+#[derive(Component)]
+struct ContourFlagsInput;
+
+#[derive(Component)]
+struct DetailSampleDistanceInput;
+
+#[derive(Component)]
+struct DetailSampleMaxErrorInput;
+
+fn read_config_inputs(
+    mut config: ResMut<BuildNavmeshConfig>,
+    cell_size: Single<&TextInputContents, With<CellSizeInput>>,
+    cell_height: Single<&TextInputContents, With<CellHeightInput>>,
+    walkable_slope: Single<&TextInputContents, With<WalkableSlopeInput>>,
+    walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
+    walkable_climb: Single<&TextInputContents, With<WalkableClimbInput>>,
+    walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
+    min_region_area: Single<&TextInputContents, With<MinRegionAreaInput>>,
+    merge_region_area: Single<&TextInputContents, With<MergeRegionAreaInput>>,
+    border_size: Single<&TextInputContents, With<BorderSizeInput>>,
+    max_simplification_error: Single<&TextInputContents, With<MaxSimplificationErrorInput>>,
+    max_edge_len: Single<&TextInputContents, With<MaxEdgeLenInput>>,
+    max_vertices_per_polygon: Single<&TextInputContents, With<MaxVerticesPerPolygonInput>>,
+    contour_flags: Single<&TextInputContents, With<ContourFlagsInput>>,
+    detail_sample_distance: Single<&TextInputContents, With<DetailSampleDistanceInput>>,
+    detail_sample_max_error: Single<&TextInputContents, With<DetailSampleMaxErrorInput>>,
+) {
+    let d = BuildNavmeshConfig::default();
+    config.cell_size = cell_size.get().parse().unwrap_or(d.cell_size);
+    config.cell_height = cell_height.get().parse().unwrap_or(d.cell_height);
+    config.walkable_slope = walkable_slope.get().parse().unwrap_or(d.walkable_slope);
+    config.walkable_height = walkable_height.get().parse().unwrap_or(d.walkable_height);
+    config.walkable_climb = walkable_climb.get().parse().unwrap_or(d.walkable_climb);
+    config.walkable_radius = walkable_radius.get().parse().unwrap_or(d.walkable_radius);
+    config.min_region_area = min_region_area.get().parse().unwrap_or(d.min_region_area);
+    config.merge_region_area = merge_region_area
+        .get()
+        .parse()
+        .unwrap_or(d.merge_region_area);
+    config.border_size = border_size.get().parse().unwrap_or(d.border_size);
+    config.max_simplification_error = max_simplification_error
+        .get()
+        .parse()
+        .unwrap_or(d.max_simplification_error);
+    config.max_edge_len = max_edge_len.get().parse().unwrap_or(d.max_edge_len);
+    config.max_vertices_per_polygon = max_vertices_per_polygon
+        .get()
+        .parse()
+        .unwrap_or(d.max_vertices_per_polygon);
+    // config.contour_flags = contour_flags.get().parse().unwrap_or(d.contour_flags);
+    config.detail_sample_dist = detail_sample_distance
+        .get()
+        .parse()
+        .unwrap_or(d.detail_sample_dist);
+    config.detail_sample_max_error = detail_sample_max_error
+        .get()
+        .parse()
+        .unwrap_or(d.detail_sample_max_error);
 }
 
 #[derive(Component)]

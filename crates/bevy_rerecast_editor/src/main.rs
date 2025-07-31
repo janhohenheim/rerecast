@@ -5,6 +5,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_rerecast::prelude::*;
+use bevy_ui_text_input::TextInputPlugin;
 
 mod build;
 mod camera;
@@ -20,7 +21,7 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(NavmeshPlugins::default())
+        .add_plugins((NavmeshPlugins::default(), TextInputPlugin))
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,
