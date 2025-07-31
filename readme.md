@@ -2,6 +2,8 @@
 [![crates.io](https://img.shields.io/crates/v/rerecast)](https://crates.io/crates/rerecast)
 [![docs.rs](https://docs.rs/rerecast/badge.svg)](https://docs.rs/rerecast)
 
+//! ![`rerecast` logo](https://raw.githubusercontent.com/janhohenheim/rerecast/refs/heads/main/logo.svg)
+
 Rust port of of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
 by Unreal, Unity, Godot, and other game engines.
 
