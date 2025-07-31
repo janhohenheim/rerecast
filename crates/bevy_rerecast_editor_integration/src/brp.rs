@@ -2,114 +2,29 @@
 
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
-use bevy_derive::{Deref, DerefMut};
-use bevy_ecs::{prelude::*, system::SystemId};
+use bevy_ecs::prelude::*;
 use bevy_image::Image;
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
-use bevy_reflect::prelude::*;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-use bevy_rerecast_transmission::{
-    SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize,
-};
+use bevy_rerecast_core::NavmeshAffectorBackend;
 use bevy_transform::prelude::*;
+use rerecast::TriMesh;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::NavmeshAffector;
+use crate::{
+    EditorVisible,
+    transmission::{SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize},
+};
 
-/// The optional editor integration for authoring the navmesh.
-#[derive(Debug, Default)]
-#[non_exhaustive]
-pub struct RerecastEditorIntegrationPlugin {
-    /// The settings for when [`EditorVisible`] is inserted automatically.
-    pub visibility_settings: EditorVisibilitySettings,
+pub(super) fn plugin(app: &mut App) {
+    app.add_systems(
+        Startup,
+        setup_methods.run_if(resource_exists::<RemoteMethods>),
+    );
 }
-
-impl Plugin for RerecastEditorIntegrationPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            Startup,
-            setup_methods.run_if(resource_exists::<RemoteMethods>),
-        );
-        app.init_resource::<RasterizerSystems>();
-        app.register_type::<EditorVisible>();
-        app.add_rasterizer(rasterize_meshes);
-        match self.visibility_settings {
-            EditorVisibilitySettings::AllMeshes => {
-                app.add_observer(insert_editor_visible_to_meshes);
-            }
-            EditorVisibilitySettings::Manual => {}
-        }
-    }
-}
-
-fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
-    commands.entity(trigger.target()).insert(EditorVisible);
-}
-
-/// The settings for when [`EditorVisible`] is inserted automatically.
-#[derive(Debug, Default)]
-pub enum EditorVisibilitySettings {
-    /// All entities with [`Mesh3d`] will have [EditorVisible`] inserted automatically.
-    #[default]
-    AllMeshes,
-    /// [`EditorVisible`] will not be inserted automatically. The user must manually insert it.
-    Manual,
-}
-
-/// Extension used to implement [`RerecastAppExt::add_rasterizer`] on [`App`]
-pub trait RerecastAppExt {
-    /// Add a system for rasterizing navmesh data. This will be called when the editor is fetching navmesh data.
-    fn add_rasterizer<M>(
-        &mut self,
-        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
-    ) -> &mut App;
-}
-
-impl RerecastAppExt for App {
-    fn add_rasterizer<M>(
-        &mut self,
-        system: impl IntoSystem<(), Vec<(GlobalTransform, SerializedMesh)>, M> + 'static,
-    ) -> &mut App {
-        let id = self.register_system(system);
-        let systems = self.world_mut().get_resource_mut::<RasterizerSystems>();
-        let Some(mut systems) = systems else {
-            tracing::error!(
-                "Failed to add rasterizer: internal resource not initialized. Did you forget to add the `RerecastPlugin`?"
-            );
-            return self;
-        };
-        systems.push(id);
-        self
-    }
-}
-
-#[derive(Resource, Default, Clone, Deref, DerefMut)]
-struct RasterizerSystems(Vec<SystemId<(), Vec<(GlobalTransform, SerializedMesh)>>>);
-
-fn rasterize_meshes(
-    meshes: Res<Assets<Mesh>>,
-    affectors: Query<(&GlobalTransform, &Mesh3d), With<NavmeshAffector<Mesh3d>>>,
-) -> Vec<(GlobalTransform, SerializedMesh)> {
-    affectors
-        .iter()
-        .filter_map(|(transform, mesh)| {
-            let transform = *transform;
-            let mesh = meshes.get(mesh)?;
-            let proxy_mesh = SerializedMesh::from_mesh(mesh);
-            Some((transform, proxy_mesh))
-        })
-        .collect::<Vec<_>>()
-}
-
-/// Component used to mark [`Mesh3d`]es so that they're not sent to the editor for previewing the level.
-#[derive(Debug, Component, Reflect)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
-#[reflect(Component)]
-pub struct EditorVisible;
 
 fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
     methods.insert(
@@ -129,24 +44,27 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         });
     }
 
-    let Some(system_ids) = world.get_resource::<RasterizerSystems>().cloned() else {
+    let Some(backend_id) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "Failed to get rasterizer systems".to_string(),
+            message: "No navmesh affector backend found. Did you forget to add one?".to_string(),
             data: None,
         });
     };
-    let mut affectors = Vec::new();
-    for id in system_ids.iter() {
-        let rasterizer_result = world.run_system(*id);
-        if let Ok(rasterizer_response) = rasterizer_result {
-            affectors.extend(
-                rasterizer_response
-                    .into_iter()
-                    .map(|(transform, mesh)| AffectorMesh { transform, mesh }),
-            );
+    let affectors = match world.run_system(*backend_id) {
+        Ok(result) => result,
+        Err(err) => {
+            return Err(BrpError {
+                code: bevy_remote::error_codes::INTERNAL_ERROR,
+                message: format!("Navmesh affector backend failed: {err}"),
+                data: None,
+            });
         }
-    }
+    };
+    let affectors = affectors
+        .into_iter()
+        .map(|(transform, mesh)| AffectorMesh { transform, mesh })
+        .collect();
 
     let mut visuals = world.query_filtered::<(
         &GlobalTransform,
@@ -273,7 +191,7 @@ pub struct AffectorMesh {
     /// The transform of the mesh.
     pub transform: GlobalTransform,
     /// The mesh data.
-    pub mesh: SerializedMesh,
+    pub mesh: TriMesh,
 }
 
 /// A mesh that doesn't affect the navmesh, but is sent to the editor for visualization.

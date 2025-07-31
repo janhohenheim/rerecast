@@ -1,7 +1,7 @@
 use anyhow::Context;
 use bevy::prelude::*;
 use bevy_rerecast::{
-    prelude::*,
+    TriMeshFromBevyMesh as _,
     rerecast::{self, DetailNavmesh, HeightfieldBuilder, TriMesh},
 };
 
@@ -18,9 +18,12 @@ pub(crate) struct BuildNavmesh;
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct BuildNavmeshConfig(rerecast::NavmeshConfig);
 
+#[derive(Component)]
+pub(crate) struct NavmeshAffector;
+
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
-    affectors: Query<(&Mesh3d, &GlobalTransform), With<NavmeshAffector<Mesh3d>>>,
+    affectors: Query<(&Mesh3d, &GlobalTransform), With<NavmeshAffector>>,
     meshes: Res<Assets<Mesh>>,
     config: Res<BuildNavmeshConfig>,
     mut commands: Commands,

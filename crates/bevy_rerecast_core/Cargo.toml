@@ -1,0 +1,44 @@
+[package]
+name = "bevy_rerecast_core"
+description = "TODO"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+readme = { workspace = true }
+
+[dependencies]
+bevy_ecs = { workspace = true }
+bevy_asset = { workspace = true }
+bevy_transform = { workspace = true }
+bevy_derive = { workspace = true }
+bevy_reflect = { workspace = true }
+bevy_app = { workspace = true }
+bevy_math = { workspace = true }
+
+tracing = { workspace = true }
+glam = { workspace = true }
+rerecast = { version = "0.0.2", path = "../rerecast", features = [
+    "bevy_reflect",
+] }
+
+# bevy_mesh
+bevy_mesh = { workspace = true, optional = true }
+bevy_render = { workspace = true, optional = true }
+
+# serialize
+serde = { workspace = true, optional = true }
+
+[features]
+default = ["bevy_mesh"]
+serialize = ["dep:serde", "rerecast/serialize"]
+bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

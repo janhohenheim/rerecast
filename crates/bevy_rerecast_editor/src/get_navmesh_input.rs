@@ -1,12 +1,17 @@
 use anyhow::Context as _;
-use bevy::{platform::collections::HashMap, prelude::*, remote::BrpRequest};
-use bevy_rerecast::{
-    NavmeshAffector,
-    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+use bevy::{
+    asset::RenderAssetUsages,
+    platform::collections::HashMap,
+    prelude::*,
+    remote::BrpRequest,
+    render::mesh::{Indices, PrimitiveTopology},
 };
-use bevy_rerecast_transmission::deserialize;
+use bevy_rerecast::editor_integration::{
+    brp::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+    transmission::deserialize,
+};
 
-use crate::visualization::VisualMesh;
+use crate::{build::NavmeshAffector, visualization::VisualMesh};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);
@@ -21,13 +26,7 @@ fn fetch_navmesh_input(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mesh_handles: Query<
-        Entity,
-        (
-            With<Mesh3d>,
-            Or<(With<VisualMesh>, With<NavmeshAffector<Mesh3d>>)>,
-        ),
-    >,
+    mesh_handles: Query<Entity, (With<Mesh3d>, Or<(With<VisualMesh>, With<NavmeshAffector>)>)>,
     gizmo_handles: Query<&Gizmo>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
 ) -> Result {
@@ -62,12 +61,21 @@ fn fetch_navmesh_input(
     }
 
     for affector in response.affector_meshes {
-        let mesh = affector.mesh.into_mesh();
+        let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, affector.mesh.vertices)
+            .with_inserted_indices(Indices::U32(
+                affector
+                    .mesh
+                    .indices
+                    .into_iter()
+                    .flat_map(|indices| indices.to_array())
+                    .collect(),
+            ));
 
         commands.spawn((
             affector.transform.compute_transform(),
             Mesh3d(meshes.add(mesh)),
-            NavmeshAffector::<Mesh3d>::default(),
+            NavmeshAffector,
             Visibility::Hidden,
             Gizmo {
                 handle: gizmos.add(GizmoAsset::new()),

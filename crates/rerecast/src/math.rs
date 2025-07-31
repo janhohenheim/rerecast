@@ -1,8 +1,15 @@
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 use glam::{U16Vec2, UVec3, Vec2, Vec3, Vec3A};
 
 /// A 3D axis-aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct Aabb3d {
     /// The minimum point of the box
     pub min: Vec3,

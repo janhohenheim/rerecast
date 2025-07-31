@@ -7,9 +7,11 @@ use bevy::{
     render::mesh::{Indices, PrimitiveTopology},
 };
 use bevy_rerecast::{
-    prelude::*,
+    TriMeshFromBevyMesh as _,
     rerecast::{DetailNavmesh, PolygonNavmesh, TriMesh},
 };
+
+use crate::build::NavmeshAffector;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_gizmos);
@@ -282,7 +284,7 @@ fn draw_detail_mesh(
 
 fn draw_navmesh_affector(
     mut gizmos: ResMut<Assets<GizmoAsset>>,
-    affector: Query<(&Mesh3d, &Gizmo), With<NavmeshAffector<Mesh3d>>>,
+    affector: Query<(&Mesh3d, &Gizmo), With<NavmeshAffector>>,
     meshes: Res<Assets<Mesh>>,
 ) {
     for (mesh, gizmo) in &affector {
@@ -331,7 +333,7 @@ fn hide_poly_mesh(
 }
 
 fn hide_affector(
-    gizmo_handles: Query<&Gizmo, With<NavmeshAffector<Mesh3d>>>,
+    gizmo_handles: Query<&Gizmo, With<NavmeshAffector>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
 ) {
     for gizmo in &gizmo_handles {
