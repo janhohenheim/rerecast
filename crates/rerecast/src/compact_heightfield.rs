@@ -84,13 +84,13 @@ pub struct CompactHeightfield {
     /// The height of the heightfield along the z-axis in cell units
     pub height: u16,
     /// The walkable height used during the build of the field
-    /// (See: [`Config::walkable_height`](crate::Config::walkable_height))
+    /// (See: [`NavmeshConfig::walkable_height`](crate::NavmeshConfig::walkable_height))
     pub walkable_height: u16,
     /// The walkable climb used during the build of the field.
-    /// (See: [`Config::walkable_climb`](crate::Config::walkable_climb))
+    /// (See: [`NavmeshConfig::walkable_climb`](crate::NavmeshConfig::walkable_climb))
     pub walkable_climb: u16,
     /// The AABB border size used during the build of the field.
-    /// (See: [`Config::border_size`](crate::Config::border_size))
+    /// (See: [`NavmeshConfig::border_size`](crate::NavmeshConfig::border_size))
     pub border_size: u16,
     /// The maximum distance value of any span within the field.
     pub max_distance: u16,

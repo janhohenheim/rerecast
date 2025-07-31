@@ -21,24 +21,24 @@ use crate::{Aabb3d, BuildContoursFlags};
 /// > might be a radius of 0.4 and a height of 2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NavmeshConfig {
-    /// The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
+    /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
 
-    /// The height of the field along the z-axis. [Limit: >= 0] [Units: vx]
+    /// The height of the field along the z-axis. `[Limit: >= 0] [Units: vx]`
     pub height: u16,
 
-    /// The width/height size of tiles on the xz-plane. [Limit: >= 0] [Units: vx]
+    /// The width/height size of tiles on the xz-plane. `[Limit: >= 0] [Units: vx]`
     ///
     /// This field is only used when building multi-tile meshes.
     pub tile_size: u16,
 
-    /// The size of the non-navigable border around the heightfield. [Limit: >=0] [Units: vx]
+    /// The size of the non-navigable border around the heightfield. `[Limit: >=0] [Units: vx]`
     ///
     /// This value represents the the closest the walkable area of the heightfield should come to the xz-plane AABB of the field.
     /// It does not have any impact on the borders around internal obstructions.
     pub border_size: u16,
 
-    /// The xz-plane cell size to use for fields. [Limit: > 0] [Units: wu].
+    /// The xz-plane cell size to use for fields. `[Limit: > 0] [Units: wu]`.
     ///
     /// The voxelization cell size defines the voxel size along both axes of the ground plane: x and z in Recast.
     /// This value is usually derived from the character radius r. A recommended starting value for cell_size is either r/2 or r/3.
@@ -58,7 +58,7 @@ pub struct NavmeshConfig {
     /// with the practical minimum usually around 0.05.
     pub cell_size: f32,
 
-    /// The y-axis cell size to use for fields. [Limit: > 0] [Units: wu]
+    /// The y-axis cell size to use for fields. `[Limit: > 0] [Units: wu]`
     ///
     /// The voxelization cell height is defined separately in order to allow for greater precision in height tests.
     /// A good starting point for cell_height is half the cell_size value.
@@ -74,18 +74,18 @@ pub struct NavmeshConfig {
     /// The field's AABB [Units: wu]
     pub aabb: Aabb3d,
 
-    /// The maximum slope that is considered walkable. [Limits: 0 <= value < 0.5*π] [Units: Radians]
+    /// The maximum slope that is considered walkable. `[Limits: 0 <= value < 0.5*π] [Units: Radians]`
     ///
     /// The parameter walkable_slope_angle is to filter out areas of the world where the ground slope
     /// would be too steep for an agent to traverse.
     /// This value is defined as a maximum angle in degrees that the surface normal of a polygon can differ from the world's up vector.
-    /// This value must be within the range [0, 90.0.to_radians()].
+    /// This value must be within the range `[0, 90.0.to_radians()]`.
     ///
     /// The practical upper limit for this parameter is usually around `85.0.to_radians()`.
     pub walkable_slope_angle: f32,
 
     /// Minimum floor to 'ceiling' height that will still allow the floor area to
-    /// be considered walkable. [Limit: >= 3] [Units: vx]
+    /// be considered walkable. `[Limit: >= 3] [Units: vx]`
     ///
     /// This value defines the worldspace height h of the agent in voxels.
     /// The value of walkable_height should be calculated as `(h / cell_height).ceil()`.
@@ -95,7 +95,7 @@ pub struct NavmeshConfig {
     /// The value is usually set to the maximum agent height
     pub walkable_height: u16,
 
-    /// Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
+    /// Maximum ledge height that is considered to still be traversable. `[Limit: >=0] [Units: vx]`
     ///
     /// The walkable_climb value defines the maximum height of ledges and steps that the agent can walk up.
     /// Given a designer-defined `max_climb` distance in world units,
@@ -107,7 +107,7 @@ pub struct NavmeshConfig {
     pub walkable_climb: u16,
 
     /// The distance to erode/shrink the walkable area of the heightfield away from
-    /// obstructions.  [Limit: >=0] [Units: vx]
+    /// obstructions.  `[Limit: >=0] [Units: vx]`
     ///
     /// The parameter walkable_radius defines the worldspace agent radius r in voxels.
     /// Most often, this value of walkable_radius should be calculated as `(r / cell_size).ceil()`.
@@ -129,7 +129,7 @@ pub struct NavmeshConfig {
     /// For these reasons, specifying a radius of zero is allowed but is not recommended.
     pub walkable_radius: u16,
 
-    /// The maximum allowed length for contour edges along the border of the mesh. [Limit: >=0] [Units: vx]
+    /// The maximum allowed length for contour edges along the border of the mesh. `[Limit: >=0] [Units: vx]`
     ///
     /// In certain cases, long outer edges may decrease the quality of the resulting triangulation, creating very long thin triangles.
     /// This can sometimes be remedied by limiting the maximum edge length, causing the problematic long edges to be broken up into smaller segments.
@@ -144,13 +144,13 @@ pub struct NavmeshConfig {
     pub max_edge_len: u16,
 
     /// The maximum distance a simplified contour's border edges should deviate
-    /// the original raw contour. [Limit: >=0] [Units: vx]
+    /// the original raw contour. `[Limit: >=0] [Units: vx]`
     ///
     /// When the rasterized areas are converted back to a vectorized representation,
     /// the max_simplification_error describes how loosely the simplification is done.
     /// The simplification process uses the Ramer–Douglas-Peucker algorithm, and this value describes the max deviation in voxels.
     ///
-    /// Good values for max_simplification_error are in the range [1.1, 1.5].
+    /// Good values for max_simplification_error are in the range `[1.1, 1.5]`.
     /// A value of 1.3 is a good starting point and usually yields good results.
     /// If the value is less than 1.1, some sawtoothing starts to appear at the generated edges.
     /// If the value is more than 1.5, the mesh simplification starts to cut some corners it shouldn't.
@@ -158,7 +158,7 @@ pub struct NavmeshConfig {
     /// The effect of this parameter only applies to the xz-plane.
     pub max_simplification_error: f32,
 
-    /// The minimum number of cells allowed to form isolated island areas. [Limit: >=0] [Units: vx]
+    /// The minimum number of cells allowed to form isolated island areas. `[Limit: >=0] [Units: vx]`
     ///
     /// Watershed partitioning is really prone to noise in the input distance field.
     /// In order to get nicer areas, the areas are merged and small disconnected areas are removed after the water shed partitioning.
@@ -170,7 +170,7 @@ pub struct NavmeshConfig {
     pub min_region_area: u16,
 
     /// Any regions with a span count smaller than this value will, if possible,
-    /// be merged with larger regions. [Limit: >=0] [Units: vx]
+    /// be merged with larger regions. `[Limit: >=0] [Units: vx]`
     ///
     /// The triangulation process works best with small, localized voxel regions.
     /// The parameter merge_region_area controls the maximum voxel area of a region that is allowed to be merged with another region.
@@ -178,15 +178,15 @@ pub struct NavmeshConfig {
     pub merge_region_area: u16,
 
     /// The maximum number of vertices allowed for polygons generated during the
-    /// contour to polygon conversion process. [Limit: >= 3]
+    /// contour to polygon conversion process. `[Limit: >= 3]`
     pub max_vertices_per_polygon: u16,
 
     /// Sets the sampling distance to use when generating the detail mesh.
-    /// (For height detail only.) [Limits: 0 or >= 0.9] [Units: wu]
+    /// (For height detail only.) `[Limits: 0 or >= 0.9] [Units: wu]`
     pub detail_sample_dist: f32,
 
     /// The maximum distance the detail mesh surface should deviate from heightfield
-    /// data. (For height detail only.) [Limit: >=0] [Units: wu]
+    /// data. (For height detail only.) `[Limit: >=0] [Units: wu]`
     pub detail_sample_max_error: f32,
 
     /// Flags controlling the [`ContourSet`](crate::ContourSet) generation process.

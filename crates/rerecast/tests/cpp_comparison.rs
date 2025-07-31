@@ -5,7 +5,7 @@ use std::env;
 use glam::{U8Vec3, UVec3, Vec2, Vec3, Vec3A};
 use rerecast::{
     AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavmesh,
-    Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
+    Heightfield, HeightfieldBuilder, PolygonNavmesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -420,7 +420,7 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
 }
 
 #[track_caller]
-fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
+fn assert_eq_poly_mesh(poly_mesh: &PolygonNavmesh, reference_name: &str) {
     let cpp_poly_mesh = load_json::<CppPolyMesh>(reference_name);
     assert_eq!(
         cpp_poly_mesh.bmin,

@@ -7,7 +7,7 @@ use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
-    Aabb3d, CompactHeightfield, PolygonMesh, RegionId,
+    Aabb3d, CompactHeightfield, PolygonNavmesh, RegionId,
     math::{
         dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_vec2,
         distance_squared_between_point_and_line_vec3, next, prev,
@@ -18,7 +18,7 @@ use crate::{
 ///
 /// The detail mesh is made up of triangle sub-meshes that provide extra height detail for each polygon in its assoicated polygon mesh.
 ///
-/// The standard process for building a detail mesh is to build it using [`DetailNavMesh::new`].
+/// The standard process for building a detail mesh is to build it using [`DetailNavmesh::new`].
 ///
 /// See the individual field definitions for details related to the structure the mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -111,9 +111,13 @@ pub struct DetailNavmesh {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubMesh {
+    /// The index in [`DetailNavmesh::vertices`] that begins this sub-mesh.
     pub base_vertex_index: u32,
+    /// Length of the sub-mesh in [`DetailNavmesh::vertices`]
     pub vertex_count: u32,
+    /// The index in [`DetailNavmesh::triangles`] that begins this sub-mesh.
     pub base_triangle_index: u32,
+    /// Length of the sub-mesh in [`DetailNavmesh::triangles`]
     pub triangle_count: u32,
 }
 
@@ -127,7 +131,7 @@ impl DetailNavmesh {
 
     /// Builds a detail mesh from the provided polygon mesh.
     pub fn new(
-        mesh: &PolygonMesh,
+        mesh: &PolygonNavmesh,
         heightfield: &CompactHeightfield,
         sample_distance: f32,
         sample_max_error: f32,
@@ -172,7 +176,7 @@ impl DetailNavmesh {
             *zmin = chf.height;
             *zmax = 0;
             for pj in &p[..nvp] {
-                if *pj == PolygonMesh::NO_INDEX {
+                if *pj == PolygonNavmesh::NO_INDEX {
                     break;
                 }
                 let v = &mesh.vertices[*pj as usize];
@@ -207,7 +211,7 @@ impl DetailNavmesh {
             // Store polygon vertices for processing.
             let mut npoly = 0;
             for j in 0..nvp {
-                if p[j] == PolygonMesh::NO_INDEX {
+                if p[j] == PolygonNavmesh::NO_INDEX {
                     break;
                 }
                 let v = mesh.vertices[p[j] as usize].as_vec3();

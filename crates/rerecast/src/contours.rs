@@ -530,7 +530,7 @@ pub struct ContourSet {
     pub height: u16,
     /// The AABB border size used to generate the source data from which the contours were derived.
     pub border_size: u16,
-    /// The max edge error that this contour set was simplified with. See [`Config::max_simplification_error`](crate::Config::max_simplification_error).
+    /// The max edge error that this contour set was simplified with. See [`NavmeshConfig::max_simplification_error`](crate::NavmeshConfig::max_simplification_error).
     pub max_error: f32,
 }
 

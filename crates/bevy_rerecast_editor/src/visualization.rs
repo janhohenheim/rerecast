@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{DetailNavmesh, PolygonMesh, TriMesh},
+    rerecast::{DetailNavmesh, PolygonNavmesh, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,7 +39,7 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Resource)]
 pub(crate) struct Navmesh {
-    pub(crate) poly_mesh: PolygonMesh,
+    pub(crate) poly_mesh: PolygonNavmesh,
     pub(crate) detail_mesh: DetailNavmesh,
 }
 
@@ -151,7 +151,7 @@ fn draw_poly_mesh(
         let poly = &mesh.polygons[i * nvp..];
         let mut verts = poly[..nvp]
             .iter()
-            .filter(|i| **i != PolygonMesh::NO_INDEX)
+            .filter(|i| **i != PolygonNavmesh::NO_INDEX)
             .map(|i| {
                 let vert_local = mesh.vertices[*i as usize];
 
@@ -178,7 +178,7 @@ fn draw_poly_mesh(
         for val in poly[1..nvp].windows(2) {
             let b = val[0];
             let c = val[1];
-            if b == PolygonMesh::NO_INDEX || c == PolygonMesh::NO_INDEX {
+            if b == PolygonNavmesh::NO_INDEX || c == PolygonNavmesh::NO_INDEX {
                 continue;
             }
             let b = origin + mesh.vertices[b as usize].as_vec3() * to_local;

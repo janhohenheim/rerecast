@@ -74,7 +74,7 @@ struct InternalPolygonMesh {
 /// ```
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-pub struct PolygonMesh {
+pub struct PolygonNavmesh {
     /// The mesh vertices.
     ///
     /// The values of [`Aabb3d::min`], [`Self::cell_size`], and [`Self::cell_height`] are used to convert vertex coordinates to world space as follows:
@@ -93,7 +93,7 @@ pub struct PolygonMesh {
     pub vertices: Vec<U16Vec3>,
     /// Polygons. [Length: [Self::polygon_count]].
     ///
-    /// Each entry is [`Self::vertices_per_polygon`] in length.
+    /// Each entry is [`Self::max_vertices_per_polygon`] in length.
     /// The first instance of [`Self::NO_INDEX`] indicates the end of the indices for the entry.
     ///
     /// For example:
@@ -109,7 +109,7 @@ pub struct PolygonMesh {
     /// Edges 3->4 and 4->8 are border edges not shared with any other polygon.
     /// ```
     pub polygons: Vec<u16>,
-    /// Corresponds to [`Self::polygons`]. Each entry is [`Self::vertices_per_polygon] in length.
+    /// Corresponds to [`Self::polygons`]. Each entry is [`Self::max_vertices_per_polygon] in length.
     ///
     /// Contains indices to each edge's connected polygons.
     /// A value of [`Self::NO_CONNECTION`] indicates no connection for the associated edge.
@@ -138,9 +138,9 @@ pub struct PolygonMesh {
     pub max_edge_error: f32,
 }
 
-impl PolygonMesh {
+impl PolygonNavmesh {
     /// The number of polygons in the mesh. Note that this is different from `polygons.len()`,
-    /// as each polygon in that collection is represented by [`Self::vertices_per_polygon`] vertices.
+    /// as each polygon in that collection is represented by [`Self::max_vertices_per_polygon`] vertices.
     #[inline]
     pub fn polygon_count(&self) -> usize {
         self.polygons.len() / self.max_vertices_per_polygon as usize
@@ -160,7 +160,7 @@ impl PolygonMesh {
     }
 }
 
-impl From<InternalPolygonMesh> for PolygonMesh {
+impl From<InternalPolygonMesh> for PolygonNavmesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
         let nvp = value.max_vertices_per_polygon as usize;
         value.polygons.truncate(value.npolys * 2 * nvp);
@@ -173,7 +173,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
         }
         value.vertices.truncate(value.nvertices as usize);
         value.areas.truncate(value.npolys);
-        PolygonMesh {
+        PolygonNavmesh {
             vertices: value.vertices,
             polygons,
             polygon_neighbors,
@@ -195,7 +195,7 @@ impl ContourSet {
     pub fn into_polygon_mesh(
         self,
         max_vertices_per_polygon: u16,
-    ) -> Result<PolygonMesh, PolygonMeshError> {
+    ) -> Result<PolygonNavmesh, PolygonMeshError> {
         let mut mesh = InternalPolygonMesh {
             aabb: self.aabb,
             cell_size: self.cell_size,
@@ -388,15 +388,15 @@ impl ContourSet {
             for i in 0..mesh.npolys {
                 let p = &mut mesh.polygons[i * 2 * nvp..];
                 for j in 0..nvp {
-                    if p[j] == PolygonMesh::NO_INDEX {
+                    if p[j] == PolygonNavmesh::NO_INDEX {
                         break;
                     }
                     // Skip connected edges.
-                    if p[nvp + j] != PolygonMesh::NO_CONNECTION {
+                    if p[nvp + j] != PolygonNavmesh::NO_CONNECTION {
                         continue;
                     }
                     let nj = j + 1;
-                    let nj = if nj >= nvp || p[nj] == PolygonMesh::NO_INDEX {
+                    let nj = if nj >= nvp || p[nj] == PolygonNavmesh::NO_INDEX {
                         0
                     } else {
                         nj
@@ -437,18 +437,18 @@ impl InternalPolygonMesh {
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
         let mut first_edge =
-            vec![PolygonMesh::NO_CONNECTION; self.nvertices as usize + max_edge_count];
+            vec![PolygonNavmesh::NO_CONNECTION; self.nvertices as usize + max_edge_count];
         let next_edge_index = self.nvertices as usize;
         let mut edge_count = 0;
         let mut edges = vec![Edge::default(); max_edge_count];
         for i in 0..self.npolys {
             let t = &self.polygons[i * nvp * 2..];
             for j in 0..nvp {
-                if t[j] == PolygonMesh::NO_INDEX {
+                if t[j] == PolygonNavmesh::NO_INDEX {
                     break;
                 }
                 let v0 = t[j];
-                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonMesh::NO_INDEX {
+                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonNavmesh::NO_INDEX {
                     t[0]
                 } else {
                     t[j + 1]
@@ -472,18 +472,18 @@ impl InternalPolygonMesh {
             let t = &self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(t, nvp);
             for j in 0..nv {
-                if t[j] == PolygonMesh::NO_INDEX {
+                if t[j] == PolygonNavmesh::NO_INDEX {
                     break;
                 }
                 let v0 = t[j];
-                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonMesh::NO_INDEX {
+                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonNavmesh::NO_INDEX {
                     t[0]
                 } else {
                     t[j + 1]
                 };
                 if v0 > v1 {
                     let mut e = first_edge[v1 as usize];
-                    while e != PolygonMesh::NO_CONNECTION {
+                    while e != PolygonNavmesh::NO_CONNECTION {
                         let edge = &mut edges[e as usize];
                         if edge.vert.y == v0 && edge.poly.x == edge.poly.y {
                             edge.poly.y = i as u16;
@@ -973,7 +973,7 @@ fn uleft(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
 fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
     p.iter()
         .take(nvp)
-        .position(|p| *p == PolygonMesh::NO_INDEX)
+        .position(|p| *p == PolygonNavmesh::NO_INDEX)
         .unwrap_or(nvp)
 }
 
