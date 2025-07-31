@@ -33,41 +33,42 @@ struct InternalPolygonMesh {
 ///
 /// Example of iterating the polygons:
 /// ```rust
-/// // Where mesh is a reference to a rcPolyMesh object.
+/// # use rerecast::*;
+/// # use glam::Vec3;
+/// # let mesh = PolygonMesh::default();
+/// // Where mesh is a reference to a PolygonMesh.
+/// let nvp = mesh.vertices_per_polygon as usize;
+/// let cs = mesh.cell_size;
+/// let ch = mesh.cell_height;
+/// let orig = mesh.aabb.min;
 ///
-/// const int nvp = mesh.nvp;
-/// const float cs = mesh.cs;
-/// const float ch = mesh.ch;
-/// const float* orig = mesh.bmin;
-///
-/// for (int i = 0; i < mesh.npolys; ++i)
-/// {
-///    const unsigned short* p = &mesh.polys[i*nvp*2];
+/// for i in 0..mesh.polygon_count() {
+///     let p = &mesh.polygons[i * nvp..];
 ///
 ///     // Iterate the vertices.
-///    unsigned short vi[3];  // The vertex indices.
-///    for (int j = 0; j < nvp; ++j)
-///    {
-///       if (p[j] == RC_MESH_NULL_IDX)
-///             break; // End of vertices.
-///
-///         if (p[j + nvp] == RC_MESH_NULL_IDX)
-///         {
-///             // The edge beginning with this vertex is a solid border.
+///     for j in 0..nvp {
+///         if p[j] == RC_MESH_NULL_IDX {
+///             // End of vertices.
+///             break;
 ///         }
-///         else
-///         {
+///
+///         if p[j + nvp] == RC_MESH_NULL_IDX {
+///             // The edge beginning with this vertex is a solid border.
+///         } else {
 ///             // The edge beginning with this vertex connects to
 ///             // polygon p[j + nvp].
 ///         }
 ///
 ///         // Convert to world space.
-///        const unsigned short* v = &mesh.verts[p[j]*3];
-///       const float x = orig[0] + v[0]*cs;
-///       const float y = orig[1] + v[1]*ch;
-///       const float z = orig[2] + v[2]*cs;
-///       // Do something with the vertices.
-///    }
+///         let v = &mesh.vertices[p[j] as usize];
+///         let world_vertex = Vec3 {
+///             x: orig.x + v.x as f32 * cs,
+///             y: orig.y + v.y as f32 * ch,
+///             z: orig.z + v.z as f32 * cs,
+///         };
+///         // Do something with the vertices.
+///         println!("Vertex: {world_vertex}");
+///     }
 /// }
 /// ```
 #[derive(Debug, Default, Clone, PartialEq)]
