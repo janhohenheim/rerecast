@@ -3,22 +3,25 @@ use bevy_asset::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{Mesh, PrimitiveTopology};
 use bevy_render::prelude::*;
-use bevy_rerecast_transmission::SerializedMesh;
 use bevy_transform::components::GlobalTransform;
 use glam::{UVec3, Vec3A};
 use rerecast::{AreaType, TriMesh};
 
-use crate::RerecastAppExt as _;
+use crate::NavmeshAffectorBackendAppExt as _;
 
-pub struct TodoBackendPlugin;
+/// A backend for [`crate::NavmeshPlugins`].
+/// Uses all entities with a [`Mesh3d`] component to generate navmeshes.
+#[derive(Debug, Default)]
+#[non_exhaustive]
+pub struct Mesh3dNavmeshPlugin;
 
-impl Plugin for TodoBackendPlugin {
+impl Plugin for Mesh3dNavmeshPlugin {
     fn build(&self, app: &mut App) {
-        app.set_navmesh_affector_backend(rasterize_meshes);
+        app.set_navmesh_affector_backend(mesh3d_backend);
     }
 }
 
-fn rasterize_meshes(
+fn mesh3d_backend(
     meshes: Res<Assets<Mesh>>,
     affectors: Query<(&GlobalTransform, &Mesh3d)>,
 ) -> Vec<(GlobalTransform, TriMesh)> {
@@ -27,7 +30,7 @@ fn rasterize_meshes(
         .filter_map(|(transform, mesh)| {
             let transform = *transform;
             let mesh = meshes.get(mesh)?;
-            let proxy_mesh = TriMesh::from_mesh(mesh);
+            let proxy_mesh = TriMesh::from_mesh(mesh)?;
             Some((transform, proxy_mesh))
         })
         .collect::<Vec<_>>()

@@ -13,6 +13,7 @@ use bevy_rerecast_transmission::{
     SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize,
 };
 use bevy_transform::prelude::*;
+use rerecast::TriMesh;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -56,7 +57,7 @@ pub enum EditorVisibilitySettings {
     Manual,
 }
 
-/// Component used to mark [`Mesh3d`]es so that they're not sent to the editor for previewing the level.
+/// Component used to mark [`Mesh3d`]es so that they're sent to the editor for previewing the level.
 #[derive(Debug, Component, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serialize", reflect(Serialize, Deserialize))]
@@ -84,21 +85,33 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
     let Some(maybe_backend) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "Failed to get `NavmeshAffectorBackend`".to_string(),
+            message:
+                "Internal error: Failed to get `NavmeshAffectorBackend`. Please open a bug report."
+                    .to_string(),
             data: None,
         });
     };
-    let mut affectors = Vec::new();
-    for id in system_ids.iter() {
-        let rasterizer_result = world.run_system(*id);
-        if let Ok(rasterizer_response) = rasterizer_result {
-            affectors.extend(
-                rasterizer_response
-                    .into_iter()
-                    .map(|(transform, mesh)| AffectorMesh { transform, mesh }),
-            );
+    let Some(backend_id) = maybe_backend.as_ref() else {
+        return Err(BrpError {
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            message: "No navmesh affector backend found.".to_string(),
+            data: None,
+        });
+    };
+    let affectors = match world.run_system(*backend_id) {
+        Ok(result) => result,
+        Err(err) => {
+            return Err(BrpError {
+                code: bevy_remote::error_codes::INTERNAL_ERROR,
+                message: format!("Navmesh affector backend failed: {err}"),
+                data: None,
+            });
         }
-    }
+    };
+    let affectors = affectors
+        .into_iter()
+        .map(|(transform, mesh)| AffectorMesh { transform, mesh })
+        .collect();
 
     let mut visuals = world.query_filtered::<(
         &GlobalTransform,
@@ -225,7 +238,7 @@ pub struct AffectorMesh {
     /// The transform of the mesh.
     pub transform: GlobalTransform,
     /// The mesh data.
-    pub mesh: SerializedMesh,
+    pub mesh: TriMesh,
 }
 
 /// A mesh that doesn't affect the navmesh, but is sent to the editor for visualization.
