@@ -25,7 +25,7 @@ use crate::{
 /// ```rust
 /// # use rerecast::*;
 /// # let hf = Heightfield::default();
-/// Where hf is a heightfield.
+/// // Where hf is a heightfield.
 ///
 /// let orig = hf.aabb.min;
 /// let cs = hf.cell_size;
