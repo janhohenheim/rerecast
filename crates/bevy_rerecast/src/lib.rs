@@ -6,7 +6,7 @@ pub use bevy_rerecast_editor_integration as editor_integration;
 
 /// Everything you need to get started with the Navmesh plugins.
 pub mod prelude {
-    pub use crate::NavmeshPlugins;
+    pub use crate::{Navmesh, NavmeshPlugins, generator::NavmeshGenerator};
 }
 
 /// The plugin group of the crate. Contains the following plugins:

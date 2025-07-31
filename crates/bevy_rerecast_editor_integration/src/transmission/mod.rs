@@ -1,3 +1,5 @@
+//! Types and functions needed for transmitting data between the editor and the running game.
+
 mod serialization;
 mod serialized_image;
 mod serialized_mesh;
