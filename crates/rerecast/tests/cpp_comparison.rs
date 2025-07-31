@@ -2,7 +2,7 @@
 
 use std::env;
 
-use glam::{U8Vec3, UVec3, Vec2, Vec3A};
+use glam::{U8Vec3, UVec3, Vec2, Vec3, Vec3A};
 use rerecast::{
     AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavmesh,
     Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
@@ -122,12 +122,12 @@ fn assert_eq_heightfield(heightfield: &Heightfield, reference_name: &str) {
     );
     assert_eq!(
         heightfield.aabb.min,
-        Vec3A::from(cpp_heightfield.bmin),
+        Vec3::from(cpp_heightfield.bmin),
         "heightfield aabb min"
     );
     assert_eq!(
         heightfield.aabb.max,
-        Vec3A::from(cpp_heightfield.bmax),
+        Vec3::from(cpp_heightfield.bmax),
         "heightfield aabb max"
     );
     assert_eq!(
@@ -228,12 +228,12 @@ fn assert_eq_compact_heightfield(compact_heightfield: &CompactHeightfield, refer
     );
     assert_eq!(
         compact_heightfield.aabb.min,
-        Vec3A::from(cpp_heightfield.bmin),
+        Vec3::from(cpp_heightfield.bmin),
         "compact_heightfield aabb min"
     );
     assert_eq!(
         compact_heightfield.aabb.max,
-        Vec3A::from(cpp_heightfield.bmax),
+        Vec3::from(cpp_heightfield.bmax),
         "compact_heightfield aabb max"
     );
     assert_eq!(
@@ -530,19 +530,19 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
         .enumerate()
     {
         assert_eq!(
-            cpp_mesh[0] as usize, mesh.base_vertex_index,
+            cpp_mesh[0] as u32, mesh.base_vertex_index,
             "{i} detail mesh first vertex index"
         );
         assert_eq!(
-            cpp_mesh[1] as usize, mesh.vertex_count,
+            cpp_mesh[1] as u32, mesh.vertex_count,
             "{i} detail mesh vertex_count"
         );
         assert_eq!(
-            cpp_mesh[2] as usize, mesh.base_triangle_index,
+            cpp_mesh[2] as u32, mesh.base_triangle_index,
             "{i} detail mesh first triangle index"
         );
         assert_eq!(
-            cpp_mesh[3] as usize, mesh.triangle_count,
+            cpp_mesh[3] as u32, mesh.triangle_count,
             "{i} detail mesh triangle_count"
         );
     }
@@ -560,7 +560,7 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
     {
         let cpp_tri_without_data = U8Vec3::from_slice(&cpp_tri[..3]).as_u16vec3();
         assert_eq!(cpp_tri_without_data, *tri, "{i} detail mesh triangle");
-        assert_eq!(cpp_tri[3] as usize, *data, "{i} detail mesh triangle data");
+        assert_eq!(cpp_tri[3] as u32, *data, "{i} detail mesh triangle data");
     }
 
     assert_eq!(
@@ -714,7 +714,7 @@ struct CppPolyMesh {
     polys: Vec<u16>,
     flags: Vec<u16>,
     areas: Vec<u8>,
-    nvp: usize,
+    nvp: u16,
     cs: f32,
     ch: f32,
     #[serde(rename = "borderSize")]

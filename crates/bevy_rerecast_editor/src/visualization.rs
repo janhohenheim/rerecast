@@ -145,7 +145,7 @@ fn draw_poly_mesh(
 
     let mesh = &navmesh.poly_mesh;
     let nvp = mesh.vertices_per_polygon as usize;
-    let origin = Vec3::from(mesh.aabb.min);
+    let origin = mesh.aabb.min;
     let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
         let poly = &mesh.polygons[i * 2 * nvp..];
