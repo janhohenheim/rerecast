@@ -4,7 +4,7 @@
 
 ![`rerecast` logo](https://raw.githubusercontent.com/janhohenheim/rerecast/refs/heads/main/logo.svg)
 
-Rust port of of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
+Rust port of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
 by Unreal, Unity, Godot, and other game engines.
 
 ## Features & Roadmap
