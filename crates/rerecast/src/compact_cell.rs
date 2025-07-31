@@ -44,7 +44,8 @@ impl CompactCell {
         self.count += 1;
     }
 
-    pub(crate) fn index_range(&self) -> Range<usize> {
+    /// Returns a range over the indices of spans in the cell column.
+    pub fn index_range(&self) -> Range<usize> {
         self.index as usize..self.index as usize + self.count as usize
     }
 }

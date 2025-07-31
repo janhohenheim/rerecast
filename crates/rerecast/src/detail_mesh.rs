@@ -38,24 +38,32 @@ pub struct DetailNavmesh {
     /// # use rerecast::*;
     /// # let dmesh = DetailNavmesh::default();
     /// // Where dmesh is a DetailNavmesh
-
+    ///
     /// // Iterate the sub-meshes. (One for each source polygon.)
     /// for mesh in &dmesh.meshes {
     ///     let verts =
     ///         &dmesh.vertices[mesh.base_vertex_index as usize..][..mesh.vertex_count as usize];
     ///     let tris =
     ///         &dmesh.triangles[mesh.base_triangle_index as usize..][..mesh.triangle_count as usize];
-
-    ///     // Iterate the sub-mesh's triangles.
-    ///     for (tri_indices, _data) in tris {
-    ///         let a = verts[tri_indices[0] as usize];
-    ///         let b = verts[tri_indices[1] as usize];
-    ///         let c = verts[tri_indices[2] as usize];
-
-    ///         // Do something with the vertex.
-    ///         println!("Vertex A: {a}");
-    ///         println!("Vertex B: {b}");
-    ///         println!("Vertex C: {c}");
+    ///
+    ///     // Iterate the sub-meshes. (One for each source polygon.)
+    ///     for mesh in &dmesh.meshes {
+    ///         let verts =
+    ///             &dmesh.vertices[mesh.base_vertex_index as usize..][..mesh.vertex_count as usize];
+    ///         let tris =
+    ///             &dmesh.triangles[mesh.base_triangle_index as usize..][..mesh.triangle_count as usize];
+    ///
+    ///         // Iterate the sub-mesh's triangles.
+    ///         for tri in tris {
+    ///             let a = verts[tri[0] as usize];
+    ///             let b = verts[tri[1] as usize];
+    ///             let c = verts[tri[2] as usize];
+    ///
+    ///             // Do something with the vertex.
+    ///             println!("Vertex A: {a}");
+    ///             println!("Vertex B: {b}");
+    ///             println!("Vertex C: {c}");
+    ///         }
     ///     }
     /// }
     /// ```

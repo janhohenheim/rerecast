@@ -27,62 +27,56 @@ use crate::{
 /// Example of iterating and inspecting spans, including connected neighbors:
 ///
 /// ```rust
-/// // Where chf is an instance of a rcCompactHeightfield.
-/// const float cs = chf.cs;
-/// const float ch = chf.ch;
+/// # use rerecast::*;
+/// # let chf = CompactHeightfield::default();
+/// // Where chf is an instance of a CompactHeightfield.
 ///
-/// for (int y = 0; y < chf.height; ++y)
-/// {
-///     for (int x = 0; x < chf.width; ++x)
-///     {
+/// let cs = chf.cell_size;
+/// let ch = chf.cell_height;
+///
+/// for z in 0..chf.height {
+///     for x in 0..chf.width {
 ///         // Deriving the minimum corner of the grid location.
-///         const float fx = chf.bmin[0] + x*cs;
-///         const float fz = chf.bmin[2] + y*cs;
+///         let fx = chf.aabb.min.x + x as f32 * cs;
+///         let fz = chf.aabb.min.z + z as f32 * cs;
+///         println!("Corners: {fx},  {fz}");
 ///
 ///         // Get the cell for the grid location then iterate
 ///         // up the column.
-///         const rcCompactCell& c = chf.cells[x+y*chf.width];
-///         for (unsigned i = c.index, ni = c.index+c.count; i < ni; ++i)
-///         {
-///             const rcCompactSpan& s = chf.spans[i];
+///         let c = chf.cell_at(x, z);
+///         for i in c.index_range() {
+///             let s = &chf.spans[i];
 ///
-///             Deriving the minimum (floor) of the span.
-///             const float fy = chf.bmin[1] + (s.y+1)*ch;
+///             // Deriving the minimum (floor) of the span.
+///             let fy = chf.aabb.min.y + (s.y + 1) as f32 * ch;
+///             println!("Span floor: {fy}");
 ///
 ///             // Testing the area assignment of the span.
-///             if (chf.areas[i] == RC_WALKABLE_AREA)
-///             {
+///             if chf.areas[i] == AreaType::DEFAULT_WALKABLE {
 ///                 // The span is in the default 'walkable area'.
-///             }
-///             else if (chf.areas[i] == RC_NULL_AREA)
-///             {
+///             } else if chf.areas[i] == AreaType::NOT_WALKABLE {
 ///                 // The surface is not considered walkable.
 ///                 // E.g. It was filtered out during the build processes.
-///             }
-///             else
-///             {
+///             } else {
 ///                 // Do something. (Only applicable for custom build
 ///                 // build processes.)
 ///             }
 ///
 ///             // Iterating the connected axis-neighbor spans.
-///             for (int dir = 0; dir < 4; ++dir)
-///             {
-///                 if (rcGetCon(s, dir) != RC_NOT_CONNECTED)
-///                 {
+///             for dir in 0..4 {
+///                 if let Some(con) = s.con(dir) {
 ///                     // There is a neighbor in this direction.
-///                     const int nx = x + rcGetDirOffsetX(dir);
-///                     const int ny = y + rcGetDirOffsetY(dir);
-///                     const int ni = (int)chf.cells[nx+ny*w].index + rcGetCon(s, 0);
-///                     const rcCompactSpan& ns = chf.spans[ni];
+///                     let (_nx, _ny, ni) = chf.con_indices(x as i32, z as i32, dir, con);
+///                     let ns = &chf.spans[ni];
 ///                     // Do something with the neighbor span.
+///                     println!("Neighbor span: {ns:?}");
 ///                 }
 ///             }
 ///         }
 ///     }
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactHeightfield {
     /// The width of the heightfield along the x-axis in cell units
@@ -296,8 +290,12 @@ impl CompactHeightfield {
         &mut self.cells[index]
     }
 
+    /// Given a span at the indices `(x, z)`, a direction `dir`, and a connection `con`, returns:
+    /// - The x index of the neighbor span
+    /// - The z index of the neighbor span
+    /// - The index of the neighbor span in [`Self::spans`]
     #[inline]
-    pub(crate) fn con_indices(&self, x: i32, z: i32, dir: u8, con: u8) -> (i32, i32, usize) {
+    pub fn con_indices(&self, x: i32, z: i32, dir: u8, con: u8) -> (i32, i32, usize) {
         let a_x = x + dir_offset_x(dir) as i32;
         let a_z = z + dir_offset_z(dir) as i32;
         let cell_index = (a_x + a_z * self.width as i32) as usize;
