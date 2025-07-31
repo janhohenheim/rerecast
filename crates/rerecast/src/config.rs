@@ -1,4 +1,4 @@
-use crate::Aabb3d;
+use crate::{Aabb3d, BuildContoursFlags};
 
 /// Specifies a configuration to use when performing Recast builds.
 ///
@@ -20,7 +20,7 @@ use crate::Aabb3d;
 /// > If your game world uses meters as units, a reasonable starting point for a human-sized agent
 /// > might be a radius of 0.4 and a height of 2.0.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Config {
+pub struct NavmeshConfig {
     /// The width of the field along the x-axis. [Limit: >= 0] [Units: vx]
     pub width: u16,
 
@@ -179,7 +179,7 @@ pub struct Config {
 
     /// The maximum number of vertices allowed for polygons generated during the
     /// contour to polygon conversion process. [Limit: >= 3]
-    pub max_verts_per_poly: u16,
+    pub max_vertices_per_polygon: u16,
 
     /// Sets the sampling distance to use when generating the detail mesh.
     /// (For height detail only.) [Limits: 0 or >= 0.9] [Units: wu]
@@ -188,4 +188,33 @@ pub struct Config {
     /// The maximum distance the detail mesh surface should deviate from heightfield
     /// data. (For height detail only.) [Limit: >=0] [Units: wu]
     pub detail_sample_max_error: f32,
+
+    /// Flags controlling the [`ContourSet`](crate::ContourSet) generation process.
+    pub contour_flags: BuildContoursFlags,
+}
+
+impl Default for NavmeshConfig {
+    fn default() -> Self {
+        Self {
+            cell_size: 0.3,
+            cell_height: 0.2,
+            walkable_slope_angle: 45.0_f32.to_radians(),
+            walkable_height: 10,
+            walkable_climb: 4,
+            walkable_radius: 2,
+            min_region_area: 64,
+            merge_region_area: 400,
+            border_size: 5,
+            max_simplification_error: 1.3,
+            max_edge_len: 40,
+            max_vertices_per_polygon: 6,
+            contour_flags: BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES,
+            detail_sample_dist: 1.8,
+            detail_sample_max_error: 0.2,
+            width: 0,
+            height: 0,
+            tile_size: 0,
+            aabb: Aabb3d::default(),
+        }
+    }
 }

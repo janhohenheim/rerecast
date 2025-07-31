@@ -144,7 +144,7 @@ fn draw_poly_mesh(
     *visibility = Visibility::Inherited;
 
     let mesh = &navmesh.poly_mesh;
-    let nvp = mesh.vertices_per_polygon;
+    let nvp = mesh.vertices_per_polygon as usize;
     let origin = Vec3::from(mesh.aabb.min);
     let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
@@ -230,8 +230,10 @@ fn draw_detail_mesh(
 
     let mesh = &navmesh.detail_mesh;
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.base_vertex_index..][..submesh.vertex_count];
-        let submesh_tris = &mesh.triangles[submesh.base_triangle_index..][..submesh.triangle_count];
+        let submesh_verts =
+            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
+            [..submesh.triangle_count as usize];
         for (tri, _data) in submesh_tris {
             let mut verts = tri
                 .to_array()
@@ -250,9 +252,11 @@ fn draw_detail_mesh(
     let mut visual_indices = Vec::new();
 
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.base_vertex_index..][..submesh.vertex_count];
+        let submesh_verts =
+            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
 
-        let submesh_tris = &mesh.triangles[submesh.base_triangle_index..][..submesh.triangle_count];
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
+            [..submesh.triangle_count as usize];
         for (tri, _data) in submesh_tris.iter() {
             for i in tri.to_array() {
                 visual_indices.push(i as u32 + visual_verts.len() as u32);

@@ -17,7 +17,7 @@ struct InternalPolygonMesh {
     flags: Vec<u16>,
     areas: Vec<AreaType>,
     max_polygons: usize,
-    vertices_per_polygon: u32,
+    max_vertices_per_polygon: u16,
     aabb: Aabb3d,
     cell_size: f32,
     cell_height: f32,
@@ -111,7 +111,7 @@ pub struct PolygonMesh {
     /// This value can then be changed to meet user requirements.
     pub areas: Vec<AreaType>,
     /// The maximum number of vertices per polygon
-    pub vertices_per_polygon: u32,
+    pub vertices_per_polygon: u16,
     /// The bounding box of the mesh in world space.
     pub aabb: Aabb3d,
     /// The size of each cell. (On the xz-plane.)
@@ -136,7 +136,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
     fn from(mut value: InternalPolygonMesh) -> Self {
         value
             .polygons
-            .truncate(value.npolys * value.vertices_per_polygon as usize * 2);
+            .truncate(value.npolys * value.max_vertices_per_polygon as usize * 2);
         value.vertices.truncate(value.nvertices as usize);
         value.areas.truncate(value.npolys);
         PolygonMesh {
@@ -145,7 +145,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
             regions: value.regions,
             flags: value.flags,
             areas: value.areas,
-            vertices_per_polygon: value.vertices_per_polygon,
+            vertices_per_polygon: value.max_vertices_per_polygon,
             aabb: value.aabb,
             cell_size: value.cell_size,
             cell_height: value.cell_height,
@@ -159,7 +159,7 @@ impl ContourSet {
     /// Builds a polygon mesh from the provided contours.
     pub fn into_polygon_mesh(
         self,
-        max_vertices_per_polygon: u32,
+        max_vertices_per_polygon: u16,
     ) -> Result<PolygonMesh, PolygonMeshError> {
         let mut mesh = InternalPolygonMesh {
             aabb: self.aabb,
@@ -167,7 +167,7 @@ impl ContourSet {
             cell_height: self.cell_height,
             border_size: self.border_size,
             max_edge_error: self.max_error,
-            vertices_per_polygon: max_vertices_per_polygon,
+            max_vertices_per_polygon,
             ..Default::default()
         };
         let nvp = max_vertices_per_polygon as usize;
@@ -398,7 +398,7 @@ struct Edge {
 
 impl InternalPolygonMesh {
     fn build_mesh_adjacency(&mut self) -> Result<(), PolygonMeshError> {
-        let nvp = self.vertices_per_polygon as usize;
+        let nvp = self.max_vertices_per_polygon as usize;
         // Based on code by Eric Lengyel from:
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
@@ -476,7 +476,7 @@ impl InternalPolygonMesh {
     }
 
     fn remove_vertex(&mut self, rem: u16, max_tris: usize) -> Result<(), PolygonMeshError> {
-        let nvp = self.vertices_per_polygon as usize;
+        let nvp = self.max_vertices_per_polygon as usize;
 
         // Count number of polygons to remove.
         let mut num_removed_verts = 0;
@@ -744,7 +744,7 @@ impl InternalPolygonMesh {
     }
 
     fn can_remove_vertex(&self, rem: u16) -> bool {
-        let nvp = self.vertices_per_polygon as usize;
+        let nvp = self.max_vertices_per_polygon as usize;
 
         // Count number of polygons to remove.
         let mut num_touched_verts = 0;

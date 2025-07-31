@@ -536,7 +536,7 @@ pub struct ContourSet {
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub(crate) struct RegionVertexId: u32 {
+    pub struct RegionVertexId: u32 {
         const NONE = 0;
 
         /// Applied to the region id field of contour vertices in order to extract the region id.
