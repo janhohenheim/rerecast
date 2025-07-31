@@ -615,7 +615,9 @@ pub struct Contour {
     /// For example:
     /// ```rust
     /// # use rerecast::*;
-    /// # let contour = Contour::default();
+    /// # use glam::U16Vec3;
+    /// # let mut contour = Contour::default();
+    /// # contour.vertices = vec![(U16Vec3::new(1, 2, 3), 4)];
     /// # let i = 0;
     /// let r = contour.vertices[i * 4].1;
     ///

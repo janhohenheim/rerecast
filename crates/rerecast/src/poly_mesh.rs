@@ -35,7 +35,8 @@ struct InternalPolygonMesh {
 /// ```rust
 /// # use rerecast::*;
 /// # use glam::Vec3;
-/// # let mesh = PolygonMesh::default();
+/// # let mut mesh = PolygonMesh::default();
+/// # mesh.vertices_per_polygon = 1;
 /// // Where mesh is a reference to a PolygonMesh.
 /// let nvp = mesh.vertices_per_polygon as usize;
 /// let cs = mesh.cell_size;
@@ -78,9 +79,16 @@ pub struct PolygonMesh {
     ///
     /// The values of bmin ,cs, and ch are used to convert vertex coordinates to world space as follows:
     /// ```rust
-    /// float worldX = bmin[0] + verts[i*3+0] * cs
-    /// float worldY = bmin[1] + verts[i*3+1] * ch
-    /// float worldZ = bmin[2] + verts[i*3+2] * cs
+    /// # use rerecast::*;
+    /// # use glam::{Vec3, U16Vec3};
+    /// # let mut mesh = PolygonMesh::default();
+    /// # mesh.vertices = vec![U16Vec3::ZERO; 1];
+    /// # let i = 0;
+    /// let world_vertex = Vec3 {
+    ///     x: mesh.aabb.min.x + mesh.vertices[i].x as f32 * mesh.cell_size,
+    ///     y: mesh.aabb.min.y + mesh.vertices[i].y as f32 * mesh.cell_height,
+    ///     z: mesh.aabb.min.z + mesh.vertices[i].z as f32 * mesh.cell_size,
+    /// };
     /// ```
     pub vertices: Vec<U16Vec3>,
     /// Polygon and neighbor data. [Length: maxpolys * nvp].
