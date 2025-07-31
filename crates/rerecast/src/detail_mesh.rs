@@ -26,8 +26,8 @@ use crate::{
 pub struct DetailNavmesh {
     /// The sub-mesh data.
     ///
-    /// Maximum number of vertices per sub-mesh: [`Self::MAX_VERTS`]
-    /// Maximum number of triangles per sub-mesh: [`Self::MAX_TRIS`]
+    /// Maximum number of vertices per sub-mesh: [`Self::MAX_VERTICES_PER_SUBMESH`]
+    /// Maximum number of triangles per sub-mesh: [`Self::MAX_TRIANGLES_PER_SUBMESH`]
     ///
     /// The sub-meshes are stored in the same order as the polygons from the [`PolygonNavmesh`] they represent.
     /// E.g. [`DetailNavmesh`] sub-mesh 5 is associated with [`PolygonNavmesh`] polygon 5.
@@ -118,9 +118,11 @@ pub struct SubMesh {
 }
 
 impl DetailNavmesh {
-    pub const MAX_VERTS: usize = 127;
+    /// The maximum number of vertices per entry in [`DetailNavmesh::meshes`]
+    pub const MAX_VERTICES_PER_SUBMESH: usize = 127;
     // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
-    pub const MAX_TRIS: usize = u8::MAX as usize;
+    /// The maximum number of triangles per entry in [`DetailNavmesh::meshes`]
+    pub const MAX_TRIANGLES_PER_SUBMESH: usize = u8::MAX as usize;
     const MAX_VERTS_PER_EDGE: usize = 32;
 
     /// Builds a detail mesh from the provided polygon mesh.
@@ -312,7 +314,7 @@ fn build_poly_detail(
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
     let mut edge = [Vec3A::default(); DetailNavmesh::MAX_VERTS_PER_EDGE + 1];
-    let mut hull = [0; DetailNavmesh::MAX_VERTS];
+    let mut hull = [0; DetailNavmesh::MAX_VERTICES_PER_SUBMESH];
     let mut nhull = 0;
 
     *nverts = nin;
@@ -355,8 +357,8 @@ fn build_poly_detail(
             if nn >= DetailNavmesh::MAX_VERTS_PER_EDGE {
                 nn = DetailNavmesh::MAX_VERTS_PER_EDGE - 1;
             }
-            if *nverts + nn >= DetailNavmesh::MAX_VERTS {
-                nn = DetailNavmesh::MAX_VERTS - 1 - *nverts;
+            if *nverts + nn >= DetailNavmesh::MAX_VERTICES_PER_SUBMESH {
+                nn = DetailNavmesh::MAX_VERTICES_PER_SUBMESH - 1 - *nverts;
             }
             for (k, pos) in edge.iter_mut().enumerate().take(nn + 1) {
                 let u = k as f32 / nn as f32;
@@ -478,7 +480,7 @@ fn build_poly_detail(
         // error. The procedure stops when all samples are added
         // or when the max error is within treshold.
         for _iter in 0..samples.len() {
-            if *nverts >= DetailNavmesh::MAX_VERTS {
+            if *nverts >= DetailNavmesh::MAX_VERTICES_PER_SUBMESH {
                 break;
             }
 
@@ -528,14 +530,14 @@ fn build_poly_detail(
             delaunay_hull(*nverts, verts, nhull, &mut hull, tris, flags, edges);
         }
     }
-    if tris.len() > DetailNavmesh::MAX_TRIS {
+    if tris.len() > DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH {
         // Jan: why do we need this?
-        tris.truncate(DetailNavmesh::MAX_TRIS);
-        flags.truncate(DetailNavmesh::MAX_TRIS);
+        tris.truncate(DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH);
+        flags.truncate(DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH);
         tracing::error!(
             "Too many triangles! Shringking triangle count from {} to {}",
             tris.len(),
-            DetailNavmesh::MAX_TRIS
+            DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH
         );
     }
     set_tri_flags(tris, flags, nhull, &hull);
