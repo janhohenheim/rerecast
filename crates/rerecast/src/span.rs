@@ -14,7 +14,7 @@ slotmap::new_key_type! {
 }
 
 /// A collection of spans.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spans(SlotMap<SpanKey, Span>);
 
@@ -70,71 +70,20 @@ impl From<SpanBuilder> for Span {
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Span {
     /// Height of the floor.
-    ///
-    /// Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
-    min: u16,
+    // Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
+    pub min: u16,
     /// Height of the ceiling.
-    ///
-    /// Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
-    max: u16,
+    // Original uses 13 bits, but that results in the same alignment AFAIK, so we don't bother
+    pub max: u16,
     /// Area type ID.
-    ///
-    /// Original uses 6 bits, but that results in the same alignment AFAIK, so we don't bother
-    area: AreaType,
+    // Original uses 6 bits, but that results in the same alignment AFAIK, so we don't bother
+    pub area: AreaType,
     /// The key of the next-higher span in the column
-    next: Option<SpanKey>,
+    pub next: Option<SpanKey>,
 }
 
 impl Span {
     pub(crate) const MAX_HEIGHT: u16 = u16::MAX;
-
-    /// Returns the height of the floor.
-    #[inline]
-    pub fn min(&self) -> u16 {
-        self.min
-    }
-
-    /// Sets the height of the floor.
-    #[inline]
-    pub fn set_min(&mut self, min: u16) {
-        self.min = min;
-    }
-
-    /// Returns the height of the ceiling.
-    #[inline]
-    pub fn max(&self) -> u16 {
-        self.max
-    }
-
-    /// Sets the height of the ceiling.
-    #[inline]
-    pub fn set_max(&mut self, max: u16) {
-        self.max = max;
-    }
-
-    /// Returns the area type of the span.
-    #[inline]
-    pub fn area(&self) -> AreaType {
-        self.area
-    }
-
-    /// Sets the area type of the span.
-    #[inline]
-    pub fn set_area(&mut self, area: impl Into<AreaType>) {
-        self.area = area.into();
-    }
-
-    /// Returns the key of the next-higher span in the column.
-    #[inline]
-    pub fn next(&self) -> Option<SpanKey> {
-        self.next
-    }
-
-    /// Sets the key of the next-higher span in the column.
-    #[inline]
-    pub fn set_next(&mut self, next: impl Into<Option<SpanKey>>) {
-        self.next = next.into();
-    }
 }
 
 /// An identifier for the area type of a span.
@@ -204,10 +153,10 @@ mod tests {
     #[test]
     fn can_retrieve_span_data_after_building() {
         let span = span();
-        assert_eq!(span.min(), 2);
-        assert_eq!(span.max(), 10);
-        assert_eq!(span.area(), AreaType(4));
-        assert_eq!(span.next(), None);
+        assert_eq!(span.min, 2);
+        assert_eq!(span.max, 10);
+        assert_eq!(span.area, AreaType(4));
+        assert_eq!(span.next, None);
     }
 
     #[test]
@@ -216,14 +165,14 @@ mod tests {
         let mut slotmap = SlotMap::with_key();
         let span_key: SpanKey = slotmap.insert(span.clone());
 
-        span.set_min(1);
-        span.set_max(4);
-        span.set_area(3);
-        span.set_next(span_key);
+        span.min = 1;
+        span.max = 4;
+        span.area = AreaType(3);
+        span.next = Some(span_key);
 
-        assert_eq!(span.min(), 1);
-        assert_eq!(span.max(), 4);
-        assert_eq!(span.area(), AreaType(3));
-        assert_eq!(span.next(), Some(span_key));
+        assert_eq!(span.min, 1);
+        assert_eq!(span.max, 4);
+        assert_eq!(span.area, AreaType(3));
+        assert_eq!(span.next, Some(span_key));
     }
 }

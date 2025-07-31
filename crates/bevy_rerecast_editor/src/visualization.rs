@@ -237,7 +237,7 @@ fn draw_detail_mesh(
         for tri in submesh_tris {
             let mut verts = tri
                 .iter()
-                .map(|i| Vec3::from(submesh_verts[*i as usize]))
+                .map(|i| submesh_verts[*i as usize])
                 .collect::<Vec<_>>();
             // Connect back to first vertex to finish the polygon
             verts.push(verts[0]);
@@ -261,7 +261,7 @@ fn draw_detail_mesh(
                 visual_indices.push(i as u32 + visual_verts.len() as u32);
             }
         }
-        visual_verts.extend(submesh_verts.iter().map(|v| Vec3::from(*v)));
+        visual_verts.extend(submesh_verts.iter().copied());
     }
     visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
     visual_mesh.insert_indices(Indices::U32(visual_indices));

@@ -128,7 +128,7 @@ impl Heightfield {
         let walkable_span_count = self
             .allocated_spans
             .values()
-            .filter(|span| span.area().is_walkable())
+            .filter(|span| span.area.is_walkable())
             .count();
 
         let mut compact_heightfield = CompactHeightfield {
@@ -166,19 +166,19 @@ impl Heightfield {
 
                 while let Some(span_key) = span_key_iter {
                     let span = self.span(span_key);
-                    span_key_iter = span.next();
-                    if !span.area().is_walkable() {
+                    span_key_iter = span.next;
+                    if !span.area.is_walkable() {
                         continue;
                     }
-                    let bot = span.max();
+                    let bot = span.max;
                     let top = span
-                        .next()
-                        .map(|span| self.span(span).min())
+                        .next
+                        .map(|span| self.span(span).min)
                         .unwrap_or(Self::MAX_HEIGHT);
                     compact_heightfield.spans[cell_index].y = bot.clamp(0, Self::MAX_HEIGHT);
                     let height = (top.saturating_sub(bot)).min(u8::MAX.into()) as u8;
                     compact_heightfield.spans[cell_index].set_height(height);
-                    compact_heightfield.areas[cell_index] = span.area();
+                    compact_heightfield.areas[cell_index] = span.area;
                     cell_index += 1;
                     cell.inc_count();
                 }
