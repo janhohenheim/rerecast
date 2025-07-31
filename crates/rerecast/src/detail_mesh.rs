@@ -135,7 +135,8 @@ impl DetailNavmesh {
         let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
 
         let mut edges = Vec::with_capacity(64 / 4);
-        let mut tris = Vec::with_capacity(512 / 4);
+        let mut tris = Vec::with_capacity((512 / 4) * 3);
+        let mut flags = Vec::with_capacity(512 / 4);
         let mut arr = Vec::with_capacity(512 / 3);
         let mut samples = Vec::with_capacity(512 / 4);
         let mut verts = [Vec3A::default(); 256];
@@ -234,6 +235,7 @@ impl DetailNavmesh {
                 &mut verts,
                 &mut nverts,
                 &mut tris,
+                &mut flags,
                 &mut edges,
                 &mut samples,
             )?;
@@ -274,11 +276,11 @@ impl DetailNavmesh {
                 }
                 dmesh.triangles.reserve(tcap - dmesh.triangles.capacity());
             }
-            for (tri, flags) in &tris {
-                dmesh
-                    .triangles
-                    .push([tri[0] as u8, tri[1] as u8, tri[2] as u8]);
-                dmesh.triangle_flags.push(*flags as u8);
+            for tri in &tris {
+                dmesh.triangles.push([tri[0], tri[1], tri[2]]);
+            }
+            for flag in &flags {
+                dmesh.triangle_flags.push(*flag);
             }
         }
 
@@ -296,7 +298,8 @@ fn build_poly_detail(
     hp: &HeightPatch,
     verts: &mut [Vec3A],
     nverts: &mut usize,
-    tris: &mut Vec<(U16Vec3, u32)>,
+    tris: &mut Vec<[u8; 3]>,
+    flags: &mut Vec<u8>,
     edges: &mut Vec<Edges>,
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
@@ -309,6 +312,7 @@ fn build_poly_detail(
     verts[..nin].clone_from_slice(&in_[..nin]);
     edges.clear();
     tris.clear();
+    flags.clear();
 
     let cs = chf.cell_size;
     let ics = 1.0 / cs;
@@ -413,8 +417,8 @@ fn build_poly_detail(
 
     // If the polygon minimum extent is small (sliver or small triangle), do not try to add internal points.
     if min_extent_squared < (sample_dist * 2.0) * (sample_dist * 2.0) {
-        triangulate_hull(verts, nhull, &hull, nin, tris);
-        set_tri_flags(tris, nhull, &hull);
+        triangulate_hull(verts, nhull, &hull, nin, tris, flags);
+        set_tri_flags(tris, flags, nhull, &hull);
         return Ok(());
     }
 
@@ -422,7 +426,7 @@ fn build_poly_detail(
     // We're using the triangulateHull instead of delaunayHull as it tends to
     // create a bit better triangulation for long thin triangles when there
     // are no internal points.
-    triangulate_hull(verts, nhull, &hull, nin, tris);
+    triangulate_hull(verts, nhull, &hull, nin, tris, flags);
 
     if tris.is_empty() {
         // Could not triangulate the poly, make sure there is some valid data there.
@@ -512,19 +516,21 @@ fn build_poly_detail(
             // [sic] TODO: Incremental add instead of full rebuild.
             edges.clear();
             tris.clear();
-            delaunay_hull(*nverts, verts, nhull, &mut hull, tris, edges);
+            flags.clear();
+            delaunay_hull(*nverts, verts, nhull, &mut hull, tris, flags, edges);
         }
     }
     if tris.len() > DetailNavmesh::MAX_TRIS {
         // Jan: why do we need this?
         tris.truncate(DetailNavmesh::MAX_TRIS);
+        flags.truncate(DetailNavmesh::MAX_TRIS);
         tracing::error!(
             "Too many triangles! Shringking triangle count from {} to {}",
             tris.len(),
             DetailNavmesh::MAX_TRIS
         );
     }
-    set_tri_flags(tris, nhull, &hull);
+    set_tri_flags(tris, flags, nhull, &hull);
     Ok(())
 }
 
@@ -533,7 +539,8 @@ fn delaunay_hull(
     pts: &[Vec3A],
     nhull: usize,
     hull: &mut [usize],
-    tris: &mut Vec<(U16Vec3, u32)>,
+    tris: &mut Vec<[u8; 3]>,
+    flags: &mut Vec<u8>,
     edges: &mut Vec<Edges>,
 ) {
     let mut nfaces = 0;
@@ -584,7 +591,9 @@ fn delaunay_hull(
 
     // Create tris
     tris.resize(nfaces, Default::default());
+    flags.resize(nfaces, Default::default());
     let orig_tris = tris;
+    let orig_flags = flags;
     let mut tris: Vec<Edges> = vec![Edges::UNDEFINED; nfaces];
 
     for e in edges[..nedges].iter() {
@@ -629,12 +638,13 @@ fn delaunay_hull(
         i += 1;
     }
     orig_tris.resize(tris.len(), Default::default());
-    for ((p, d), edge) in orig_tris.iter_mut().zip(tris.iter()) {
-        p.x = edge[0].unwrap() as u16;
-        p.y = edge[1].unwrap() as u16;
-        p.z = edge[2].unwrap() as u16;
+    orig_flags.resize(tris.len(), Default::default());
+    for ((p, d), edge) in (orig_tris.iter_mut().zip(orig_flags.iter_mut())).zip(tris.iter()) {
+        p[0] = edge[0].unwrap() as u8;
+        p[1] = edge[1].unwrap() as u8;
+        p[2] = edge[2].unwrap() as u8;
         // Will be overwritten by set_tri_flags
-        *d = edge[3].unwrap_or_zero() as u32;
+        *d = edge[3].unwrap_or_zero() as u8;
     }
 }
 
@@ -913,12 +923,12 @@ impl Default for Edge {
     }
 }
 
-fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[(U16Vec3, u32)]) -> Option<f32> {
+fn dist_to_tri_mesh(p: Vec3A, verts: &[Vec3A], tris: &[[u8; 3]]) -> Option<f32> {
     let mut dmin = f32::MAX;
-    for (tri, _) in tris {
-        let va = verts[tri.x as usize];
-        let vb = verts[tri.y as usize];
-        let vc = verts[tri.z as usize];
+    for tri in tris {
+        let va = verts[tri[0] as usize];
+        let vb = verts[tri[1] as usize];
+        let vc = verts[tri[2] as usize];
         let d = dist_pt_tri(p, va, vb, vc);
         if let Some(d) = d
             && d < dmin
@@ -986,23 +996,23 @@ fn dist_to_poly(nvert: usize, verts: &[Vec3A], p: Vec3A) -> f32 {
 }
 
 /// Find edges that lie on hull and mark them as such.
-fn set_tri_flags(tris: &mut Vec<(U16Vec3, u32)>, nhull: usize, hull: &[usize]) {
+fn set_tri_flags(tris: &[[u8; 3]], flags: &mut [u8], nhull: usize, hull: &[usize]) {
     // Matches DT_DETAIL_EDGE_BOUNDARY
-    const DETAIL_EDGE_BOUNDARY: u32 = 0x1;
+    const DETAIL_EDGE_BOUNDARY: u8 = 0x1;
 
-    for (tri, tri_flags) in tris {
+    for (tri, tri_flags) in tris.iter().zip(flags.iter_mut()) {
         let mut flags = 0;
-        flags |= if on_hull(tri.x as usize, tri.y as usize, nhull, hull) {
+        flags |= if on_hull(tri[0] as usize, tri[1] as usize, nhull, hull) {
             DETAIL_EDGE_BOUNDARY
         } else {
             0
         };
-        flags |= if on_hull(tri.y as usize, tri.z as usize, nhull, hull) {
+        flags |= if on_hull(tri[1] as usize, tri[2] as usize, nhull, hull) {
             DETAIL_EDGE_BOUNDARY
         } else {
             0
         } << 2;
-        flags |= if on_hull(tri.z as usize, tri.x as usize, nhull, hull) {
+        flags |= if on_hull(tri[2] as usize, tri[0] as usize, nhull, hull) {
             DETAIL_EDGE_BOUNDARY
         } else {
             0
@@ -1031,7 +1041,8 @@ fn triangulate_hull(
     nhull: usize,
     hull: &[usize],
     nin: usize,
-    tris: &mut Vec<(U16Vec3, u32)>,
+    tris: &mut Vec<[u8; 3]>,
+    flags: &mut Vec<u8>,
 ) {
     let mut start = 0;
     let mut left = 1;
@@ -1060,10 +1071,8 @@ fn triangulate_hull(
     }
 
     // Add first triangle
-    tris.push((
-        u16vec3(hull[start] as u16, hull[left] as u16, hull[right] as u16),
-        0,
-    ));
+    tris.push([hull[start] as u8, hull[left] as u8, hull[right] as u8]);
+    flags.push(0);
 
     // Triangulate the polygon by moving left or right,
     // depending on which triangle has shorter perimeter.
@@ -1081,16 +1090,12 @@ fn triangulate_hull(
         let dleft = cvleft.distance(nvleft) + nvleft.distance(cvright);
         let dright = cvright.distance(nvright) + cvleft.distance(nvright);
         if dleft < dright {
-            tris.push((
-                u16vec3(hull[left] as u16, hull[nleft] as u16, hull[right] as u16),
-                0,
-            ));
+            tris.push([hull[left] as u8, hull[nleft] as u8, hull[right] as u8]);
+            flags.push(0);
             left = nleft;
         } else {
-            tris.push((
-                u16vec3(hull[left] as u16, hull[nright] as u16, hull[right] as u16),
-                0,
-            ));
+            tris.push([hull[left] as u8, hull[nright] as u8, hull[right] as u8]);
+            flags.push(0);
             right = nright;
         }
     }
