@@ -29,6 +29,7 @@ impl Heightfield {
         }
         Ok(())
     }
+
     /// Rasterizes a triangle into a [`Heightfield`].
     pub fn rasterize_triangle(
         &mut self,

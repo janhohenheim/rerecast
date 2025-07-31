@@ -16,25 +16,25 @@ impl Heightfield {
 
                 // For each span in the column...
                 while let Some(current_span) = span {
-                    let walkable = current_span.area().is_walkable();
+                    let walkable = current_span.area.is_walkable();
 
                     // If current span is not walkable, but there is walkable span just below it and the height difference
                     // is small enough for the agent to walk over, mark the current span as walkable too.
                     if let Some(previous_span) = previous_span.as_ref()
                         && !walkable
                         && previous_was_walkable
-                        && (current_span.max() as i32 - previous_span.max() as i32)
+                        && (current_span.max as i32 - previous_span.max as i32)
                             <= walkable_climb as i32
                     {
-                        current_span.set_area(previous_area_id);
+                        current_span.area = previous_area_id;
                     }
 
                     // Copy the original walkable value regardless of whether we changed it.
                     // This prevents multiple consecutive non-walkable spans from being erroneously marked as walkable.
                     previous_was_walkable = walkable;
-                    previous_area_id = current_span.area();
+                    previous_area_id = current_span.area;
                     previous_span.replace(current_span.clone());
-                    span = current_span.next().map(|key| self.span_mut(key));
+                    span = current_span.next.map(|key| self.span_mut(key));
                 }
             }
         }
@@ -49,17 +49,17 @@ impl Heightfield {
                 while let Some(current_span_key) = span_key {
                     let filtered = {
                         let span = self.span(current_span_key);
-                        span_key = span.next();
+                        span_key = span.next;
 
                         // Skip non-walkable spans.
-                        if !self.span(current_span_key).area().is_walkable() {
+                        if !self.span(current_span_key).area.is_walkable() {
                             continue;
                         }
 
-                        let floor = span.max() as i32;
+                        let floor = span.max as i32;
                         let ceiling = span
-                            .next()
-                            .map(|key| self.span(key).min() as i32)
+                            .next
+                            .map(|key| self.span(key).min as i32)
                             .unwrap_or(Self::MAX_HEIGHTFIELD_HEIGHT as i32);
 
                         // The difference between this walkable area and the lowest neighbor walkable area.
@@ -69,8 +69,8 @@ impl Heightfield {
                             Self::MAX_HEIGHTFIELD_HEIGHT as i32;
 
                         // Min and max height of accessible neighbours.
-                        let mut lowest_traversable_neighbor_floor = span.max() as i32;
-                        let mut highest_traversable_neighbor_floor = span.max() as i32;
+                        let mut lowest_traversable_neighbor_floor = span.max as i32;
+                        let mut highest_traversable_neighbor_floor = span.max as i32;
 
                         for direction in 0..4 {
                             let neighbor_x = x as i32 + dir_offset_x(direction) as i32;
@@ -89,7 +89,7 @@ impl Heightfield {
                             // The most we can step down to the neighbor is the walkableClimb distance.
                             // Start with the area under the neighbor span
                             let mut neighbor_ceiling = neighbor_span
-                                .map(|span| span.min() as i32)
+                                .map(|span| span.min as i32)
                                 .unwrap_or(Self::MAX_HEIGHTFIELD_HEIGHT as i32);
 
                             // Skip neighbour if the gap between the spans is too small.
@@ -100,10 +100,10 @@ impl Heightfield {
 
                             // For each span in the neighboring column...
                             while let Some(current_neighbor_span) = neighbor_span {
-                                let neighbor_floor = current_neighbor_span.max() as i32;
+                                let neighbor_floor = current_neighbor_span.max as i32;
                                 neighbor_ceiling = current_neighbor_span
-                                    .next()
-                                    .map(|key| self.span(key).min() as i32)
+                                    .next
+                                    .map(|key| self.span(key).min as i32)
                                     .unwrap_or(Self::MAX_HEIGHTFIELD_HEIGHT as i32);
 
                                 // Only consider neighboring areas that have enough overlap to be potentially traversable.
@@ -112,7 +112,7 @@ impl Heightfield {
                                 {
                                     // No space to travese between them.
                                     neighbor_span =
-                                        current_neighbor_span.next().map(|key| self.span(key));
+                                        current_neighbor_span.next.map(|key| self.span(key));
                                     continue;
                                 }
 
@@ -134,7 +134,7 @@ impl Heightfield {
                                 }
 
                                 neighbor_span =
-                                    current_neighbor_span.next().map(|key| self.span(key));
+                                    current_neighbor_span.next.map(|key| self.span(key));
                             }
                         }
 
@@ -152,7 +152,7 @@ impl Heightfield {
                     };
                     let span = self.span_mut(current_span_key);
                     if filtered {
-                        span.set_area(AreaType::NOT_WALKABLE);
+                        span.area = AreaType::NOT_WALKABLE;
                     }
                 }
             }
@@ -172,20 +172,20 @@ impl Heightfield {
                 while let Some(current_span_key) = span_key {
                     let filtered: bool = {
                         let span = self.span(current_span_key);
-                        let floor = span.max() as i32;
+                        let floor = span.max as i32;
                         let ceiling = span
-                            .next()
-                            .map(|key| self.span(key).min() as i32)
+                            .next
+                            .map(|key| self.span(key).min as i32)
                             .unwrap_or(Self::MAX_HEIGHTFIELD_HEIGHT as i32);
                         ceiling - floor < walkable_height as i32
                     };
 
                     let span = self.span_mut(current_span_key);
                     if filtered {
-                        span.set_area(AreaType::NOT_WALKABLE);
+                        span.area = AreaType::NOT_WALKABLE;
                     }
 
-                    span_key = span.next();
+                    span_key = span.next;
                 }
             }
         }

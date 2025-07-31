@@ -8,8 +8,75 @@ use crate::{
     span::AreaType,
 };
 
-/// A packed representation of a [`Heightfield`].
-#[derive(Debug, Clone)]
+/// A compact, static heightfield representing unobstructed space.
+///
+/// For this type of heightfield, the spans represent the open (unobstructed) space above the solid surfaces of a voxel field.
+/// It is usually created from a [`Heightfield`] object. Data is stored in a compact, efficient manner,
+/// but the structure is not condusive to adding and removing spans.
+///
+/// The standard process for buidling a compact heightfield is to build it using [`Heightfield::into_compact`], then run it through the various helper functions to generate neighbor and region data.
+///
+/// Connected neighbor spans form non-overlapping surfaces. When neighbor information is generated, spans will include data that can be used to locate axis-neighbors. Axis-neighbors are connected spans that are offset from the current cell column as follows:
+///
+/// ```txt
+/// Direction 0 = (-1, 0)
+/// Direction 1 = (0, 1)
+/// Direction 2 = (1, 0)
+/// Direction 3 = (0, -1)
+/// ```
+/// Example of iterating and inspecting spans, including connected neighbors:
+///
+/// ```rust
+/// # use rerecast::*;
+/// # let chf = CompactHeightfield::default();
+/// // Where chf is an instance of a CompactHeightfield.
+///
+/// let cs = chf.cell_size;
+/// let ch = chf.cell_height;
+///
+/// for z in 0..chf.height {
+///     for x in 0..chf.width {
+///         // Deriving the minimum corner of the grid location.
+///         let fx = chf.aabb.min.x + x as f32 * cs;
+///         let fz = chf.aabb.min.z + z as f32 * cs;
+///         println!("Corners: {fx},  {fz}");
+///
+///         // Get the cell for the grid location then iterate
+///         // up the column.
+///         let c = chf.cell_at(x, z);
+///         for i in c.index_range() {
+///             let s = &chf.spans[i];
+///
+///             // Deriving the minimum (floor) of the span.
+///             let fy = chf.aabb.min.y + (s.y + 1) as f32 * ch;
+///             println!("Span floor: {fy}");
+///
+///             // Testing the area assignment of the span.
+///             if chf.areas[i] == AreaType::DEFAULT_WALKABLE {
+///                 // The span is in the default 'walkable area'.
+///             } else if chf.areas[i] == AreaType::NOT_WALKABLE {
+///                 // The surface is not considered walkable.
+///                 // E.g. It was filtered out during the build processes.
+///             } else {
+///                 // Do something. (Only applicable for custom build
+///                 // build processes.)
+///             }
+///
+///             // Iterating the connected axis-neighbor spans.
+///             for dir in 0..4 {
+///                 if let Some(con) = s.con(dir) {
+///                     // There is a neighbor in this direction.
+///                     let (_nx, _ny, ni) = chf.con_indices(x as i32, z as i32, dir, con);
+///                     let ns = &chf.spans[ni];
+///                     // Do something with the neighbor span.
+///                     println!("Neighbor span: {ns:?}");
+///                 }
+///             }
+///         }
+///     }
+/// }
+/// ```
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompactHeightfield {
     /// The width of the heightfield along the x-axis in cell units
@@ -17,10 +84,13 @@ pub struct CompactHeightfield {
     /// The height of the heightfield along the z-axis in cell units
     pub height: u16,
     /// The walkable height used during the build of the field
+    /// (See: [`NavmeshConfig::walkable_height`](crate::NavmeshConfig::walkable_height))
     pub walkable_height: u16,
     /// The walkable climb used during the build of the field.
+    /// (See: [`NavmeshConfig::walkable_climb`](crate::NavmeshConfig::walkable_climb))
     pub walkable_climb: u16,
     /// The AABB border size used during the build of the field.
+    /// (See: [`NavmeshConfig::border_size`](crate::NavmeshConfig::border_size))
     pub border_size: u16,
     /// The maximum distance value of any span within the field.
     pub max_distance: u16,
@@ -58,7 +128,7 @@ impl Heightfield {
         let walkable_span_count = self
             .allocated_spans
             .values()
-            .filter(|span| span.area().is_walkable())
+            .filter(|span| span.area.is_walkable())
             .count();
 
         let mut compact_heightfield = CompactHeightfield {
@@ -96,19 +166,19 @@ impl Heightfield {
 
                 while let Some(span_key) = span_key_iter {
                     let span = self.span(span_key);
-                    span_key_iter = span.next();
-                    if !span.area().is_walkable() {
+                    span_key_iter = span.next;
+                    if !span.area.is_walkable() {
                         continue;
                     }
-                    let bot = span.max();
+                    let bot = span.max;
                     let top = span
-                        .next()
-                        .map(|span| self.span(span).min())
+                        .next
+                        .map(|span| self.span(span).min)
                         .unwrap_or(Self::MAX_HEIGHT);
                     compact_heightfield.spans[cell_index].y = bot.clamp(0, Self::MAX_HEIGHT);
                     let height = (top.saturating_sub(bot)).min(u8::MAX.into()) as u8;
                     compact_heightfield.spans[cell_index].set_height(height);
-                    compact_heightfield.areas[cell_index] = span.area();
+                    compact_heightfield.areas[cell_index] = span.area;
                     cell_index += 1;
                     cell.inc_count();
                 }
@@ -220,8 +290,12 @@ impl CompactHeightfield {
         &mut self.cells[index]
     }
 
+    /// Given a span at the indices `(x, z)`, a direction `dir`, and a connection `con`, returns:
+    /// - The x index of the neighbor span
+    /// - The z index of the neighbor span
+    /// - The index of the neighbor span in [`Self::spans`]
     #[inline]
-    pub(crate) fn con_indices(&self, x: i32, z: i32, dir: u8, con: u8) -> (i32, i32, usize) {
+    pub fn con_indices(&self, x: i32, z: i32, dir: u8, con: u8) -> (i32, i32, usize) {
         let a_x = x + dir_offset_x(dir) as i32;
         let a_z = z + dir_offset_z(dir) as i32;
         let cell_index = (a_x + a_z * self.width as i32) as usize;

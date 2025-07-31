@@ -1,4 +1,4 @@
-//! The editor for the NavMesh plugin.
+//! The editor for the Navmesh plugin.
 
 use bevy::{
     ecs::error::{GLOBAL_ERROR_HANDLER, warn},

@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "avian3d",
@@ -1224,14 +1224,17 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy_app",
  "bevy_asset",
  "bevy_derive",
  "bevy_ecs",
+ "bevy_image",
  "bevy_mesh",
+ "bevy_pbr",
+ "bevy_platform",
  "bevy_reflect",
  "bevy_remote",
  "bevy_render",
@@ -1248,7 +1251,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1263,15 +1266,25 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_transmission"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "bevy",
+ "bevy_asset",
+ "bevy_color",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_image",
+ "bevy_math",
+ "bevy_pbr",
+ "bevy_platform",
+ "bevy_reflect",
+ "bevy_render",
  "bincode",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
+ "tracing",
  "wgpu-types",
 ]
 
@@ -2818,7 +2831,7 @@ dependencies = [
 
 [[package]]
 name = "gltf_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",
@@ -4655,7 +4668,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy_reflect",
@@ -4956,7 +4969,7 @@ dependencies = [
 
 [[package]]
 name = "shapes_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",
@@ -5509,7 +5522,7 @@ dependencies = [
 
 [[package]]
 name = "trenchbroom_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",

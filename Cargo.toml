@@ -4,7 +4,7 @@ resolver = "3"
 exclude = ["./assets/"]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -18,9 +18,15 @@ avian3d = "0.3.1"
 serde = "1.0.219"
 serde_json = "1.0.140"
 slotmap = "1.0.7"
+ureq = "3.0.12"
+
 # In sync with Bevy
 thiserror = "2.0.12"
-ureq = "3.0.12"
+wgpu-types = "24"
+base64 = "0.22.0"
+glam = "0.29.3"
+
+# Bevy
 bevy = { version = "0.16.0", default-features = false }
 bevy_reflect = { version = "0.16.0", default-features = false }
 bevy_app = { version = "0.16.0", default-features = false }
@@ -30,13 +36,13 @@ bevy_ecs = { version = "0.16.0", default-features = false }
 bevy_render = { version = "0.16.0", default-features = false }
 bevy_transform = { version = "0.16.0", default-features = false }
 bevy_asset = { version = "0.16.0", default-features = false }
+bevy_image = { version = "0.16.0", default-features = false }
+bevy_pbr = { version = "0.16.0", default-features = false }
+bevy_math = { version = "0.16.0", default-features = false }
+bevy_color = { version = "0.16.0", default-features = false }
 bevy_derive = { version = "0.16.0", default-features = false }
+bevy_platform = { version = "0.16.0", default-features = false }
 bevy_ui_text_input = { version = "0.5.0" }
-glam = "0.29.3"
-# In sync with Bevy
-wgpu-types = "24"
-# In sync with Bevy
-base64 = "0.22.0"
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"
 bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }

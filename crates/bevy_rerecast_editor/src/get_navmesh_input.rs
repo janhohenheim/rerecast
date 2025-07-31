@@ -1,5 +1,5 @@
 use anyhow::Context as _;
-use bevy::{prelude::*, remote::BrpRequest};
+use bevy::{platform::collections::HashMap, prelude::*, remote::BrpRequest};
 use bevy_rerecast::{
     NavmeshAffector,
     editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
@@ -20,6 +20,7 @@ fn fetch_navmesh_input(
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
     mesh_handles: Query<
         Entity,
         (
@@ -60,11 +61,11 @@ fn fetch_navmesh_input(
         gizmo.clear();
     }
 
-    for (transform, serialized_mesh) in response.affector_meshes {
-        let mesh = serialized_mesh.into_mesh();
+    for affector in response.affector_meshes {
+        let mesh = affector.mesh.into_mesh();
 
         commands.spawn((
-            transform.compute_transform(),
+            affector.transform.compute_transform(),
             Mesh3d(meshes.add(mesh)),
             NavmeshAffector::<Mesh3d>::default(),
             Visibility::Hidden,
@@ -81,16 +82,44 @@ fn fetch_navmesh_input(
         ));
     }
 
-    for (transform, mesh) in response.visual_meshes {
-        let mesh = meshes.add(mesh.into_mesh());
+    let mut image_indices: HashMap<u32, Handle<Image>> = HashMap::new();
+    let mut material_indices: HashMap<u32, Handle<StandardMaterial>> = HashMap::new();
+    let mut mesh_indices: HashMap<u32, Handle<Mesh>> = HashMap::new();
+    let fallback_material = materials.add(Color::WHITE);
+
+    for visual in response.visual_meshes {
+        let mesh = if let Some(mesh_handle) = mesh_indices.get(&visual.mesh) {
+            mesh_handle.clone()
+        } else {
+            let serialized_mesh = response.meshes[visual.mesh as usize].clone();
+            let mesh = serialized_mesh.into_mesh();
+            let handle = meshes.add(mesh);
+            mesh_indices.insert(visual.mesh, handle.clone());
+            handle
+        };
+
+        let material = if let Some(index) = visual.material {
+            if let Some(material_handle) = material_indices.get(&index) {
+                material_handle.clone()
+            } else {
+                let serialized_material = response.materials[index as usize].clone();
+                let material = serialized_material.into_standard_material(
+                    &mut image_indices,
+                    &mut images,
+                    &response.images,
+                );
+                let handle = materials.add(material.clone());
+                material_indices.insert(index, handle.clone());
+                handle
+            }
+        } else {
+            fallback_material.clone()
+        };
 
         commands.spawn((
-            transform.compute_transform(),
+            visual.transform.compute_transform(),
             Mesh3d(mesh),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                ..default()
-            })),
+            MeshMaterial3d(material),
             VisualMesh,
         ));
     }

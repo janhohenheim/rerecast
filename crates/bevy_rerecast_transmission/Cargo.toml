@@ -10,12 +10,32 @@ keywords = { workspace = true }
 categories = { workspace = true }
 readme = { workspace = true }
 
+[features]
+default = [
+    "pbr_transmission_textures",
+    "pbr_specular_textures",
+    "pbr_multi_layer_material_textures",
+    "pbr_anisotropy_texture",
+]
+pbr_transmission_textures = ["bevy_pbr/pbr_transmission_textures"]
+pbr_specular_textures = ["bevy_pbr/pbr_specular_textures"]
+pbr_multi_layer_material_textures = [
+    "bevy_pbr/pbr_multi_layer_material_textures",
+]
+pbr_anisotropy_texture = ["bevy_pbr/pbr_anisotropy_texture"]
+
 [dependencies]
-bevy = { workspace = true, features = [
-    "bevy_render",
-    "bevy_asset",
-    "bevy_log",
-] }
+bevy_render = { workspace = true }
+bevy_pbr = { workspace = true }
+bevy_asset = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_reflect = { workspace = true }
+bevy_derive = { workspace = true }
+bevy_math = { workspace = true }
+bevy_color = { workspace = true }
+bevy_platform = { workspace = true }
+bevy_image = { workspace = true, features = ["serialize"] }
+tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 

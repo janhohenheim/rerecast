@@ -1,19 +1,19 @@
-use glam::{U16Vec2, UVec3, Vec2, Vec3A};
+use glam::{U16Vec2, UVec3, Vec2, Vec3, Vec3A};
 
 /// A 3D axis-aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Aabb3d {
     /// The minimum point of the box
-    pub min: Vec3A,
+    pub min: Vec3,
     /// The maximum point of the box
-    pub max: Vec3A,
+    pub max: Vec3,
 }
 
 impl Aabb3d {
     /// Constructs an AABB from its center and half-size.
     #[inline]
-    pub fn new(center: impl Into<Vec3A>, half_size: impl Into<Vec3A>) -> Self {
+    pub fn new(center: impl Into<Vec3>, half_size: impl Into<Vec3>) -> Self {
         let (center, half_size) = (center.into(), half_size.into());
         debug_assert!(half_size.x >= 0.0 && half_size.y >= 0.0 && half_size.z >= 0.0);
         Self {
@@ -36,7 +36,10 @@ impl Aabb3d {
         let max = verts
             .iter()
             .fold(Vec3A::splat(f32::MIN), |acc, &v| acc.max(v));
-        Some(Self { min, max })
+        Some(Self {
+            min: min.into(),
+            max: max.into(),
+        })
     }
 
     /// Checks if this AABB intersects with another AABB.
@@ -78,8 +81,8 @@ impl Aabb2d {
     #[inline]
     pub(crate) fn extend_y(self, y_min: f32, y_max: f32) -> Aabb3d {
         Aabb3d {
-            min: Vec3A::new(self.min.x, y_min, self.min.y),
-            max: Vec3A::new(self.max.x, y_max, self.max.y),
+            min: Vec3::new(self.min.x, y_min, self.min.y),
+            max: Vec3::new(self.max.x, y_max, self.max.y),
         }
     }
 }
@@ -105,6 +108,15 @@ pub(crate) trait TriangleVertices {
 }
 
 impl TriangleVertices for [Vec3A; 3] {
+    #[inline]
+    fn aabb(&self) -> Aabb3d {
+        let min = self[0].min(self[1]).min(self[2]).into();
+        let max = self[0].max(self[1]).max(self[2]).into();
+        Aabb3d { min, max }
+    }
+}
+
+impl TriangleVertices for [Vec3; 3] {
     #[inline]
     fn aabb(&self) -> Aabb3d {
         let min = self[0].min(self[1]).min(self[2]);
