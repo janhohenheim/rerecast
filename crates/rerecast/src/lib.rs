@@ -28,7 +28,7 @@ pub use detail_mesh::DetailNavmesh;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;
 pub use math::{Aabb2d, Aabb3d};
-pub use poly_mesh::{PolygonMesh, RC_MESH_NULL_IDX};
+pub use poly_mesh::PolygonMesh;
 pub use region::RegionId;
 pub use span::{AreaType, Span, SpanKey, Spans};
 pub use trimesh::TriMesh;

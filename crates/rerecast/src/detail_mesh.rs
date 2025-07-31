@@ -12,7 +12,6 @@ use crate::{
         dir_offset, dir_offset_x, dir_offset_z, distance_squared_between_point_and_line_vec2,
         distance_squared_between_point_and_line_vec3, next, prev,
     },
-    poly_mesh::RC_MESH_NULL_IDX,
 };
 
 /// Contains triangle meshes that represent detailed height data associated with the polygons in its associated polygon mesh object.
@@ -136,7 +135,7 @@ impl DetailNavmesh {
             return Ok(dmesh);
         }
         let chf = heightfield;
-        let nvp = mesh.vertices_per_polygon as usize;
+        let nvp = mesh.max_vertices_per_polygon as usize;
         let cs = mesh.cell_size;
         let ch = mesh.cell_height;
         let orig = Vec3A::from(mesh.aabb.min);
@@ -171,7 +170,7 @@ impl DetailNavmesh {
             *zmin = chf.height;
             *zmax = 0;
             for pj in &p[..nvp] {
-                if *pj == RC_MESH_NULL_IDX {
+                if *pj == PolygonMesh::NO_INDEX {
                     break;
                 }
                 let v = &mesh.vertices[*pj as usize];
@@ -206,7 +205,7 @@ impl DetailNavmesh {
             // Store polygon vertices for processing.
             let mut npoly = 0;
             for j in 0..nvp {
-                if p[j] == RC_MESH_NULL_IDX {
+                if p[j] == PolygonMesh::NO_INDEX {
                     break;
                 }
                 let v = mesh.vertices[p[j] as usize].as_vec3();

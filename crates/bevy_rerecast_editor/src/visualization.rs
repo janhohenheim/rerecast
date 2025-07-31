@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{DetailNavmesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
+    rerecast::{DetailNavmesh, PolygonMesh, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -144,14 +144,14 @@ fn draw_poly_mesh(
     *visibility = Visibility::Inherited;
 
     let mesh = &navmesh.poly_mesh;
-    let nvp = mesh.vertices_per_polygon as usize;
+    let nvp = mesh.max_vertices_per_polygon as usize;
     let origin = mesh.aabb.min;
     let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
     for i in 0..mesh.polygon_count() {
         let poly = &mesh.polygons[i * nvp..];
         let mut verts = poly[..nvp]
             .iter()
-            .filter(|i| **i != RC_MESH_NULL_IDX)
+            .filter(|i| **i != PolygonMesh::NO_INDEX)
             .map(|i| {
                 let vert_local = mesh.vertices[*i as usize];
 
@@ -178,7 +178,7 @@ fn draw_poly_mesh(
         for val in poly[1..nvp].windows(2) {
             let b = val[0];
             let c = val[1];
-            if b == RC_MESH_NULL_IDX || c == RC_MESH_NULL_IDX {
+            if b == PolygonMesh::NO_INDEX || c == PolygonMesh::NO_INDEX {
                 continue;
             }
             let b = origin + mesh.vertices[b as usize].as_vec3() * to_local;

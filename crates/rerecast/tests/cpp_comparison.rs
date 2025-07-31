@@ -442,7 +442,7 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
     );
 
     assert_eq!(
-        cpp_poly_mesh.nvp, poly_mesh.vertices_per_polygon,
+        cpp_poly_mesh.nvp, poly_mesh.max_vertices_per_polygon,
         "poly mesh vertices per polygon"
     );
 

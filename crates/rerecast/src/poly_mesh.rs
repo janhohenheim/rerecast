@@ -36,9 +36,9 @@ struct InternalPolygonMesh {
 /// # use rerecast::*;
 /// # use glam::Vec3;
 /// # let mut mesh = PolygonMesh::default();
-/// # mesh.vertices_per_polygon = 1;
+/// # mesh.max_vertices_per_polygon = 1;
 /// // Where mesh is a reference to a PolygonMesh.
-/// let nvp = mesh.vertices_per_polygon as usize;
+/// let nvp = mesh.max_vertices_per_polygon as usize;
 /// let cs = mesh.cell_size;
 /// let ch = mesh.cell_height;
 /// let orig = mesh.aabb.min;
@@ -48,12 +48,12 @@ struct InternalPolygonMesh {
 ///
 ///     // Iterate the vertices.
 ///     for j in 0..nvp {
-///         if p[j] == RC_MESH_NULL_IDX {
+///         if p[j] == PolygonMesh::NO_INDEX {
 ///             // End of vertices.
 ///             break;
 ///         }
 ///
-///         if p[j + nvp] == RC_MESH_NULL_IDX {
+///         if p[j + nvp] == PolygonMesh::NO_CONNECTION {
 ///             // The edge beginning with this vertex is a solid border.
 ///         } else {
 ///             // The edge beginning with this vertex connects to
@@ -75,9 +75,9 @@ struct InternalPolygonMesh {
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct PolygonMesh {
-    /// The mesh vertices. [Form: (x, y, z) * nverts].
+    /// The mesh vertices.
     ///
-    /// The values of bmin ,cs, and ch are used to convert vertex coordinates to world space as follows:
+    /// The values of [`Aabb3d::min`], [`Self::cell_size`], and [`Self::cell_height`] are used to convert vertex coordinates to world space as follows:
     /// ```rust
     /// # use rerecast::*;
     /// # use glam::{Vec3, U16Vec3};
@@ -91,16 +91,17 @@ pub struct PolygonMesh {
     /// };
     /// ```
     pub vertices: Vec<U16Vec3>,
-    /// Polygon and neighbor data. [Length: maxpolys * nvp].
+    /// Polygons. [Length: [Self::polygon_count]].
     ///
-    /// Each entry is [`Self::vertices_per_polygon] in length.
-    /// The first instance of [`RC_MESH_NULL_IDX`] indicates the end of the indices for the entry.
+    /// Each entry is [`Self::vertices_per_polygon`] in length.
+    /// The first instance of [`Self::NO_INDEX`] indicates the end of the indices for the entry.
     ///
     /// For example:
     /// ```ignore
-    /// nvp = 6
-    /// For the entry: (1, 3, 4, 8, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX,
-    ///                 18, RC_MESH_NULL_IDX , 21, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX)
+    /// vertices_per_polygon = 6
+    /// For the entry:
+    /// - polygons: (1, 3, 4, 8, NO_INDEX, NO_INDEX)
+    /// - polygon_neighbors: (18, NO_CONNECTION , 21, NO_CONNECTION, NO_CONNECTION, NO_CONNECTION)
     ///
     /// (1, 3, 4, 8) defines a polygon with 4 vertices.
     /// Edge 1->3 is shared with polygon 18.
@@ -109,8 +110,9 @@ pub struct PolygonMesh {
     /// ```
     pub polygons: Vec<u16>,
     /// Corresponds to [`Self::polygons`]. Each entry is [`Self::vertices_per_polygon] in length.
-    /// Contains indices to neighbor polygons.
-    /// A value of [`RC_MESH_NULL_IDX`] indicates no connection for the associated edge.
+    ///
+    /// Contains indices to each edge's connected polygons.
+    /// A value of [`Self::NO_CONNECTION`] indicates no connection for the associated edge.
     /// (i.e. The edge is a solid border.)
     pub polygon_neighbors: Vec<u16>,
     /// The flags assigned to each polygon.
@@ -123,7 +125,7 @@ pub struct PolygonMesh {
     /// This value can then be changed to meet user requirements.
     pub areas: Vec<AreaType>,
     /// The maximum number of vertices per polygon
-    pub vertices_per_polygon: u16,
+    pub max_vertices_per_polygon: u16,
     /// The bounding box of the mesh in world space.
     pub aabb: Aabb3d,
     /// The size of each cell. (On the xz-plane.)
@@ -137,10 +139,24 @@ pub struct PolygonMesh {
 }
 
 impl PolygonMesh {
-    /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
+    /// The number of polygons in the mesh. Note that this is different from `polygons.len()`,
+    /// as each polygon in that collection is represented by [`Self::vertices_per_polygon`] vertices.
     #[inline]
     pub fn polygon_count(&self) -> usize {
-        self.polygons.len() / self.vertices_per_polygon as usize
+        self.polygons.len() / self.max_vertices_per_polygon as usize
+    }
+
+    /// A value which indicates that a polygon in [`Self::polygons`] has no more vertices starting from this vertex with this value.
+    pub const NO_INDEX: u16 = 0xffff;
+
+    /// A value which indicates that an edge of a polygon in [`Self::polygon_neighbors`] has no connection.
+    pub const NO_CONNECTION: u16 = 0xffff;
+
+    /// Iterates over all polygons in the mesh.
+    pub fn polygons(&self) -> impl Iterator<Item = impl Iterator<Item = u16>> {
+        self.polygons
+            .chunks_exact(self.max_vertices_per_polygon as usize)
+            .map(|chunk| chunk.iter().take_while(|i| **i != Self::NO_INDEX).copied())
     }
 }
 
@@ -164,7 +180,7 @@ impl From<InternalPolygonMesh> for PolygonMesh {
             regions: value.regions,
             flags: value.flags,
             areas: value.areas,
-            vertices_per_polygon: value.max_vertices_per_polygon,
+            max_vertices_per_polygon: value.max_vertices_per_polygon,
             aabb: value.aabb,
             cell_size: value.cell_size,
             cell_height: value.cell_height,
@@ -372,15 +388,15 @@ impl ContourSet {
             for i in 0..mesh.npolys {
                 let p = &mut mesh.polygons[i * 2 * nvp..];
                 for j in 0..nvp {
-                    if p[j] == RC_MESH_NULL_IDX {
+                    if p[j] == PolygonMesh::NO_INDEX {
                         break;
                     }
                     // Skip connected edges.
-                    if p[nvp + j] != RC_MESH_NULL_IDX {
+                    if p[nvp + j] != PolygonMesh::NO_CONNECTION {
                         continue;
                     }
                     let nj = j + 1;
-                    let nj = if nj >= nvp || p[nj] == RC_MESH_NULL_IDX {
+                    let nj = if nj >= nvp || p[nj] == PolygonMesh::NO_INDEX {
                         0
                     } else {
                         nj
@@ -420,18 +436,19 @@ impl InternalPolygonMesh {
         // Based on code by Eric Lengyel from:
         // https://web.archive.org/web/20080704083314/http://www.terathon.com/code/edges.php
         let max_edge_count = self.npolys * nvp;
-        let mut first_edge = vec![RC_MESH_NULL_IDX; self.nvertices as usize + max_edge_count];
+        let mut first_edge =
+            vec![PolygonMesh::NO_CONNECTION; self.nvertices as usize + max_edge_count];
         let next_edge_index = self.nvertices as usize;
         let mut edge_count = 0;
         let mut edges = vec![Edge::default(); max_edge_count];
         for i in 0..self.npolys {
             let t = &self.polygons[i * nvp * 2..];
             for j in 0..nvp {
-                if t[j] == RC_MESH_NULL_IDX {
+                if t[j] == PolygonMesh::NO_INDEX {
                     break;
                 }
                 let v0 = t[j];
-                let v1 = if j + 1 >= nvp || t[j + 1] == RC_MESH_NULL_IDX {
+                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonMesh::NO_INDEX {
                     t[0]
                 } else {
                     t[j + 1]
@@ -455,18 +472,18 @@ impl InternalPolygonMesh {
             let t = &self.polygons[i * nvp * 2..];
             let nv = count_poly_verts(t, nvp);
             for j in 0..nv {
-                if t[j] == RC_MESH_NULL_IDX {
+                if t[j] == PolygonMesh::NO_INDEX {
                     break;
                 }
                 let v0 = t[j];
-                let v1 = if j + 1 >= nvp || t[j + 1] == RC_MESH_NULL_IDX {
+                let v1 = if j + 1 >= nvp || t[j + 1] == PolygonMesh::NO_INDEX {
                     t[0]
                 } else {
                     t[j + 1]
                 };
                 if v0 > v1 {
                     let mut e = first_edge[v1 as usize];
-                    while e != RC_MESH_NULL_IDX {
+                    while e != PolygonMesh::NO_CONNECTION {
                         let edge = &mut edges[e as usize];
                         if edge.vert.y == v0 && edge.poly.x == edge.poly.y {
                             edge.poly.y = i as u16;
@@ -956,13 +973,9 @@ fn uleft(a: U16Vec3, b: U16Vec3, c: U16Vec3) -> bool {
 fn count_poly_verts(p: &[u16], nvp: usize) -> usize {
     p.iter()
         .take(nvp)
-        .position(|p| *p == RC_MESH_NULL_IDX)
+        .position(|p| *p == PolygonMesh::NO_INDEX)
         .unwrap_or(nvp)
 }
-
-/// A value which indicates an invalid index within a mesh.
-/// This does not necessarily indicate an error.
-pub const RC_MESH_NULL_IDX: u16 = 0xffff;
 
 #[derive(Debug)]
 struct PolyMergeValue {
