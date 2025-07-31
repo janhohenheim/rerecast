@@ -23,7 +23,7 @@ pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;
 pub use compact_span::CompactSpan;
 pub use config::NavmeshConfig;
-pub use contours::{BuildContoursFlags, ContourSet, RegionVertexId};
+pub use contours::{BuildContoursFlags, Contour, ContourSet, RegionVertexId};
 pub use detail_mesh::DetailNavmesh;
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;

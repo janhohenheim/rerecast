@@ -514,7 +514,7 @@ fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, u32)>) {
 /// All contours within the set share the minimum bounds and cell sizes of the set.
 ///
 /// The standard process for building a contour set is to use [`CompactHeightfield::build_contours`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct ContourSet {
     /// An array of the contours in the set.
     pub contours: Vec<Contour>,
@@ -592,9 +592,15 @@ impl From<RegionVertexId> for RegionId {
 ///
 /// ```rust
 /// // Where cset is the ContourSet object to which the contour belongs.
-/// float worldX = cset.bmin[0] + vertX * cset.cs;
-/// float worldY = cset.bmin[1] + vertY * cset.ch;
-/// float worldZ = cset.bmin[2] + vertZ * cset.cs;
+/// # use rerecast::*;
+/// # use glam::Vec3;
+/// # let cset = ContourSet::default();
+/// # let vert = Vec3::new(1.0, 2.0, 3.0);
+/// let world_vertex = Vec3 {
+///     x: cset.aabb.min.x + vert.x * cset.cell_size,
+///     y: cset.aabb.min.y + vert.y * cset.cell_height,
+///     z: cset.aabb.min.z + vert.z * cset.cell_size,
+/// };
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Contour {
