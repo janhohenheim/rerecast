@@ -4,7 +4,7 @@ use std::env;
 
 use glam::{U8Vec3, UVec3, Vec2, Vec3A};
 use rerecast::{
-    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavMesh,
+    AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume, DetailNavmesh,
     Heightfield, HeightfieldBuilder, PolygonMesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
@@ -98,7 +98,7 @@ fn validate_navmesh_against_cpp_implementation() {
         .unwrap();
     assert_eq_poly_mesh(&poly_mesh, "poly_mesh");
 
-    let detail_mesh = DetailNavMesh::new(
+    let detail_mesh = DetailNavmesh::new(
         &poly_mesh,
         &compact_heightfield,
         detail_sample_dist,
@@ -515,7 +515,7 @@ fn assert_eq_poly_mesh(poly_mesh: &PolygonMesh, reference_name: &str) {
 }
 
 #[track_caller]
-fn assert_eq_detail_mesh(detail_mesh: &DetailNavMesh, reference_name: &str) {
+fn assert_eq_detail_mesh(detail_mesh: &DetailNavmesh, reference_name: &str) {
     let cpp_detail_mesh = load_json::<CppDetailPolyMesh>(reference_name);
 
     assert_eq!(
@@ -530,7 +530,7 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavMesh, reference_name: &str) {
         .enumerate()
     {
         assert_eq!(
-            cpp_mesh[0] as usize, mesh.first_vertex_index,
+            cpp_mesh[0] as usize, mesh.base_vertex_index,
             "{i} detail mesh first vertex index"
         );
         assert_eq!(
@@ -538,7 +538,7 @@ fn assert_eq_detail_mesh(detail_mesh: &DetailNavMesh, reference_name: &str) {
             "{i} detail mesh vertex_count"
         );
         assert_eq!(
-            cpp_mesh[2] as usize, mesh.first_triangle_index,
+            cpp_mesh[2] as usize, mesh.base_triangle_index,
             "{i} detail mesh first triangle index"
         );
         assert_eq!(

@@ -7,57 +7,111 @@ use crate::{
     math::{next, prev},
 };
 
-/// Represents a polygon mesh suitable for use in building a navigation mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
 struct InternalPolygonMesh {
-    /// The mesh vertices.
     vertices: Vec<U16Vec3>,
-    /// The number of vertices
     nvertices: u16,
-    /// Polygon and neighbor data.
     polygons: Vec<u16>,
-    /// The number of polygons.
     npolys: usize,
-    /// The region id assigned to each polygon.
     regions: Vec<RegionId>,
-    /// The flags assigned to each polygon.
     flags: Vec<u16>,
-    /// The area id assigned to each polygon.
     areas: Vec<AreaType>,
-    /// The number of allocated polygons
     max_polygons: usize,
-    /// The maximum number of vertices per polygon
-    vertices_per_polygon: usize,
-    /// The bounding box of the mesh in world space.
+    vertices_per_polygon: u32,
     aabb: Aabb3d,
-    /// The size of each cell. (On the xz-plane.)
     cell_size: f32,
-    /// The height of each cell. (The minimum increment along the y-axis.)
     cell_height: f32,
-    /// The AABB border size used to generate the source data from which the mesh was derived.
     border_size: u16,
-    /// The max error of the polygon edges in the mesh.
     max_edge_error: f32,
 }
 
 /// Represents a polygon mesh suitable for use in building a navigation mesh.
+///
+/// A mesh of potentially overlapping convex polygons of between three and nvp vertices. The mesh exists within the context of an axis-aligned bounding box (AABB) with vertices laid out in an evenly spaced grid, based on the values of cs and ch.
+///
+/// The standard process for building a contour set is to allocate it using rcAllocPolyMesh, the initialize it using rcBuildPolyMesh
+///
+/// Example of iterating the polygons:
+/// ```rust
+/// // Where mesh is a reference to a rcPolyMesh object.
+///
+/// const int nvp = mesh.nvp;
+/// const float cs = mesh.cs;
+/// const float ch = mesh.ch;
+/// const float* orig = mesh.bmin;
+///
+/// for (int i = 0; i < mesh.npolys; ++i)
+/// {
+///    const unsigned short* p = &mesh.polys[i*nvp*2];
+///
+///     // Iterate the vertices.
+///    unsigned short vi[3];  // The vertex indices.
+///    for (int j = 0; j < nvp; ++j)
+///    {
+///       if (p[j] == RC_MESH_NULL_IDX)
+///             break; // End of vertices.
+///
+///         if (p[j + nvp] == RC_MESH_NULL_IDX)
+///         {
+///             // The edge beginning with this vertex is a solid border.
+///         }
+///         else
+///         {
+///             // The edge beginning with this vertex connects to
+///             // polygon p[j + nvp].
+///         }
+///
+///         // Convert to world space.
+///        const unsigned short* v = &mesh.verts[p[j]*3];
+///       const float x = orig[0] + v[0]*cs;
+///       const float y = orig[1] + v[1]*ch;
+///       const float z = orig[2] + v[2]*cs;
+///       // Do something with the vertices.
+///    }
+/// }
+/// ```
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct PolygonMesh {
-    /// The mesh vertices.
+    /// The mesh vertices. [Form: (x, y, z) * nverts].
+    ///
+    /// The values of bmin ,cs, and ch are used to convert vertex coordinates to world space as follows:
+    /// ```rust
+    /// float worldX = bmin[0] + verts[i*3+0] * cs
+    /// float worldY = bmin[1] + verts[i*3+1] * ch
+    /// float worldZ = bmin[2] + verts[i*3+2] * cs
+    /// ```
     pub vertices: Vec<U16Vec3>,
-    /// Polygon and neighbor data. [Length: [`Self::polygon_count`] * 2 * [`Self::vertices_per_polygon`]
+    /// Polygon and neighbor data. [Length: maxpolys * 2 * nvp].
+    ///
+    /// Each entry is 2 * nvp in length. The first half of the entry contains the indices of the polygon.
+    /// The first instance of RC_MESH_NULL_IDX indicates the end of the indices for the entry.
+    /// The second half contains indices to neighbor polygons. A value of RC_MESH_NULL_IDX indicates no connection for the associated edge.
+    /// (i.e. The edge is a solid border.)
+    ///
+    /// For example:
+    /// ```ignore
+    /// nvp = 6
+    /// For the entry: (1, 3, 4, 8, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX,
+    ///                 18, RC_MESH_NULL_IDX , 21, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX, RC_MESH_NULL_IDX)
+    ///
+    /// (1, 3, 4, 8) defines a polygon with 4 vertices.
+    /// Edge 1->3 is shared with polygon 18.
+    /// Edge 4->8 is shared with polygon 21.
+    /// Edges 3->4 and 4->8 are border edges not shared with any other polygon.
+    /// ```
     pub polygons: Vec<u16>,
     /// The region id assigned to each polygon.
     pub regions: Vec<RegionId>,
     /// The flags assigned to each polygon.
     pub flags: Vec<u16>,
     /// The area id assigned to each polygon.
+    ///
+    /// The standard build process assigns the value of [`AreaType::DEFAULT_WALKABLE`] to all walkable polygons.
+    /// This value can then be changed to meet user requirements.
     pub areas: Vec<AreaType>,
-    /// The number of allocated polygons
-    pub max_polygons: usize,
     /// The maximum number of vertices per polygon
-    pub vertices_per_polygon: usize,
+    pub vertices_per_polygon: u32,
     /// The bounding box of the mesh in world space.
     pub aabb: Aabb3d,
     /// The size of each cell. (On the xz-plane.)
@@ -73,8 +127,8 @@ pub struct PolygonMesh {
 impl PolygonMesh {
     /// The number of polygons in the mesh. Note that this is different from `polygons.len()`.
     #[inline]
-    pub fn polygon_count(&self) -> usize {
-        self.polygons.len() / (2 * self.vertices_per_polygon)
+    pub fn polygon_count(&self) -> u32 {
+        self.polygons.len() as u32 / (2 * self.vertices_per_polygon as u32)
     }
 }
 
@@ -91,7 +145,6 @@ impl From<InternalPolygonMesh> for PolygonMesh {
             regions: value.regions,
             flags: value.flags,
             areas: value.areas,
-            max_polygons: value.max_polygons,
             vertices_per_polygon: value.vertices_per_polygon,
             aabb: value.aabb,
             cell_size: value.cell_size,

@@ -5,11 +5,53 @@
 use thiserror::Error;
 
 use crate::{
-    Aabb3d,
+    Aabb3d, TriMesh,
+    rasterize::RasterizationError,
     span::{Span, SpanKey, Spans},
 };
-/// Corresponds to <https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Include/Recast.h#L312>
-/// Build with [`HeightfieldBuilder`].
+
+/// A dynamic heightfield representing obstructed space.
+///
+/// The grid of a heightfield is laid out on the xz-plane based on the value of cell_size.
+/// Spans exist within the grid columns with the span min/max values at increments of cell_height from the base of the grid.
+/// The smallest possible span size is cell_size * cell_size * cell_height. (Which is a single voxel.)
+///
+/// The standard process for building a heightfield is to build it with [`HeightfieldBuilder`],
+/// then add spans using the various helper functions such as [`Heightfield::rasterize_triangles].
+///
+/// Building a heightfield is one of the first steps in creating a polygon mesh from source geometry. After it is populated, it is used to build a rcCompactHeightfield.
+///
+/// Example of iterating the spans in a heightfield:
+/// ```rust
+/// // Where hf is a reference to an heightfield object.
+///
+/// const float* orig = hf.bmin;
+/// const float cs = hf.cs;
+/// const float ch = hf.ch;
+///
+/// const int w = hf.width;
+/// const int h = hf.height;
+///
+/// for (int y = 0; y < h; ++y)
+/// {
+///     for (int x = 0; x < w; ++x)
+///     {
+///         // Deriving the minimum corner of the grid location.
+///         float fx = orig[0] + x*cs;
+///         float fz = orig[2] + y*cs;
+///         // The base span in the column. (May be null.)
+///         const rcSpan* s = hf.spans[x + y*w];
+///         while (s)
+///         {
+///             // Detriving the minium and maximum world position of the span.
+///             float fymin = orig[1]+s->smin*ch;
+///             float fymax = orig[1] + s->smax*ch;
+///             // Do other things with the span before moving up the column.
+///             s = s->next;
+///         }
+///     }
+/// }
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Heightfield {
@@ -31,6 +73,41 @@ pub struct Heightfield {
 }
 
 impl Heightfield {
+    /// Rasterizes the triangles of a [`TriMesh`] into a [`Heightfield`].
+    ///
+    /// # Arguments
+    ///
+    /// - `trimesh` - The [`TriMesh`] to rasterize.
+    /// - `walkable_height` Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
+    /// - `walkable_climb` - Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable. [Limit: >= 3] [Units: vx]
+    ///
+    pub fn populate_from_trimesh(
+        &mut self,
+        trimesh: TriMesh,
+        walkable_height: u16,
+        walkable_climb: u16,
+    ) -> Result<(), RasterizationError> {
+        // Implementation note: flag_merge_threshold and walkable_climb_height are the same thing in practice, so we just chose one name for the param.
+
+        // Find triangles which are walkable based on their slope and rasterize them.
+        for (i, triangle) in trimesh.indices.iter().enumerate() {
+            let triangle = [
+                trimesh.vertices[triangle[0] as usize],
+                trimesh.vertices[triangle[1] as usize],
+                trimesh.vertices[triangle[2] as usize],
+            ];
+            let area_type = trimesh.area_types[i];
+            self.rasterize_triangle(triangle, area_type, walkable_climb)?;
+        }
+        // Once all geometry is rasterized, we do initial pass of filtering to
+        // remove unwanted overhangs caused by the conservative rasterization
+        // as well as filter spans where the character cannot possibly stand.
+        self.filter_low_hanging_walkable_obstacles(walkable_climb);
+        self.filter_ledge_spans(walkable_height, walkable_climb);
+        self.filter_walkable_low_height_spans(walkable_height);
+        Ok(())
+    }
+
     /// https://github.com/recastnavigation/recastnavigation/blob/bd98d84c274ee06842bf51a4088ca82ac71f8c2d/Recast/Source/RecastRasterization.cpp#L105
     #[inline]
     pub(crate) fn add_span(&mut self, insertion: SpanInsertion) -> Result<(), SpanInsertionError> {

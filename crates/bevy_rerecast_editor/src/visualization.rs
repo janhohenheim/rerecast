@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rerecast::{
     prelude::*,
-    rerecast::{DetailNavMesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
+    rerecast::{DetailNavmesh, PolygonMesh, RC_MESH_NULL_IDX, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -40,7 +40,7 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Resource)]
 pub(crate) struct Navmesh {
     pub(crate) poly_mesh: PolygonMesh,
-    pub(crate) detail_mesh: DetailNavMesh,
+    pub(crate) detail_mesh: DetailNavmesh,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -230,9 +230,8 @@ fn draw_detail_mesh(
 
     let mesh = &navmesh.detail_mesh;
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
-        let submesh_tris =
-            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
+        let submesh_verts = &mesh.vertices[submesh.base_vertex_index..][..submesh.vertex_count];
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index..][..submesh.triangle_count];
         for (tri, _data) in submesh_tris {
             let mut verts = tri
                 .to_array()
@@ -251,10 +250,9 @@ fn draw_detail_mesh(
     let mut visual_indices = Vec::new();
 
     for submesh in &mesh.meshes {
-        let submesh_verts = &mesh.vertices[submesh.first_vertex_index..][..submesh.vertex_count];
+        let submesh_verts = &mesh.vertices[submesh.base_vertex_index..][..submesh.vertex_count];
 
-        let submesh_tris =
-            &mesh.triangles[submesh.first_triangle_index..][..submesh.triangle_count];
+        let submesh_tris = &mesh.triangles[submesh.base_triangle_index..][..submesh.triangle_count];
         for (tri, _data) in submesh_tris.iter() {
             for i in tri.to_array() {
                 visual_indices.push(i as u32 + visual_verts.len() as u32);

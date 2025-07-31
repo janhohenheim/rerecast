@@ -15,29 +15,105 @@ use crate::{
     poly_mesh::RC_MESH_NULL_IDX,
 };
 
-/// Contains triangle meshes that represent detailed height data associated
-/// with the polygons in its associated polygon mesh object.
+/// Contains triangle meshes that represent detailed height data associated with the polygons in its associated polygon mesh object.
+///
+/// The detail mesh is made up of triangle sub-meshes that provide extra height detail for each polygon in its assoicated polygon mesh.
+///
+/// The standard process for building a detail mesh is to build it using [`DetailNavMesh::new`].
+///
+/// See the individual field definitions for details related to the structure the mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-pub struct DetailNavMesh {
-    /// The sub-mesh data
+pub struct DetailNavmesh {
+    /// The sub-mesh data.
+    ///
+    /// Maximum number of vertices per sub-mesh: 127
+    /// Maximum number of triangles per sub-mesh: 255
+    ///
+    /// The sub-meshes are stored in the same order as the polygons from the [`PolygonNavmesh`] they represent.
+    /// E.g. [`DetailNavmesh`] sub-mesh 5 is associated with [`PolygonNavmesh`] polygon 5.
+    ///
+    /// Example of iterating the triangles in a sub-mesh.
+    /// ```rust
+    /// // Where dmesh is a reference to a rcPolyMeshDetail object.
+    ///
+    /// // Iterate the sub-meshes. (One for each source polygon.)
+    /// for (int i = 0; i < dmesh.nmeshes; ++i)
+    /// {
+    ///     const unsigned int* meshDef = &dmesh.meshes[i*4];
+    ///     const unsigned int baseVerts = meshDef[0];
+    ///     const unsigned int baseTri = meshDef[2];
+    ///     const int ntris = (int)meshDef[3];
+    ///
+    ///     const float* verts = &dmesh.verts[baseVerts*3];
+    ///     const unsigned char* tris = &dmesh.tris[baseTri*4];
+    ///
+    ///     // Iterate the sub-mesh's triangles.
+    ///     for (int j = 0; j < ntris; ++j)
+    ///     {
+    ///         const float x = verts[tris[j*4+0]*3];
+    ///         const float y = verts[tris[j*4+1]*3];
+    ///         const float z = verts[tris[j*4+2]*3];
+    ///         // Do something with the vertex.
+    ///     }
+    /// }
+    /// ```
     pub meshes: Vec<SubMesh>,
-    /// The mesh vertices
+
+    /// The mesh vertices.
+    ///
+    /// The vertices are grouped by sub-mesh and will contain duplicates since each sub-mesh is independently defined.
+    ///
+    /// The first group of vertices for each sub-mesh are in the same order as the vertices for the sub-mesh's associated [`PolygonNavmesh`] polygon.
+    /// These vertices are followed by any additional detail vertices.
+    /// So if the associated polygon has 5 vertices, the sub-mesh will have a minimum of 5 vertices and the first 5 vertices will be equivalent to the 5 polygon vertices.
     pub vertices: Vec<Vec3A>,
-    /// The mesh triangles and their associated metadata
-    pub triangles: Vec<(U16Vec3, usize)>,
+    /// The mesh triangles.
+    ///
+    /// The triangles are grouped by sub-mesh.
+    ///
+    /// ## Vertex Indices
+    ///
+    /// The vertex indices in the triangle array are local to the sub-mesh, not global.
+    /// To translate into an global index in the vertices array, the values must be offset by the sub-mesh's base vertex index.
+    ///
+    /// Example: If the [`SubMesh::base_vertex_index`] is 5 and the triangle entry is (4, 8, 7, 0), then the actual indices for the vertices are (4 + 5, 8 + 5, 7 + 5).
+    ///
+    /// ## Flags
+    ///
+    /// The flags entry indicates which edges are internal and which are external to the sub-mesh. Internal edges connect to other triangles within the same sub-mesh. External edges represent portals to other sub-meshes or the null region.
+    ///
+    /// Each flag is stored in a 2-bit position. Where position 0 is the lowest 2-bits and position 4 is the highest 2-bits:
+    ///
+    /// Position 0: Edge AB (>> 0)
+    /// Position 1: Edge BC (>> 2)
+    /// Position 2: Edge CA (>> 4)
+    /// Position 4: Unused
+    ///
+    /// Testing can be performed as follows:
+    /// if (((flags >> 2) & 0x3) != 0)
+    /// {
+    ///     // Edge BC is an external edge.
+    /// }
+    pub triangles: Vec<(U16Vec3, u32)>,
 }
 
+/// A sub-mesh in [`DetailNavmesh::meshes`]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubMesh {
-    pub first_vertex_index: usize,
-    pub vertex_count: usize,
-    pub first_triangle_index: usize,
-    pub triangle_count: usize,
+    pub base_vertex_index: u32,
+    pub vertex_count: u32,
+    pub base_triangle_index: u32,
+    pub triangle_count: u32,
 }
 
-impl DetailNavMesh {
+impl DetailNavmesh {
+    const MAX_VERTS: usize = 127;
+    // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
+    const MAX_TRIS: usize = 255;
+    const MAX_VERTS_PER_EDGE: usize = 32;
+
     /// Builds a detail mesh from the provided polygon mesh.
     pub fn new(
         mesh: &PolygonMesh,
@@ -45,7 +121,7 @@ impl DetailNavMesh {
         sample_distance: f32,
         sample_max_error: f32,
     ) -> Result<Self, DetailPolygonMeshError> {
-        let mut dmesh = DetailNavMesh::default();
+        let mut dmesh = DetailNavmesh::default();
         if mesh.vertices.is_empty() || mesh.polygon_count() == 0 {
             return Ok(dmesh);
         }
@@ -174,9 +250,9 @@ impl DetailNavMesh {
 
             // Store detail submesh
             let submesh = &mut dmesh.meshes[i];
-            submesh.first_vertex_index = dmesh.vertices.len();
+            submesh.base_vertex_index = dmesh.vertices.len();
             submesh.vertex_count = nverts;
-            submesh.first_triangle_index = dmesh.triangles.len();
+            submesh.base_triangle_index = dmesh.triangles.len();
             submesh.triangle_count = tris.len();
 
             // Store vertices, allocate more memory if necessary.
@@ -220,12 +296,8 @@ fn build_poly_detail(
     edges: &mut Vec<Edges>,
     samples: &mut Vec<(U16Vec3, bool)>,
 ) -> Result<(), DetailPolygonMeshError> {
-    const MAX_VERTS: usize = 127;
-    // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
-    const MAX_TRIS: usize = 255;
-    const MAX_VERTS_PER_EDGE: usize = 32;
-    let mut edge = [Vec3A::default(); MAX_VERTS_PER_EDGE + 1];
-    let mut hull = [0; MAX_VERTS];
+    let mut edge = [Vec3A::default(); DetailNavmesh::MAX_VERTS_PER_EDGE + 1];
+    let mut hull = [0; DetailNavmesh::MAX_VERTS];
     let mut nhull = 0;
 
     *nverts = nin;
@@ -264,11 +336,11 @@ fn build_poly_detail(
             let dij = vi - vj;
             let d = dij.xz().length();
             let mut nn = 1 + (d / sample_dist).floor() as usize;
-            if nn >= MAX_VERTS_PER_EDGE {
-                nn = MAX_VERTS_PER_EDGE - 1;
+            if nn >= DetailNavmesh::MAX_VERTS_PER_EDGE {
+                nn = DetailNavmesh::MAX_VERTS_PER_EDGE - 1;
             }
-            if *nverts + nn >= MAX_VERTS {
-                nn = MAX_VERTS - 1 - *nverts;
+            if *nverts + nn >= DetailNavmesh::MAX_VERTS {
+                nn = DetailNavmesh::MAX_VERTS - 1 - *nverts;
             }
             for (k, pos) in edge.iter_mut().enumerate().take(nn + 1) {
                 let u = k as f32 / nn as f32;
@@ -277,7 +349,7 @@ fn build_poly_detail(
                     * chf.cell_height;
             }
             // Simplify samples.
-            let mut idx = [0; MAX_VERTS_PER_EDGE];
+            let mut idx = [0; DetailNavmesh::MAX_VERTS_PER_EDGE];
             idx[1] = nn;
             let mut nidx = 2;
             let mut k = 0;
@@ -390,7 +462,7 @@ fn build_poly_detail(
         // error. The procedure stops when all samples are added
         // or when the max error is within treshold.
         for _iter in 0..samples.len() {
-            if *nverts >= MAX_VERTS {
+            if *nverts >= DetailNavmesh::MAX_VERTS {
                 break;
             }
 
@@ -439,12 +511,13 @@ fn build_poly_detail(
             delaunay_hull(*nverts, verts, nhull, &mut hull, tris, edges);
         }
     }
-    if tris.len() > MAX_TRIS {
+    if tris.len() > DetailNavmesh::MAX_TRIS {
         // Jan: why do we need this?
-        tris.truncate(MAX_TRIS);
+        tris.truncate(DetailNavmesh::MAX_TRIS);
         tracing::error!(
-            "Too many triangles! Shringking triangle count from {} to {MAX_TRIS}",
-            tris.len()
+            "Too many triangles! Shringking triangle count from {} to {}",
+            tris.len(),
+            DetailNavmesh::MAX_TRIS
         );
     }
     set_tri_flags(tris, nhull, &hull);
