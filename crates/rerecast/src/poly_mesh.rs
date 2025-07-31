@@ -232,7 +232,7 @@ impl ContourSet {
                     &mut next_vert,
                     &mut mesh.nvertices,
                 ) as usize;
-                if (region & RegionVertexId::BORDER_VERTEX.bits() as usize) != 0 {
+                if (region & RegionVertexId::BORDER_VERTEX.bits()) != 0 {
                     // This vertex should be removed.
                     vflags[indices[j]] = true;
                 }
@@ -999,7 +999,7 @@ const VERTEX_BUCKET_COUNT: usize = 1 << 12;
 
 fn triangulate(
     mut n: usize,
-    verts: &[(U16Vec3, usize)],
+    verts: &[(U16Vec3, u32)],
     indices: &mut [usize],
     tris: &mut [U16Vec3],
 ) -> Result<usize, PolygonMeshError> {
@@ -1106,19 +1106,13 @@ fn triangulate(
 const CAN_REMOVE: usize = 0x80000000;
 
 /// Returns true iff (v_i, v_j) is a proper internal diagonal of P.
-fn is_diagonal(
-    i: usize,
-    j: usize,
-    n: usize,
-    verts: &[(U16Vec3, usize)],
-    indices: &[usize],
-) -> bool {
+fn is_diagonal(i: usize, j: usize, n: usize, verts: &[(U16Vec3, u32)], indices: &[usize]) -> bool {
     in_cone(i, j, n, verts, indices) && is_diagonal_internal_or_external(i, j, n, verts, indices)
 }
 
 /// Returns true iff the diagonal (i,j) is strictly internal to the
 /// polygon P in the neighborhood of the i endpoint.
-fn in_cone(i: usize, j: usize, n: usize, verts: &[(U16Vec3, usize)], indices: &[usize]) -> bool {
+fn in_cone(i: usize, j: usize, n: usize, verts: &[(U16Vec3, u32)], indices: &[usize]) -> bool {
     let pi = verts[indices[i] & INDEX_MASK].0;
     let pj = verts[indices[j] & INDEX_MASK].0;
     let pi1 = verts[indices[next(i, n)] & INDEX_MASK].0;
@@ -1159,7 +1153,7 @@ fn is_diagonal_internal_or_external(
     i: usize,
     j: usize,
     n: usize,
-    verts: &[(U16Vec3, usize)],
+    verts: &[(U16Vec3, u32)],
     indices: &[usize],
 ) -> bool {
     let d0 = verts[indices[i] & INDEX_MASK].0;
@@ -1247,7 +1241,7 @@ fn is_diagonal_loose(
     i: usize,
     j: usize,
     n: usize,
-    verts: &[(U16Vec3, usize)],
+    verts: &[(U16Vec3, u32)],
     indices: &[usize],
 ) -> bool {
     in_cone_loose(i, j, n, verts, indices)
@@ -1258,7 +1252,7 @@ fn in_cone_loose(
     i: usize,
     j: usize,
     n: usize,
-    verts: &[(U16Vec3, usize)],
+    verts: &[(U16Vec3, u32)],
     indices: &[usize],
 ) -> bool {
     let pi = verts[indices[i] & INDEX_MASK].0;
@@ -1278,7 +1272,7 @@ fn is_diagonal_internal_or_external_loose(
     i: usize,
     j: usize,
     n: usize,
-    verts: &[(U16Vec3, usize)],
+    verts: &[(U16Vec3, u32)],
     indices: &[usize],
 ) -> bool {
     let d0 = verts[indices[i] & INDEX_MASK].0;

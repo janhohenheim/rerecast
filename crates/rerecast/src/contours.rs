@@ -308,7 +308,7 @@ impl CompactHeightfield {
 
 fn simplify_contour(
     points: &[(U16Vec3, RegionVertexId)],
-    simplified: &mut Vec<(U16Vec3, usize)>,
+    simplified: &mut Vec<(U16Vec3, u32)>,
     max_error: f32,
     max_edge_len: u16,
     flags: BuildContoursFlags,
@@ -331,7 +331,7 @@ fn simplify_contour(
             let area_borders =
                 region & RegionVertexId::AREA_BORDER != next_region & RegionVertexId::AREA_BORDER;
             if different_regs || area_borders {
-                simplified.push((*point, i));
+                simplified.push((*point, i as u32));
             };
         }
     }
@@ -353,8 +353,8 @@ fn simplify_contour(
                 uri = i;
             }
         }
-        simplified.push((*ll, lli));
-        simplified.push((*ur, uri));
+        simplified.push((*ll, lli as u32));
+        simplified.push((*ur, uri as u32));
     }
     // Add points until all raw points are within
     // error tolerance to the simplified shape.
@@ -376,12 +376,12 @@ fn simplify_contour(
         // opposite segments.
         if b.x > a.x || b.x == a.x && b.z > a.z {
             cinc = 1;
-            ci = (ai + cinc) % points.len();
-            endi = bi;
+            ci = (ai as usize + cinc) % points.len();
+            endi = bi as usize;
         } else {
             cinc = points.len() - 1;
-            ci = (bi + cinc) % points.len();
-            endi = ai;
+            ci = (bi as usize + cinc) % points.len();
+            endi = ai as usize;
             std::mem::swap(&mut a.x, &mut b.x);
             std::mem::swap(&mut a.z, &mut b.z);
         }
@@ -414,7 +414,7 @@ fn simplify_contour(
             }
             // Add the point.
             simplified[i + 1].0 = points[maxi].0;
-            simplified[i + 1].1 = maxi;
+            simplified[i + 1].1 = maxi as u32;
         } else {
             i += 1;
         }
@@ -434,7 +434,7 @@ fn simplify_contour(
             let (b, bi) = simplified[ii];
             // Find maximum deviation from the segment.
             let mut maxi = None;
-            let ci = (ai + 1) % points.len();
+            let ci = (ai as usize + 1) % points.len();
 
             // Tessellate only outer edges or edges between areas.
             let area = points[ci].1;
@@ -450,15 +450,15 @@ fn simplify_contour(
                     // max tesselation is consistent regardless in which direction
                     // segments are traversed.
                     let n = if bi < ai {
-                        bi + points.len() - ai
+                        bi + points.len() as u32 - ai
                     } else {
                         bi - ai
                     };
                     if n > 1 {
                         maxi = if b.x > a.x || (b.x == a.x && b.z > a.z) {
-                            Some((ai + n / 2) % points.len())
+                            Some((ai + n / 2) % points.len() as u32)
                         } else {
-                            Some((ai + n.div_ceil(2)) % points.len())
+                            Some((ai + n.div_ceil(2)) % points.len() as u32)
                         };
                     }
                 }
@@ -472,7 +472,7 @@ fn simplify_contour(
                     simplified[j] = simplified[j - 1];
                 }
                 // Add the point.
-                simplified[i + 1].0 = points[maxi].0;
+                simplified[i + 1].0 = points[maxi as usize].0;
                 simplified[i + 1].1 = maxi;
             } else {
                 i += 1;
@@ -482,16 +482,16 @@ fn simplify_contour(
     for (_point, index) in simplified {
         // The edge vertex flag is taken from the current raw point,
         // and the neighbour region is take from the next raw point.
-        let ai = (*index + 1) % points.len();
-        let bi = *index;
+        let ai = (*index as usize + 1) % points.len();
+        let bi = *index as usize;
         let a = points[ai].1;
         let b = points[bi].1;
-        *index = ((a.bits() & (RegionVertexId::REGION_MASK | RegionVertexId::AREA_BORDER).bits())
-            | (b.bits() & RegionVertexId::BORDER_VERTEX.bits())) as usize;
+        *index = (a.bits() & (RegionVertexId::REGION_MASK | RegionVertexId::AREA_BORDER).bits())
+            | (b.bits() & RegionVertexId::BORDER_VERTEX.bits());
     }
 }
 
-fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, usize)>) {
+fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, u32)>) {
     // Remove adjacent vertices which are equal on xz-plane,
     // or else the triangulator will get confused.
 
@@ -606,21 +606,22 @@ pub struct Contour {
     /// A contour edge is formed by the current and next vertex. The r-value represents region and connection information for the edge.
     /// For example:
     /// ```rust
-    /// int r = verts[i*4+3];
+    /// let contour = Contour::default();
+    /// let i = 0;
+    /// let r = contour.vertices[i * 4].1;
     ///
-    /// int regionId = r & RC_CONTOUR_REG_MASK;
+    /// let region_id = r & RegionVertexId::REGION_MASK.bits();
+    /// println!("Region ID: {region_id}");
     ///
-    /// if (r & RC_BORDER_VERTEX)
-    /// {
+    /// if (r & RegionVertexId::BORDER_VERTEX.bits()) != 0 {
     ///     // The edge represents a solid border.
     /// }
     ///
-    /// if (r & RC_AREA_BORDER)
-    /// {
+    /// if (r & RegionVertexId::AREA_BORDER.bits()) != 0 {
     ///     // The edge represents a transition between different areas.
     /// }
     /// ```
-    pub vertices: Vec<(U16Vec3, usize)>,
+    pub vertices: Vec<(U16Vec3, u32)>,
     /// Raw contour vertex and connection data.
     pub raw_vertices: Vec<(U16Vec3, RegionVertexId)>,
     /// Region ID of the contour.

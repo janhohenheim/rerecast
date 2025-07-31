@@ -404,7 +404,7 @@ fn assert_eq_contours(contours: &ContourSet, reference_name: &str) {
                 coord.as_uvec3().to_array(),
                 "contour {i} vertex coordinates"
             );
-            assert_eq!(cpp_vert[3] as usize, *data, "contour {i} vertex data");
+            assert_eq!(cpp_vert[3], *data, "contour {i} vertex data");
         }
         for (cpp_vert, (coord, data)) in cpp_contour.rverts.iter().zip(contour.raw_vertices.iter())
         {
