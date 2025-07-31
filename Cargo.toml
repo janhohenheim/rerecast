@@ -4,7 +4,7 @@ resolver = "3"
 exclude = ["./assets/"]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"

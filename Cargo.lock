@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "avian3d",
@@ -1208,7 +1208,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy_app",
@@ -1235,7 +1235,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_transmission"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2750,7 +2750,7 @@ dependencies = [
 
 [[package]]
 name = "gltf_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",
@@ -4529,7 +4529,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rerecast"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bevy_reflect",
@@ -4806,7 +4806,7 @@ dependencies = [
 
 [[package]]
 name = "shapes_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",
@@ -5348,7 +5348,7 @@ dependencies = [
 
 [[package]]
 name = "trenchbroom_scene"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "avian3d",
  "avian_rerecast",
