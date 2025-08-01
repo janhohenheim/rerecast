@@ -83,7 +83,7 @@ fn validate_navmesh_against_cpp_implementation() {
                 max_y: volume.hmax,
                 area: AreaType::from(volume.area),
             };
-            compact_heightfield.mark_convex_poly_area(volume);
+            compact_heightfield.mark_convex_poly_area(&volume);
         }
 
         compact_heightfield.build_distance_field();
@@ -155,6 +155,7 @@ fn load_config(project: &str) -> NavmeshConfig {
         max_vertices_per_polygon: config.max_verts_per_poly,
         detail_sample_dist: config.detail_sample_dist,
         detail_sample_max_error: config.detail_sample_max_error,
+        area_volumes: Vec::new(),
         contour_flags: BuildContoursFlags::default(),
     }
 }

@@ -12,7 +12,7 @@ pub mod generator;
 pub use backend::*;
 
 pub use rerecast;
-use rerecast::{DetailNavmesh, PolygonNavmesh};
+use rerecast::{DetailNavmesh, NavmeshConfig, NavmeshConfigBuilder, PolygonNavmesh};
 
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.
 #[non_exhaustive]
@@ -28,9 +28,10 @@ impl Plugin for RerecastPlugin {
 
 /// Resource containing the navmesh data.
 /// Load this using either a file or by using [`NavmeshGenerator`](generator::NavmeshGenerator)
-#[derive(Debug, Default, Clone, PartialEq, Asset, Reflect)]
+#[derive(Debug, Clone, PartialEq, Asset, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Navmesh {
     polygon: PolygonNavmesh,
     detail: DetailNavmesh,
+    config: NavmeshConfigBuilder,
 }

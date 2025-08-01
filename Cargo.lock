@@ -1214,6 +1214,7 @@ dependencies = [
 name = "bevy_rerecast_core"
 version = "0.0.2"
 dependencies = [
+ "anyhow",
  "bevy_app",
  "bevy_asset",
  "bevy_derive",
@@ -1222,6 +1223,7 @@ dependencies = [
  "bevy_mesh",
  "bevy_reflect",
  "bevy_render",
+ "bevy_tasks",
  "bevy_transform",
  "glam",
  "rerecast",
