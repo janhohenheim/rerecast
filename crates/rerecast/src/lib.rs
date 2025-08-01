@@ -22,7 +22,7 @@ mod watershed_distance_field;
 pub use compact_cell::CompactCell;
 pub use compact_heightfield::CompactHeightfield;
 pub use compact_span::CompactSpan;
-pub use config::NavmeshConfig;
+pub use config::{NavmeshConfig, NavmeshConfigBuilder};
 pub use contours::{BuildContoursFlags, Contour, ContourSet, RegionVertexId};
 pub use detail_mesh::{DetailNavmesh, SubMesh};
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};

@@ -1263,6 +1263,7 @@ dependencies = [
  "bevy_rerecast_core",
  "bevy_transform",
  "bincode",
+ "flate2",
  "rerecast",
  "serde",
  "serde_json",

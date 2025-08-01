@@ -16,7 +16,7 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct BuildNavmesh;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub(crate) struct BuildNavmeshConfig(rerecast::NavmeshConfig);
+pub(crate) struct BuildNavmeshConfig(rerecast::NavmeshConfigBuilder);
 
 #[derive(Component)]
 pub(crate) struct NavmeshAffector;
@@ -29,6 +29,7 @@ fn build_navmesh(
     mut commands: Commands,
 ) -> Result {
     let mut trimesh = TriMesh::default();
+    let config = config.build();
     for (mesh, transform) in affectors.iter() {
         let Some(mesh) = meshes.get(mesh) else {
             warn!("Failed to get mesh for navmesh build. Skipping.");

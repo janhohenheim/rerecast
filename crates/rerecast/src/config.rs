@@ -1,6 +1,6 @@
 use crate::{Aabb3d, BuildContoursFlags};
 
-/// Specifies a configuration to use when performing Recast builds.
+/// Specifies a configuration to use when performing Recast builds. Usually built using [`NavmeshConfigBuilder`].
 ///
 /// This is a convenience structure that represents an aggregation of parameters used at different stages in the Recast build process.
 /// Some values are derived during the build process. Not all parameters are used for all build processes.
@@ -19,7 +19,7 @@ use crate::{Aabb3d, BuildContoursFlags};
 /// > First you should decide the size of your agent's logical cylinder.
 /// > If your game world uses meters as units, a reasonable starting point for a human-sized agent
 /// > might be a radius of 0.4 and a height of 2.0.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NavmeshConfig {
     /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
@@ -193,28 +193,125 @@ pub struct NavmeshConfig {
     pub contour_flags: BuildContoursFlags,
 }
 
-impl Default for NavmeshConfig {
+/// A builder for [`NavmeshConfig`]. The config has lots of interdependent configurations,
+/// so this builder provides a convenient way to set all the necessary parameters.
+/// The default values are chosen to be reasonable for an agent resembling and adult human.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NavmeshConfigBuilder {
+    /// The xz-plane cell size to use for fields. `[Limit: > 0] [Units: wu]`.
+    ///
+    /// The voxelization cell size defines the voxel size along both axes of the ground plane: x and z in Recast.
+    /// This value is usually derived from the character radius r. A recommended starting value for cell_size is either r/2 or r/3.
+    /// Smaller values of cell_size will increase rasterization resolution and navmesh detail, but total generation time will increase exponentially.
+    /// In outdoor environments, r/2 is often good enough. For indoor scenes with tight spaces you might want the extra precision,
+    /// so a value of r/3 or smaller may give better results.
+    ///
+    /// The initial instinct is to reduce this value to something very close to zero to maximize the detail of the generated navmesh.
+    /// This quickly becomes a case of diminishing returns, however. Beyond a certain point there's usually not much perceptable difference
+    /// in the generated navmesh, but huge increases in generation time.
+    /// This hinders your ability to quickly iterate on level designs and provides little benefit.
+    /// The general recommendation here is to use as large a value for cell_size as you can get away with.
+    ///
+    /// cell_size and cell_height define voxel/grid/cell size. So their values have significant side effects on all parameters defined in voxel units.
+    ///
+    /// The minimum value for this parameter depends on the platform's floating point accuracy,
+    /// with the practical minimum usually around 0.05.
+    cell_size: f32,
+    /// The y-axis cell size to use for fields. `[Limit: > 0] [Units: wu]`
+    ///
+    /// The voxelization cell height is defined separately in order to allow for greater precision in height tests.
+    /// A good starting point for cell_height is half the cell_size value.
+    /// Smaller cell_height values ensure that the navmesh properly connects areas that are only separated by a small curb or ditch.
+    /// If small holes are generated in your navmesh around where there are discontinuities in height (for example, stairs or curbs),
+    /// you may want to decrease the cell height value to increase the vertical rasterization precision of rerecast.
+    ///
+    /// cell_size and cell_height define voxel/grid/cell size. So their values have significant side effects on all parameters defined in voxel units.
+    ///
+    /// The minimum value for this parameter depends on the platform's floating point accuracy, with the practical minimum usually around 0.05.
+    cell_height: f32,
+    /// The height of the agent in meters. `[Limit: > 0] [Units: wu]`
+    ///
+    /// It's often a good idea to add a little bit of padding to the height. For example,
+    /// an agent that is 1.8 meters tall might want to set this value to 2.0 meters.
+    agent_height: f32,
+    agent_radius: f32,
+    agent_max_climb: f32,
+    agent_max_slope: f32,
+    region_min_size: f32,
+    region_merge_size: f32,
+    edge_max_len: f32,
+    edge_max_error: f32,
+    verts_per_poly: f32,
+    detail_sample_dist: f32,
+    detail_sample_max_error: f32,
+    tile_size: u16,
+    aabb: Aabb3d,
+    contour_flags: BuildContoursFlags,
+    tiling: bool,
+}
+
+impl Default for NavmeshConfigBuilder {
     fn default() -> Self {
         Self {
             cell_size: 0.3,
             cell_height: 0.2,
-            walkable_slope_angle: 45.0_f32.to_radians(),
-            walkable_height: 10,
-            walkable_climb: 4,
-            walkable_radius: 2,
-            min_region_area: 64,
-            merge_region_area: 400,
-            border_size: 5,
-            max_simplification_error: 1.3,
-            max_edge_len: 40,
-            max_vertices_per_polygon: 6,
-            contour_flags: BuildContoursFlags::TESSELLATE_SOLID_WALL_EDGES,
-            detail_sample_dist: 1.8,
-            detail_sample_max_error: 0.2,
-            width: 0,
-            height: 0,
-            tile_size: 0,
+            agent_height: 2.0,
+            agent_radius: 0.6,
+            agent_max_climb: 0.9,
+            agent_max_slope: 45.0_f32.to_radians(),
+            region_min_size: 8.0,
+            region_merge_size: 20.0,
+            edge_max_len: 12.0,
+            edge_max_error: 1.3,
+            verts_per_poly: 6.0,
+            detail_sample_dist: 6.0,
+            detail_sample_max_error: 1.0,
+            tile_size: 32,
             aabb: Aabb3d::default(),
+            contour_flags: BuildContoursFlags::default(),
+            tiling: false,
+        }
+    }
+}
+
+impl NavmeshConfigBuilder {
+    /// Builds a [`NavmeshConfig`] from the current configuration.
+    pub fn build(self) -> NavmeshConfig {
+        let walkable_radius = (self.agent_radius / self.cell_size).ceil() as u16;
+        // Reserve enough padding.
+        let border_size = walkable_radius + 3;
+        NavmeshConfig {
+            width: if self.tiling {
+                self.tile_size + border_size * 2
+            } else {
+                ((self.aabb.max.x - self.aabb.min.x) / self.cell_size + 0.5) as u16
+            },
+            height: if self.tiling {
+                self.tile_size + border_size * 2
+            } else {
+                ((self.aabb.max.z - self.aabb.min.z) / self.cell_size + 0.5) as u16
+            },
+            tile_size: self.tile_size,
+            border_size,
+            cell_size: self.cell_size,
+            cell_height: self.cell_height,
+            aabb: self.aabb,
+            walkable_slope_angle: self.agent_max_slope,
+            walkable_height: (self.agent_height / self.cell_height).ceil() as u16,
+            walkable_climb: (self.agent_max_climb / self.cell_height).floor() as u16,
+            walkable_radius,
+            max_edge_len: (self.edge_max_len / self.cell_size) as u16,
+            max_simplification_error: self.edge_max_error,
+            min_region_area: (self.region_min_size * self.region_min_size) as u16,
+            merge_region_area: (self.region_merge_size * self.region_merge_size) as u16,
+            max_vertices_per_polygon: self.verts_per_poly as u16,
+            detail_sample_dist: if self.detail_sample_dist < 0.9 {
+                0.0
+            } else {
+                self.cell_size * self.detail_sample_dist
+            },
+            detail_sample_max_error: self.cell_height * self.detail_sample_max_error,
+            contour_flags: self.contour_flags,
         }
     }
 }

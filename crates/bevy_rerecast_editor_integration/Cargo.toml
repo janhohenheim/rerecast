@@ -39,6 +39,7 @@ bevy_image = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+flate2 = { workspace = true }
 
 rerecast = { version = "0.0.2", path = "../rerecast", features = ["serialize"] }
 bevy_rerecast_core = { version = "0.0.2", path = "../bevy_rerecast_core", default-features = false }
