@@ -21,10 +21,11 @@ fn validate_navmesh_against_cpp_implementation() {
             continue;
         }
         let project = path.file_name().unwrap().to_str().unwrap();
-        if project != "chainboom" {
+        println!("Testing {project}...");
+        if !path.join("geometry.json").exists() {
+            println!("Skipping {path:?} because it is missing geometry.json");
             continue;
         }
-        println!("Testing {project}...");
 
         let geometry = load_json::<CppGeometry>(project, "geometry");
         let mut trimesh = geometry.to_trimesh();
