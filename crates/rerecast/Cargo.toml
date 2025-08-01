@@ -24,6 +24,7 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+tobj = { workspace = true }
 
 [features]
 default = []

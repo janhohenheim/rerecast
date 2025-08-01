@@ -44,6 +44,8 @@ fn fetch_navmesh_input(
     let response = ureq::post(&url)
         .send_json(req)?
         .body_mut()
+        .with_config()
+        .limit(1024 * 1024 * 1024)
         .read_json::<serde_json::Value>()?;
     let result = response
         .get("result")
