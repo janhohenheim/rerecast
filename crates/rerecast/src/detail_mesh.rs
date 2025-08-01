@@ -1323,7 +1323,7 @@ impl HeightPatch {
                 let hx = ax - self.xmin as i32 - bs as i32;
                 let hz = az - self.zmin as i32 - bs as i32;
 
-                if hx as u16 > self.width || hz as u16 >= self.height {
+                if hx as u16 >= self.width || hz as u16 >= self.height {
                     continue;
                 }
 
