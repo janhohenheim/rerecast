@@ -19,7 +19,7 @@ use crate::{Aabb3d, BuildContoursFlags};
 /// > First you should decide the size of your agent's logical cylinder.
 /// > If your game world uses meters as units, a reasonable starting point for a human-sized agent
 /// > might be a radius of 0.4 and a height of 2.0.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NavmeshConfig {
     /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
@@ -196,6 +196,7 @@ pub struct NavmeshConfig {
 /// A builder for [`NavmeshConfig`]. The config has lots of interdependent configurations,
 /// so this builder provides a convenient way to set all the necessary parameters.
 /// The default values are chosen to be reasonable for an agent resembling and adult human.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NavmeshConfigBuilder {
     /// The xz-plane cell size to use for fields. `[Limit: > 0] [Units: wu]`.
     ///
