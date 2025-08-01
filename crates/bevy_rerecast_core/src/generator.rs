@@ -7,7 +7,7 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemParam};
-use bevy_tasks::{AsyncComputeTaskPool, Task};
+use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
 use rerecast::{
@@ -22,7 +22,9 @@ pub(super) fn plugin(app: &mut App) {
     app.init_resource::<NavmeshTaskQueue>();
     app.add_systems(
         PostUpdate,
-        drain_queue_into_tasks.after(TransformSystem::TransformPropagate),
+        (drain_queue_into_tasks, poll_tasks)
+            .chain()
+            .after(TransformSystem::TransformPropagate),
     );
 }
 
@@ -92,6 +94,28 @@ fn drain_queue_into_tasks(world: &mut World) {
     for (handle, config) in queue {
         let task = thread_pool.spawn(generate_navmesh(affectors.clone(), config));
         tasks_queue.push((handle, task));
+    }
+}
+
+fn poll_tasks(mut tasks: ResMut<NavmeshTaskQueue>, mut navmeshes: ResMut<Assets<Navmesh>>) {
+    let mut removed_indices = Vec::new();
+    for (index, (handle, task)) in tasks.iter_mut().enumerate() {
+        let Some(navmesh) = future::block_on(future::poll_once(task)) else {
+            continue;
+        };
+        removed_indices.push(index);
+        let navmesh = match navmesh {
+            Ok(navmesh) => navmesh,
+            Err(err) => {
+                tracing::error!("Failed to generate navmesh: {err}");
+                continue;
+            }
+        };
+        // Process the generated navmesh
+        navmeshes.insert(handle, navmesh);
+    }
+    for index in removed_indices {
+        let _completed_task = tasks.swap_remove(index);
     }
 }
 
