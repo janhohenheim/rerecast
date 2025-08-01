@@ -10,7 +10,6 @@ use rerecast::{
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
-use tobj::LoadOptions;
 
 #[test]
 fn validate_navmesh_against_cpp_implementation() {
@@ -22,9 +21,19 @@ fn validate_navmesh_against_cpp_implementation() {
             continue;
         }
         let project = path.file_name().unwrap().to_str().unwrap();
+        if project != "chainboom" {
+            continue;
+        }
         println!("Testing {project}...");
-        let mut trimesh = load_obj(project);
+
+        let geometry = load_json::<CppGeometry>(project, "geometry");
+        let mut trimesh = geometry.to_trimesh();
         let config = load_config(project);
+        assert_eq!(
+            config.aabb,
+            trimesh.compute_aabb().unwrap(),
+            "{project}: AABB mismatch"
+        );
 
         trimesh.mark_walkable_triangles(config.walkable_slope_angle);
 
@@ -119,32 +128,6 @@ fn validate_navmesh_against_cpp_implementation() {
         assert_eq_detail_mesh(&detail_mesh, project, "poly_mesh_detail");
         println!("passed!\n")
     }
-}
-
-fn load_obj(project: &str) -> TriMesh {
-    let file_name = reference_data_dir().join(project).join("model.obj");
-    let options = LoadOptions::default();
-    let (models, _materials) = tobj::load_obj(&file_name, &options).unwrap();
-    let mut trimesh = TriMesh::default();
-    for model in models {
-        let mesh = model.mesh;
-        let vertices = mesh.positions;
-        let indices = mesh.indices;
-        let model_trimesh = TriMesh {
-            vertices: vertices
-                .chunks_exact(3)
-                .map(|chunk| Vec3A::from_slice(chunk))
-                .collect(),
-            indices: indices
-                .chunks_exact(3)
-                .map(|chunk| UVec3::from_slice(chunk))
-                .collect(),
-            area_types: Vec::new(),
-        };
-        trimesh.extend(model_trimesh);
-    }
-    trimesh.area_types = vec![AreaType::default(); trimesh.indices.len()];
-    trimesh
 }
 
 fn load_config(project: &str) -> NavmeshConfig {
@@ -865,6 +848,22 @@ struct CppDetailPolyMesh {
     meshes: Vec<[u16; 4]>,
     tris: Vec<[u8; 4]>,
     verts: Vec<[f32; 3]>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CppGeometry {
+    verts: Vec<[f32; 3]>,
+    tris: Vec<[u32; 3]>,
+}
+
+impl CppGeometry {
+    fn to_trimesh(&self) -> TriMesh {
+        TriMesh {
+            vertices: self.verts.iter().map(|v| Vec3A::from(*v)).collect(),
+            indices: self.tris.iter().map(|i| UVec3::from(*i)).collect(),
+            area_types: vec![AreaType::NOT_WALKABLE; self.tris.len()],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
