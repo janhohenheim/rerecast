@@ -1214,14 +1214,20 @@ dependencies = [
 name = "bevy_rerecast_core"
 version = "0.0.2"
 dependencies = [
+ "anyhow",
  "bevy_app",
  "bevy_asset",
+ "bevy_color",
  "bevy_derive",
  "bevy_ecs",
+ "bevy_gizmos",
  "bevy_math",
  "bevy_mesh",
+ "bevy_pbr",
+ "bevy_platform",
  "bevy_reflect",
  "bevy_render",
+ "bevy_tasks",
  "bevy_transform",
  "glam",
  "rerecast",

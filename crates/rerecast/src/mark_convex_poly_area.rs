@@ -1,10 +1,12 @@
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 use glam::{IVec3, Vec2};
 
 use crate::{Aabb2d, AreaType, CompactHeightfield};
 
 impl CompactHeightfield {
     /// Sets the [`AreaType`] of the spans within the given convex volume.
-    pub fn mark_convex_poly_area(&mut self, volume: ConvexVolume) {
+    pub fn mark_convex_poly_area(&mut self, volume: &ConvexVolume) {
         // Compute the bounding box of the polygon
         let Some(aabb) = Aabb2d::from_verts(&volume.vertices) else {
             // The volume is empty
@@ -87,6 +89,14 @@ fn point_in_poly(point: &Vec2, vertices: &[Vec2]) -> bool {
 }
 
 /// A convex volume that marks an area within a [`CompactHeightfield`] as belonging to a specific [`AreaType`] through [`CompactHeightfield::mark_convex_poly_area`].
+///
+#[derive(Debug, Default, PartialEq, Clone)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct ConvexVolume {
     /// The vertices of the convex volume. In 3D, these represent the X and Z coordinates of the vertices.
     pub vertices: Vec<Vec2>,

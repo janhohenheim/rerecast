@@ -1,7 +1,7 @@
 use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
 
 use crate::{
-    build::BuildNavmesh,
+    backend::BuildNavmesh,
     get_navmesh_input::GetNavmeshInput,
     theme::{
         palette::BEVY_GRAY,

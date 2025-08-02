@@ -1,4 +1,6 @@
-use crate::{Aabb3d, BuildContoursFlags};
+use crate::{Aabb3d, BuildContoursFlags, ConvexVolume};
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 
 /// Specifies a configuration to use when performing Recast builds. Usually built using [`NavmeshConfigBuilder`].
 ///
@@ -19,7 +21,14 @@ use crate::{Aabb3d, BuildContoursFlags};
 /// > First you should decide the size of your agent's logical cylinder.
 /// > If your game world uses meters as units, a reasonable starting point for a human-sized agent
 /// > might be a radius of 0.4 and a height of 2.0.
-#[derive(Debug, Clone, Copy, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct NavmeshConfig {
     /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
@@ -191,12 +200,21 @@ pub struct NavmeshConfig {
 
     /// Flags controlling the [`ContourSet`](crate::ContourSet) generation process.
     pub contour_flags: BuildContoursFlags,
+
+    /// Volumes that define areas with specific areas.
+    pub area_volumes: Vec<ConvexVolume>,
 }
 
 /// A builder for [`NavmeshConfig`]. The config has lots of interdependent configurations,
 /// so this builder provides a convenient way to set all the necessary parameters.
 /// The default values are chosen to be reasonable for an agent resembling and adult human.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct NavmeshConfigBuilder {
     /// The xz-plane cell size to use for fields. `[Limit: > 0] [Units: wu]`.
     ///
@@ -216,7 +234,7 @@ pub struct NavmeshConfigBuilder {
     ///
     /// The minimum value for this parameter depends on the platform's floating point accuracy,
     /// with the practical minimum usually around 0.05.
-    cell_size: f32,
+    pub cell_size: f32,
     /// The y-axis cell size to use for fields. `[Limit: > 0] [Units: wu]`
     ///
     /// The voxelization cell height is defined separately in order to allow for greater precision in height tests.
@@ -228,26 +246,28 @@ pub struct NavmeshConfigBuilder {
     /// cell_size and cell_height define voxel/grid/cell size. So their values have significant side effects on all parameters defined in voxel units.
     ///
     /// The minimum value for this parameter depends on the platform's floating point accuracy, with the practical minimum usually around 0.05.
-    cell_height: f32,
-    /// The height of the agent in meters. `[Limit: > 0] [Units: wu]`
+    pub cell_height: f32,
+    /// The height of the agent. `[Limit: > 0] [Units: wu]`
     ///
     /// It's often a good idea to add a little bit of padding to the height. For example,
-    /// an agent that is 1.8 meters tall might want to set this value to 2.0 meters.
-    agent_height: f32,
-    agent_radius: f32,
-    agent_max_climb: f32,
-    agent_max_slope: f32,
-    region_min_size: f32,
-    region_merge_size: f32,
-    edge_max_len: f32,
-    edge_max_error: f32,
-    verts_per_poly: f32,
-    detail_sample_dist: f32,
-    detail_sample_max_error: f32,
-    tile_size: u16,
-    aabb: Aabb3d,
-    contour_flags: BuildContoursFlags,
-    tiling: bool,
+    /// an agent that is 1.8 world units tall might want to set this value to 2.0 units.
+    pub agent_height: f32,
+    /// The radius of the agent. `[Limit: > 0] [Units: wu]`
+    pub agent_radius: f32,
+    pub agent_max_climb: f32,
+    pub agent_max_slope: f32,
+    pub region_min_size: f32,
+    pub region_merge_size: f32,
+    pub edge_max_len: f32,
+    pub edge_max_error: f32,
+    pub verts_per_poly: f32,
+    pub detail_sample_dist: f32,
+    pub detail_sample_max_error: f32,
+    pub tile_size: u16,
+    pub aabb: Aabb3d,
+    pub contour_flags: BuildContoursFlags,
+    pub tiling: bool,
+    pub area_volumes: Vec<ConvexVolume>,
 }
 
 impl Default for NavmeshConfigBuilder {
@@ -270,6 +290,7 @@ impl Default for NavmeshConfigBuilder {
             aabb: Aabb3d::default(),
             contour_flags: BuildContoursFlags::default(),
             tiling: false,
+            area_volumes: Vec::new(),
         }
     }
 }
@@ -312,6 +333,7 @@ impl NavmeshConfigBuilder {
             },
             detail_sample_max_error: self.cell_height * self.detail_sample_max_error,
             contour_flags: self.contour_flags,
+            area_volumes: self.area_volumes,
         }
     }
 }

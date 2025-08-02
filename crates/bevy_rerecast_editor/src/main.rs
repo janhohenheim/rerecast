@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_rerecast::prelude::*;
 
-mod build;
+mod backend;
 mod camera;
 mod get_navmesh_input;
 mod theme;
@@ -20,14 +20,14 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(NavmeshPlugins::default())
+        .add_plugins((NavmeshPlugins::default(), NavmeshDebugPlugin::default()))
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,
             ui::plugin,
             theme::plugin,
-            build::plugin,
             visualization::plugin,
+            backend::plugin,
         ))
         .run()
 }

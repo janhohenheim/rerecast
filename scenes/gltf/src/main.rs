@@ -13,7 +13,11 @@ fn main() -> AppExit {
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((NavmeshPlugins::default(), AvianRerecastPlugin::default()))
+        .add_plugins((
+            NavmeshPlugins::default(),
+            NavmeshDebugPlugin::default(),
+            AvianRerecastPlugin::default(),
+        ))
         .add_systems(Startup, setup)
         .add_observer(configure_camera)
         .run()

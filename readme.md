@@ -29,5 +29,5 @@ by Unreal, Unity, Godot, and other game engines.
   - [ ] Save and load navmesh
 - API
   - [x] Optional editor communication
-  - [ ] Generate navmeshes on demand
-  - [ ] Automatically regenerate navmeshes
+  - [x] Generate navmeshes on demand
+  - [ ] Partially regenerate navmeshes

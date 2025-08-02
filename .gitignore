@@ -5,3 +5,5 @@
 
 /bruno
 autosaves/*.map
+
+rustc-ice-*.txt
