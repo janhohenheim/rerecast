@@ -50,7 +50,12 @@ fn mark_gizmos_dirty_on_config_change(
     if !config.is_changed() {
         return;
     }
-    let last_config = last_config.get_or_insert_with(|| config.clone());
+    let Some(last_config) = last_config.as_mut() else {
+        *last_config = Some(config.clone());
+        // The first change will be skipped because that's triggered when the config is first initialized.
+        // Since all gizmos are spawned as dirty, we don't need to mark them as dirty again.
+        return;
+    };
 
     if !cfg_eq(&last_config.polygon_navmesh, &config.polygon_navmesh) {
         for entity in polygon_gizmos.iter() {
@@ -62,6 +67,7 @@ fn mark_gizmos_dirty_on_config_change(
             commands.entity(entity).insert(DirtyNavmeshGizmo);
         }
     }
+    *last_config = config.clone();
 }
 
 fn mark_gizmos_dirty_on_asset_change(
@@ -125,7 +131,7 @@ struct DirtyNavmeshGizmo;
 /// Component that draws a [`DetailNavmesh`](rerecast::DetailNavmesh).
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
-#[require(DirtyNavmeshGizmo)]
+#[require(DirtyNavmeshGizmo, Visibility)]
 #[component(on_add = init_detail_navmesh_gizmo)]
 pub struct DetailNavmeshGizmo(pub AssetId<Navmesh>);
 
@@ -150,7 +156,13 @@ fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
 fn update_dirty_polygon_gizmos(
     mut commands: Commands,
     mut gizmos: Query<
-        (Entity, &mut Gizmo, &mut RenderLayers, &PolygonNavmeshGizmo),
+        (
+            Entity,
+            &mut Gizmo,
+            &mut RenderLayers,
+            &PolygonNavmeshGizmo,
+            &mut Visibility,
+        ),
         With<DirtyNavmeshGizmo>,
     >,
     mut gizmo_assets: ResMut<Assets<GizmoAsset>>,
@@ -158,11 +170,8 @@ fn update_dirty_polygon_gizmos(
     config: Res<NavmeshGizmoConfig>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (entity, mut gizmo_handle, mut layers, navmesh_handle) in gizmos.iter_mut() {
-        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
-            continue;
-        };
-
+    for (entity, mut gizmo_handle, mut layers, navmesh_handle, mut visibility) in gizmos.iter_mut()
+    {
         let Some(gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
             continue;
         };
@@ -170,8 +179,13 @@ fn update_dirty_polygon_gizmos(
         if !config.enabled {
             gizmo.clear();
             commands.entity(entity).remove::<DirtyNavmeshGizmo>();
+            *visibility = Visibility::Hidden;
             continue;
         }
+
+        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
+            continue;
+        };
 
         let mesh = &navmesh.polygon;
         let nvp = mesh.max_vertices_per_polygon as usize;
@@ -234,6 +248,7 @@ fn update_dirty_polygon_gizmos(
         gizmo_handle.line_config = config.line;
         gizmo_handle.depth_bias = config.depth_bias;
         *layers = config.render_layers;
+        *visibility = Visibility::Inherited;
         commands.entity(entity).remove::<DirtyNavmeshGizmo>();
     }
 }
@@ -241,7 +256,13 @@ fn update_dirty_polygon_gizmos(
 fn update_dirty_detail_gizmos(
     mut commands: Commands,
     mut gizmos: Query<
-        (Entity, &mut Gizmo, &mut RenderLayers, &DetailNavmeshGizmo),
+        (
+            Entity,
+            &mut Gizmo,
+            &mut RenderLayers,
+            &DetailNavmeshGizmo,
+            &mut Visibility,
+        ),
         With<DirtyNavmeshGizmo>,
     >,
     mut gizmo_assets: ResMut<Assets<GizmoAsset>>,
@@ -249,11 +270,8 @@ fn update_dirty_detail_gizmos(
     config: Res<NavmeshGizmoConfig>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (entity, mut gizmo_handle, mut layers, navmesh_handle) in gizmos.iter_mut() {
-        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
-            continue;
-        };
-
+    for (entity, mut gizmo_handle, mut layers, navmesh_handle, mut visibility) in gizmos.iter_mut()
+    {
         let Some(gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
             continue;
         };
@@ -262,8 +280,13 @@ fn update_dirty_detail_gizmos(
         if !config.enabled {
             gizmo.clear();
             commands.entity(entity).remove::<DirtyNavmeshGizmo>();
+            *visibility = Visibility::Hidden;
             continue;
         }
+        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
+            continue;
+        };
+
         let mesh = &navmesh.detail;
 
         for submesh in &mesh.meshes {
@@ -310,6 +333,7 @@ fn update_dirty_detail_gizmos(
         gizmo_handle.line_config = config.line;
         gizmo_handle.depth_bias = config.depth_bias;
         *layers = config.render_layers;
+        *visibility = Visibility::Inherited;
         commands.entity(entity).remove::<DirtyNavmeshGizmo>();
     }
 }
@@ -317,6 +341,7 @@ fn update_dirty_detail_gizmos(
 /// Component that draws a [`PolygonNavmesh`].
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
+#[require(DirtyNavmeshGizmo, Visibility)]
 #[component(on_add = init_polygon_navmesh_gizmo)]
 pub struct PolygonNavmeshGizmo(pub AssetId<Navmesh>);
 

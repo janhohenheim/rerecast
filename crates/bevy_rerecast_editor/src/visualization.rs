@@ -6,7 +6,6 @@ use bevy_rerecast::{TriMeshFromBevyMesh as _, debug::NavmeshGizmoConfig, rerecas
 use crate::backend::NavmeshAffector;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn_gizmos);
     app.init_resource::<GizmosToDraw>();
     app.add_systems(
         Update,
@@ -64,42 +63,6 @@ impl Default for GizmosToDraw {
                 .collect(),
         )
     }
-}
-
-#[derive(Component)]
-struct PolyMeshGizmo;
-
-#[derive(Component)]
-struct DetailMeshGizmo;
-
-fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
-    commands.spawn((
-        PolyMeshGizmo,
-        Visibility::Hidden,
-        Gizmo {
-            handle: gizmos.add(GizmoAsset::new()),
-            line_config: GizmoLineConfig {
-                perspective: true,
-                width: 20.0,
-                ..default()
-            },
-            depth_bias: -0.001,
-        },
-    ));
-    commands.spawn((
-        DetailMeshGizmo,
-        Visibility::Hidden,
-        Gizmo {
-            handle: gizmos.add(GizmoAsset::new()),
-            line_config: GizmoLineConfig {
-                perspective: true,
-                width: 20.0,
-                joints: GizmoLineJoint::Bevel,
-                ..default()
-            },
-            depth_bias: -0.001,
-        },
-    ));
 }
 
 fn draw_poly_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
