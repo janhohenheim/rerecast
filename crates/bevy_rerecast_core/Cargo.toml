@@ -13,7 +13,7 @@ readme = { workspace = true }
 [dependencies]
 bevy_ecs = { workspace = true }
 bevy_asset = { workspace = true }
-bevy_transform = { workspace = true }
+bevy_transform = { workspace = true, features = ["bevy-support"] }
 bevy_tasks = { workspace = true }
 bevy_derive = { workspace = true }
 bevy_reflect = { workspace = true }
@@ -22,7 +22,7 @@ bevy_math = { workspace = true }
 
 # debug-plugin
 bevy_platform = { workspace = true, optional = true }
-bevy_gizmos = { workspace = true, optional = true }
+bevy_gizmos = { workspace = true, optional = true, features = ["bevy_render"] }
 bevy_color = { workspace = true, optional = true }
 bevy_pbr = { workspace = true, optional = true }
 
