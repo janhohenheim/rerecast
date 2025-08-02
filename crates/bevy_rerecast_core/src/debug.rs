@@ -136,7 +136,9 @@ struct DirtyNavmeshGizmo;
 pub struct DetailNavmeshGizmo(pub AssetId<Navmesh>);
 
 fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
-    let navmesh_handle = world.resource::<GizmoHandles>().detail_navmesh.clone();
+    let gizmo_handle = world
+        .resource_mut::<Assets<GizmoAsset>>()
+        .add(GizmoAsset::new());
     let material_handle = world.resource::<GizmoHandles>().detail_material.clone();
     let config = world
         .resource::<NavmeshGizmoConfig>()
@@ -144,7 +146,7 @@ fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
         .clone();
     world.commands().entity(ctx.entity).insert((
         Gizmo {
-            handle: navmesh_handle,
+            handle: gizmo_handle,
             line_config: config.line,
             depth_bias: config.depth_bias,
         },
@@ -346,7 +348,9 @@ fn update_dirty_detail_gizmos(
 pub struct PolygonNavmeshGizmo(pub AssetId<Navmesh>);
 
 fn init_polygon_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
-    let gizmo_handle = world.resource::<GizmoHandles>().polygon_navmesh.clone();
+    let gizmo_handle = world
+        .resource_mut::<Assets<GizmoAsset>>()
+        .add(GizmoAsset::new());
     let material_handle = world.resource::<GizmoHandles>().polygon_material.clone();
     let config = world
         .resource::<NavmeshGizmoConfig>()
@@ -365,8 +369,6 @@ fn init_polygon_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
 
 #[derive(Resource)]
 struct GizmoHandles {
-    polygon_navmesh: Handle<GizmoAsset>,
-    detail_navmesh: Handle<GizmoAsset>,
     polygon_material: Handle<StandardMaterial>,
     detail_material: Handle<StandardMaterial>,
 }
@@ -374,12 +376,6 @@ struct GizmoHandles {
 impl FromWorld for GizmoHandles {
     fn from_world(world: &mut World) -> Self {
         Self {
-            polygon_navmesh: world
-                .resource_mut::<Assets<GizmoAsset>>()
-                .add(GizmoAsset::new()),
-            detail_navmesh: world
-                .resource_mut::<Assets<GizmoAsset>>()
-                .add(GizmoAsset::new()),
             polygon_material: world.resource_mut::<Assets<StandardMaterial>>().add(
                 StandardMaterial {
                     base_color: tailwind::BLUE_600.with_alpha(0.7).into(),
