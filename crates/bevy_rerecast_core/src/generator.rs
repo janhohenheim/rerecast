@@ -1,7 +1,5 @@
 //! Utilities for generating navmeshes at runtime.
 
-use std::marker::PhantomData;
-
 use anyhow::Context as _;
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
