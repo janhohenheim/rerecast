@@ -21,6 +21,7 @@ use bevy::{
 };
 use bevy_app::ScheduleRunnerPlugin;
 use bevy_rerecast::{Mesh3dNavmeshPlugin, prelude::*};
+use test_utils::AssertEqTest;
 
 #[test]
 fn validate_bevy_navmesh_against_cpp_implementation() {
@@ -28,11 +29,12 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
     app.add_plugins(headless_plugins);
 
     app.add_plugins((NavmeshPlugins::default(), Mesh3dNavmeshPlugin::default()));
-
-    app.add_systems(Startup, setup);
+    app.add_observer(on_navmesh_ready);
 
     app.finish();
     app.cleanup();
+
+    app.world_mut().run_system_cached(setup).unwrap();
 
     let now = Instant::now();
     while app.world().get_resource::<GltfLoaded>().is_none() {
@@ -41,10 +43,34 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
             panic!("Timeout waiting for glTF to load");
         }
     }
+    app.world_mut().run_system_cached(generate_navmesh).unwrap();
+    let now = Instant::now();
+    while app.world().get_resource::<IsNavmeshReady>().is_none() {
+        app.update();
+        if now.elapsed().as_secs() > 5 {
+            panic!("Timeout waiting for navmesh generation");
+        }
+    }
+    let navmesh_handle = app.world().resource::<NavmeshHandle>().0.clone();
+    let navmesh = app
+        .world()
+        .resource::<Assets<Navmesh>>()
+        .get(&navmesh_handle)
+        .unwrap()
+        .clone();
+
+    navmesh.polygon.assert_eq("dungeon", "poly_mesh");
+    navmesh.detail.assert_eq("dungeon", "poly_mesh_detail");
 }
 
 #[derive(Resource)]
 struct GltfLoaded;
+
+#[derive(Resource)]
+struct NavmeshHandle(Handle<Navmesh>);
+
+#[derive(Resource)]
+struct IsNavmeshReady;
 
 fn setup(mut commands: Commands, assets: Res<AssetServer>) {
     commands
@@ -52,6 +78,15 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
         .observe(|_: Trigger<SceneInstanceReady>, mut commands: Commands| {
             commands.insert_resource(GltfLoaded);
         });
+}
+
+fn generate_navmesh(mut commands: Commands, mut generator: NavmeshGenerator) {
+    let handle = generator.generate(Default::default());
+    commands.insert_resource(NavmeshHandle(handle));
+}
+
+fn on_navmesh_ready(_trigger: Trigger<NavmeshReady>, mut commands: Commands) {
+    commands.insert_resource(IsNavmeshReady);
 }
 
 fn headless_plugins(app: &mut App) {

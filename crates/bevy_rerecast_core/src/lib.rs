@@ -33,7 +33,7 @@ impl Plugin for RerecastPlugin {
 #[derive(Debug, Clone, PartialEq, Asset, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 pub struct Navmesh {
-    polygon: PolygonNavmesh,
-    detail: DetailNavmesh,
-    config: NavmeshConfigBuilder,
+    pub polygon: PolygonNavmesh,
+    pub detail: DetailNavmesh,
+    pub config: NavmeshConfigBuilder,
 }

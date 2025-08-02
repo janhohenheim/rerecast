@@ -91,7 +91,11 @@ fn drain_queue_into_tasks(world: &mut World) {
     }
 }
 
-fn poll_tasks(mut tasks: ResMut<NavmeshTaskQueue>, mut navmeshes: ResMut<Assets<Navmesh>>) {
+fn poll_tasks(
+    mut commands: Commands,
+    mut tasks: ResMut<NavmeshTaskQueue>,
+    mut navmeshes: ResMut<Assets<Navmesh>>,
+) {
     let mut removed_indices = Vec::new();
     for (index, (handle, task)) in tasks.iter_mut().enumerate() {
         let Some(navmesh) = future::block_on(future::poll_once(task)) else {
@@ -109,9 +113,14 @@ fn poll_tasks(mut tasks: ResMut<NavmeshTaskQueue>, mut navmeshes: ResMut<Assets<
         navmeshes.insert(handle, navmesh);
     }
     for index in removed_indices {
-        let _completed_task = tasks.swap_remove(index);
+        let (handle, _task) = tasks.swap_remove(index);
+        commands.trigger(NavmeshReady(handle));
     }
 }
+
+/// Triggered when a navmesh created by the [`NavmeshGenerator`] is ready.
+#[derive(Debug, Event, Deref, DerefMut)]
+pub struct NavmeshReady(pub Handle<Navmesh>);
 
 async fn generate_navmesh(
     affectors: Vec<(GlobalTransform, TriMesh)>,

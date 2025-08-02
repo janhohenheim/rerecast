@@ -8,7 +8,10 @@ pub use bevy_rerecast_editor_integration as editor_integration;
 pub mod prelude {
     #[cfg(feature = "debug_plugin")]
     pub use crate::debug::NavmeshDebugPlugin;
-    pub use crate::{Navmesh, NavmeshPlugins, generator::NavmeshGenerator};
+    pub use crate::{
+        Navmesh, NavmeshPlugins,
+        generator::{NavmeshGenerator, NavmeshReady},
+    };
 }
 
 plugin_group! {
