@@ -77,11 +77,11 @@ fn mark_gizmos_dirty_on_asset_change(
             | AssetEvent::Modified { id } => {
                 for (entity, current_id) in polygon_gizmos
                     .iter()
-                    .map(|(entity, handle)| (entity, handle.0.id()))
+                    .map(|(entity, handle)| (entity, handle.0))
                     .chain(
                         detail_gizmos
                             .iter()
-                            .map(|(entity, handle)| (entity, handle.0.id())),
+                            .map(|(entity, handle)| (entity, handle.0)),
                     )
                 {
                     if current_id == *id {
@@ -92,11 +92,11 @@ fn mark_gizmos_dirty_on_asset_change(
             AssetEvent::Removed { id } | AssetEvent::Unused { id } => {
                 for (entity, current_id) in polygon_gizmos
                     .iter()
-                    .map(|(entity, handle)| (entity, handle.0.id()))
+                    .map(|(entity, handle)| (entity, handle.0))
                     .chain(
                         detail_gizmos
                             .iter()
-                            .map(|(entity, handle)| (entity, handle.0.id())),
+                            .map(|(entity, handle)| (entity, handle.0)),
                     )
                 {
                     if current_id == *id {
@@ -127,7 +127,7 @@ struct DirtyNavmeshGizmo;
 #[reflect(Component)]
 #[require(DirtyNavmeshGizmo)]
 #[component(on_add = init_detail_navmesh_gizmo)]
-pub struct DetailNavmeshGizmo(pub Handle<Navmesh>);
+pub struct DetailNavmeshGizmo(pub AssetId<Navmesh>);
 
 fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
     let navmesh_handle = world.resource::<GizmoHandles>().detail_navmesh.clone();
@@ -159,7 +159,7 @@ fn update_dirty_polygon_gizmos(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for (entity, mut gizmo_handle, mut layers, navmesh_handle) in gizmos.iter_mut() {
-        let Some(navmesh) = navmeshes.get(&navmesh_handle.0) else {
+        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
             continue;
         };
 
@@ -250,7 +250,7 @@ fn update_dirty_detail_gizmos(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for (entity, mut gizmo_handle, mut layers, navmesh_handle) in gizmos.iter_mut() {
-        let Some(navmesh) = navmeshes.get(&navmesh_handle.0) else {
+        let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
             continue;
         };
 
@@ -318,7 +318,7 @@ fn update_dirty_detail_gizmos(
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
 #[component(on_add = init_polygon_navmesh_gizmo)]
-pub struct PolygonNavmeshGizmo(pub Handle<Navmesh>);
+pub struct PolygonNavmeshGizmo(pub AssetId<Navmesh>);
 
 fn init_polygon_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
     let gizmo_handle = world.resource::<GizmoHandles>().polygon_navmesh.clone();

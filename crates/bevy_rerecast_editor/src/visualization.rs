@@ -1,17 +1,9 @@
 use std::collections::HashSet;
 
-use bevy::{
-    asset::RenderAssetUsages,
-    color::palettes::tailwind,
-    prelude::*,
-    render::mesh::{Indices, PrimitiveTopology},
-};
-use bevy_rerecast::{
-    TriMeshFromBevyMesh as _,
-    rerecast::{DetailNavmesh, PolygonNavmesh, TriMesh},
-};
+use bevy::{color::palettes::tailwind, prelude::*};
+use bevy_rerecast::{TriMeshFromBevyMesh as _, debug::NavmeshGizmoConfig, rerecast::TriMesh};
 
-use crate::build::NavmeshAffector;
+use crate::backend::NavmeshAffector;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_gizmos);
@@ -19,16 +11,8 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
         (
-            draw_poly_mesh.run_if(resource_exists::<Navmesh>.and(
-                gizmo_enabled(AvailableGizmos::PolyMesh).and(
-                    resource_changed::<Navmesh>.or(toggled_gizmo_on(AvailableGizmos::PolyMesh)),
-                ),
-            )),
-            draw_detail_mesh.run_if(resource_exists::<Navmesh>.and(
-                gizmo_enabled(AvailableGizmos::DetailMesh).and(
-                    resource_changed::<Navmesh>.or(toggled_gizmo_on(AvailableGizmos::DetailMesh)),
-                ),
-            )),
+            draw_poly_mesh.run_if(toggled_gizmo_on(AvailableGizmos::PolyMesh)),
+            draw_detail_mesh.run_if(toggled_gizmo_on(AvailableGizmos::DetailMesh)),
             draw_navmesh_affector.run_if(toggled_gizmo_on(AvailableGizmos::Affector)),
             draw_visual.run_if(toggled_gizmo_on(AvailableGizmos::Visual)),
             hide_poly_mesh.run_if(toggled_gizmo_off(AvailableGizmos::PolyMesh)),
@@ -70,10 +54,6 @@ fn toggled_gizmo_off(gizmo: AvailableGizmos) -> impl Condition<()> {
     IntoSystem::into_system(move |gizmos: Res<GizmosToDraw>| {
         gizmos.is_changed() && !gizmos.contains(&gizmo)
     })
-}
-
-fn gizmo_enabled(gizmo: AvailableGizmos) -> impl Condition<()> {
-    IntoSystem::into_system(move |gizmos: Res<GizmosToDraw>| gizmos.contains(&gizmo))
 }
 
 impl Default for GizmosToDraw {
@@ -120,6 +100,14 @@ fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) 
             depth_bias: -0.001,
         },
     ));
+}
+
+fn draw_poly_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.polygon_navmesh.enabled = true;
+}
+
+fn draw_detail_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.detail_navmesh.enabled = true;
 }
 
 fn draw_navmesh_affector(
@@ -176,6 +164,14 @@ fn hide_visual(mut visibility: Query<&mut Visibility, With<VisualMesh>>) {
     for mut visibility in visibility.iter_mut() {
         *visibility = Visibility::Hidden;
     }
+}
+
+fn hide_poly_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.polygon_navmesh.enabled = false;
+}
+
+fn hide_detail_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.detail_navmesh.enabled = false;
 }
 
 #[derive(Component)]

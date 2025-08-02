@@ -11,7 +11,7 @@ use bevy_rerecast::editor_integration::{
     transmission::deserialize,
 };
 
-use crate::{build::NavmeshAffector, visualization::VisualMesh};
+use crate::{backend::NavmeshAffector, visualization::VisualMesh};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(fetch_navmesh_input);
@@ -64,12 +64,12 @@ fn fetch_navmesh_input(
 
     for affector in response.affector_meshes {
         let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, affector.mesh.vertices)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, affector.mesh.vertices.clone())
             .with_inserted_indices(Indices::U32(
                 affector
                     .mesh
                     .indices
-                    .into_iter()
+                    .iter()
                     .flat_map(|indices| indices.to_array())
                     .collect(),
             ));
@@ -77,7 +77,7 @@ fn fetch_navmesh_input(
         commands.spawn((
             affector.transform.compute_transform(),
             Mesh3d(meshes.add(mesh)),
-            NavmeshAffector,
+            NavmeshAffector(affector.mesh),
             Visibility::Hidden,
             Gizmo {
                 handle: gizmos.add(GizmoAsset::new()),
