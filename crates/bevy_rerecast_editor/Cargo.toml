@@ -15,9 +15,7 @@ bevy = { workspace = true, default-features = true, features = [
     "bevy_remote",
     "configurable_error_handler",
 ] }
-bevy_rerecast = { version = "0.0.2", path = "../bevy_rerecast", features = [
-    "editor_integration",
-] }
+bevy_rerecast = { workspace = true, features = ["editor_integration"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }

@@ -1,6 +1,6 @@
 [package]
-name = "rerecast_examples"
-description = "TODO"
+name = "test_utils"
+description = "Internal test utilities"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }
@@ -12,11 +12,10 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_rerecast = { workspace = true }
-avian_rerecast = { workspace = true }
-bevy = { workspace = true, features = ["bevy_remote"] }
-bevy_trenchbroom = { workspace = true }
-avian3d = { workspace = true }
+glam = { workspace = true }
+rerecast = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

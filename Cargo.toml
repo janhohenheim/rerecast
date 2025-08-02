@@ -47,6 +47,13 @@ bevy_platform = { version = "0.16.0", default-features = false }
 bevy_tasks = { version = "0.16.0", default-features = false }
 bevy_gizmos = { version = "0.16.0", default-features = false }
 
+rerecast = { version = "0.0.2", path = "crates/rerecast", default-features = false }
+bevy_rerecast = { version = "0.0.2", path = "crates/bevy_rerecast", default-features = false }
+bevy_rerecast_core = { version = "0.0.2", path = "crates/bevy_rerecast_core", default-features = false }
+bevy_rerecast_editor_integration = { version = "0.0.2", path = "crates/bevy_rerecast_editor_integration", default-features = false }
+avian_rerecast = { version = "0.0.2", path = "crates/avian_rerecast", default-features = false }
+test_utils = { version = "0.0.2", path = "crates/test_utils", default-features = false }
+
 flate2 = { version = "1" }
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"

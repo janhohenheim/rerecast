@@ -30,9 +30,7 @@ anyhow = { workspace = true }
 
 tracing = { workspace = true }
 glam = { workspace = true }
-rerecast = { version = "0.0.2", path = "../rerecast", features = [
-    "bevy_reflect",
-] }
+rerecast = { workspace = true, features = ["bevy_reflect"] }
 
 # bevy_mesh
 bevy_mesh = { workspace = true, optional = true }
