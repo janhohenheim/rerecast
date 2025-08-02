@@ -13,7 +13,12 @@ use serde_json::Value;
 
 #[test]
 fn validate_navmesh_against_cpp_implementation() {
-    for entry in fs::read_dir(reference_data_dir()).unwrap() {
+    let dir = reference_data_dir();
+    let entries = match fs::read_dir(&dir) {
+        Ok(entries) => entries,
+        Err(err) => panic!("Failed to read directory {dir}: {err}", dir = dir.display()),
+    };
+    for entry in entries {
         let entry = entry.unwrap();
         let path = entry.path();
 
@@ -907,8 +912,12 @@ struct CppConfig {
 fn reference_data_dir() -> PathBuf {
     env::current_dir()
         .unwrap()
-        .join("tests")
-        .join("reference_data")
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("assets")
+        .join("test")
 }
 
 #[track_caller]
