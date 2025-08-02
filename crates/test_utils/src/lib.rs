@@ -643,7 +643,7 @@ pub struct CppVolumeArea {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
-enum EmptyOption<T> {
+pub enum EmptyOption<T> {
     Some(T),
     None {},
 }
