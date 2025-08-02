@@ -11,7 +11,7 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy = { workspace = true, default-features = true, features = [
+bevy = { workspace = true, features = [
     "bevy_remote",
     "configurable_error_handler",
 ] }

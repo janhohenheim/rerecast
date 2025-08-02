@@ -374,8 +374,11 @@ name = "avian_rerecast"
 version = "0.0.2"
 dependencies = [
  "avian3d",
- "bevy",
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_math",
  "bevy_rerecast_core",
+ "bevy_transform",
 ]
 
 [[package]]
@@ -1205,9 +1208,11 @@ dependencies = [
 name = "bevy_rerecast"
 version = "0.0.2"
 dependencies = [
+ "bevy",
  "bevy_app",
  "bevy_rerecast_core",
  "bevy_rerecast_editor_integration",
+ "test_utils",
 ]
 
 [[package]]

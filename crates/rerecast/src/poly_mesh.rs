@@ -103,7 +103,7 @@ pub struct PolygonNavmesh {
     /// The first instance of [`Self::NO_INDEX`] indicates the end of the indices for the entry.
     ///
     /// For example:
-    /// ```ignore
+    /// ```txt
     /// vertices_per_polygon = 6
     /// For the entry:
     /// - polygons: (1, 3, 4, 8, NO_INDEX, NO_INDEX)

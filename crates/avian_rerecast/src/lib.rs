@@ -1,8 +1,10 @@
 #![doc = include_str!("../../../readme.md")]
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy_app::prelude::*;
+use bevy_ecs::prelude::*;
 use bevy_rerecast_core::{NavmeshApp as _, rerecast::TriMesh};
+use bevy_transform::prelude::*;
 
 mod collider_to_trimesh;
 use crate::collider_to_trimesh::ToTriMesh;

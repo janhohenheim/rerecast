@@ -15,6 +15,10 @@ bevy_app = { workspace = true }
 bevy_rerecast_core = { workspace = true }
 bevy_rerecast_editor_integration = { workspace = true, optional = true }
 
+[dev-dependencies]
+bevy = { workspace = true }
+test_utils = { workspace = true }
+
 [features]
 default = ["bevy_mesh", "editor_integration", "debug_plugin"]
 serialize = ["bevy_rerecast_core/serialize"]
