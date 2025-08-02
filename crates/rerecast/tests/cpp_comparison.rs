@@ -1,15 +1,9 @@
 //! Compare the output of the C++ implementation with the Rust implementation.
 
-use std::{env, fs, path::PathBuf};
+use std::fs;
 
-use glam::{U8Vec3, UVec3, Vec2, Vec3, Vec3A};
-use rerecast::{
-    Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume,
-    DetailNavmesh, Heightfield, HeightfieldBuilder, NavmeshConfig, PolygonNavmesh, RegionId,
-    TriMesh,
-};
-use serde::{Deserialize, de::DeserializeOwned};
-use serde_json::Value;
+use glam::Vec2;
+use rerecast::{AreaType, ConvexVolume, DetailNavmesh, HeightfieldBuilder, NavmeshConfig};
 use test_utils::*;
 
 #[test]

@@ -1,13 +1,12 @@
 //! Internal test utilities.
 #![allow(missing_docs)]
 
-use std::{env, fs, path::PathBuf};
+use std::{env, path::PathBuf};
 
-use glam::{U8Vec3, UVec3, Vec2, Vec3, Vec3A};
+use glam::{U8Vec3, UVec3, Vec3, Vec3A};
 use rerecast::{
-    Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, ConvexVolume,
-    DetailNavmesh, Heightfield, HeightfieldBuilder, NavmeshConfig, PolygonNavmesh, RegionId,
-    TriMesh,
+    Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, DetailNavmesh,
+    Heightfield, NavmeshConfig, PolygonNavmesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
