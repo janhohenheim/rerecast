@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "scenes/*"]
+members = ["crates/*", "examples"]
 resolver = "3"
 exclude = ["./assets/"]
 
@@ -66,6 +66,3 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 # Make sure macros use their standard braces, such as `[]` for `bevy_ecs::children!`.
 nonstandard_macro_braces = "warn"
-
-[patch.crates-io]
-#avian3d = { git = "https://github.com/Jondolf/avian", rev = "4f31166ee5e0cc1116756952d754386333b75cb0" }
