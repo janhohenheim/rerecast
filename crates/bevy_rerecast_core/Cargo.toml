@@ -19,6 +19,13 @@ bevy_derive = { workspace = true }
 bevy_reflect = { workspace = true }
 bevy_app = { workspace = true }
 bevy_math = { workspace = true }
+
+# debug-plugin
+bevy_platform = { workspace = true, optional = true }
+bevy_gizmos = { workspace = true, optional = true }
+bevy_color = { workspace = true, optional = true }
+bevy_pbr = { workspace = true, optional = true }
+
 anyhow = { workspace = true }
 
 tracing = { workspace = true }
@@ -35,9 +42,17 @@ bevy_render = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
-default = ["bevy_mesh"]
+default = ["bevy_mesh", "debug-plugin"]
 serialize = ["dep:serde", "rerecast/serialize"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
+debug-plugin = [
+    "dep:bevy_gizmos",
+    "dep:bevy_platform",
+    "dep:bevy_color",
+    "dep:bevy_render",
+    "dep:bevy_mesh",
+    "dep:bevy_pbr",
+]
 
 [lints]
 workspace = true

@@ -8,11 +8,13 @@ use bevy_reflect::Reflect;
 #[cfg(feature = "bevy_mesh")]
 pub use mesh::{Mesh3dNavmeshPlugin, TriMeshFromBevyMesh};
 mod backend;
+#[cfg(feature = "debug-plugin")]
+pub mod debug;
 pub mod generator;
 pub use backend::*;
 
 pub use rerecast;
-use rerecast::{DetailNavmesh, NavmeshConfig, NavmeshConfigBuilder, PolygonNavmesh};
+use rerecast::{DetailNavmesh, NavmeshConfigBuilder, PolygonNavmesh};
 
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.
 #[non_exhaustive]
