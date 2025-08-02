@@ -10,7 +10,7 @@ use bevy_pbr::prelude::*;
 use bevy_reflect::prelude::*;
 use bevy_render::{prelude::*, view::RenderLayers};
 use glam::vec3;
-use rerecast::{DetailNavmesh, PolygonNavmesh};
+use rerecast::PolygonNavmesh;
 
 use crate::Navmesh;
 
@@ -122,7 +122,7 @@ fn cfg_eq(a: &GizmoConfig, b: &GizmoConfig) -> bool {
 #[derive(Component, Default)]
 struct DirtyNavmeshGizmo;
 
-/// Component that draws a [`DetailNavmesh`].
+/// Component that draws a [`DetailNavmesh`](rerecast::DetailNavmesh).
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
 #[require(DirtyNavmeshGizmo)]

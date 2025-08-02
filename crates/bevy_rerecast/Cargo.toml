@@ -16,9 +16,10 @@ bevy_rerecast_core = { version = "0.0.2", path = "../bevy_rerecast_core", defaul
 bevy_rerecast_editor_integration = { version = "0.0.2", path = "../bevy_rerecast_editor_integration", optional = true }
 
 [features]
-default = ["bevy_mesh", "editor_integration"]
+default = ["bevy_mesh", "editor_integration", "debug_plugin"]
 serialize = ["bevy_rerecast_core/serialize"]
 bevy_mesh = ["bevy_rerecast_core/bevy_mesh"]
+debug_plugin = ["bevy_rerecast_core/debug_plugin"]
 editor_integration = ["dep:bevy_rerecast_editor_integration"]
 
 pbr_transmission_textures = [

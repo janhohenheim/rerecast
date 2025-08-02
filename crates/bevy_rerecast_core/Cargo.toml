@@ -42,10 +42,10 @@ bevy_render = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
-default = ["bevy_mesh", "debug-plugin"]
+default = ["bevy_mesh", "debug_plugin"]
 serialize = ["dep:serde", "rerecast/serialize"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
-debug-plugin = [
+debug_plugin = [
     "dep:bevy_gizmos",
     "dep:bevy_platform",
     "dep:bevy_color",

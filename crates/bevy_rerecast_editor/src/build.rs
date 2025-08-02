@@ -2,6 +2,7 @@ use anyhow::Context;
 use bevy::prelude::*;
 use bevy_rerecast::{
     TriMeshFromBevyMesh as _,
+    prelude::*,
     rerecast::{self, DetailNavmesh, HeightfieldBuilder, TriMesh},
 };
 
@@ -23,28 +24,12 @@ pub(crate) struct NavmeshAffector;
 
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
-    affectors: Query<(&Mesh3d, &GlobalTransform), With<NavmeshAffector>>,
     meshes: Res<Assets<Mesh>>,
     config: Res<BuildNavmeshConfig>,
     mut commands: Commands,
+    mut navmesh_generator: NavmeshGenerator,
 ) -> Result {
-    let mut trimesh = TriMesh::default();
-    let config = config.build();
-    for (mesh, transform) in affectors.iter() {
-        let Some(mesh) = meshes.get(mesh) else {
-            warn!("Failed to get mesh for navmesh build. Skipping.");
-            continue;
-        };
-        let Some(mut current_trimesh) = TriMesh::from_mesh(mesh) else {
-            warn!("Failed to convert collider to trimesh. Skipping.");
-            continue;
-        };
-        let transform = transform.compute_transform();
-        for vertex in &mut current_trimesh.vertices {
-            *vertex = transform.transform_point(Vec3::from(*vertex)).into();
-        }
-        trimesh.extend(current_trimesh);
-    }
+    let handle = navmesh_generator.generate(config.clone());
 
     let aabb = trimesh.compute_aabb().context("Trimesh is empty")?;
 

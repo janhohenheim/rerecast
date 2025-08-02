@@ -247,11 +247,12 @@ pub struct NavmeshConfigBuilder {
     ///
     /// The minimum value for this parameter depends on the platform's floating point accuracy, with the practical minimum usually around 0.05.
     pub cell_height: f32,
-    /// The height of the agent in meters. `[Limit: > 0] [Units: wu]`
+    /// The height of the agent. `[Limit: > 0] [Units: wu]`
     ///
     /// It's often a good idea to add a little bit of padding to the height. For example,
-    /// an agent that is 1.8 meters tall might want to set this value to 2.0 meters.
+    /// an agent that is 1.8 world units tall might want to set this value to 2.0 units.
     pub agent_height: f32,
+    /// The radius of the agent. `[Limit: > 0] [Units: wu]`
     pub agent_radius: f32,
     pub agent_max_climb: f32,
     pub agent_max_slope: f32,

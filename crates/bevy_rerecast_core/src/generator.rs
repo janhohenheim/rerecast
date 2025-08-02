@@ -10,10 +10,7 @@ use bevy_ecs::{prelude::*, system::SystemParam};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
-use rerecast::{
-    Aabb3d, ConvexVolume, DetailNavmesh, HeightfieldBuilder, NavmeshConfig, NavmeshConfigBuilder,
-    TriMesh,
-};
+use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, NavmeshConfigBuilder, TriMesh};
 
 use crate::{Navmesh, NavmeshAffectorBackend};
 
@@ -30,16 +27,15 @@ pub(super) fn plugin(app: &mut App) {
 
 /// System parameter for generating navmeshes.
 #[derive(SystemParam)]
-pub struct NavmeshGenerator<'w, Marker: 'static> {
+pub struct NavmeshGenerator<'w> {
     #[system_param(
         validation_message = "Failed to find `Assets<Navmesh>`. Did you forget to add `NavmeshPlugins` to your app?"
     )]
     navmeshes: Res<'w, Assets<Navmesh>>,
     queue: ResMut<'w, NavmeshQueue>,
-    marker: PhantomData<Marker>,
 }
 
-impl<'w, Marker: 'static> NavmeshGenerator<'w, Marker> {
+impl<'w> NavmeshGenerator<'w> {
     /// Queue a navmesh generation task.
     /// When you call this method, a new navmesh will be generated asynchronously.
     /// Calling it multiple times will queue multiple navmeshes to be generated.

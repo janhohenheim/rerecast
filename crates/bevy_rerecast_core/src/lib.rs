@@ -8,7 +8,7 @@ use bevy_reflect::Reflect;
 #[cfg(feature = "bevy_mesh")]
 pub use mesh::{Mesh3dNavmeshPlugin, TriMeshFromBevyMesh};
 mod backend;
-#[cfg(feature = "debug-plugin")]
+#[cfg(feature = "debug_plugin")]
 pub mod debug;
 pub mod generator;
 pub use backend::*;
