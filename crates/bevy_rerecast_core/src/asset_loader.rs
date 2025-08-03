@@ -26,10 +26,12 @@ pub struct NavmeshLoaderSettings;
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum NavmeshLoaderError {
+    /// An error occurred while reading the file.
     #[error("Could not load navmesh: {0}")]
     IoError(#[from] std::io::Error),
-    #[error("Could not deserialize navmesh: {0}")]
-    DeserializeError(#[from] serde_json::Error),
+    /// An error occurred while decoding the navmesh.
+    #[error("Could not decode navmesh: {0}")]
+    DecodeError(#[from] bincode::error::DecodeError),
 }
 
 impl AssetLoader for NavmeshLoader {
@@ -45,7 +47,8 @@ impl AssetLoader for NavmeshLoader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
-        let value = serde_json::from_slice(&bytes)?;
+        let config = bincode::config::standard();
+        let (value, _size) = bincode::serde::decode_from_slice(&bytes, config)?;
         Ok(value)
     }
 

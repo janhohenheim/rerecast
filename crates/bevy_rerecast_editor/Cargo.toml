@@ -18,6 +18,7 @@ bevy = { workspace = true, features = [
 ] }
 bevy_rerecast = { workspace = true, default-features = true }
 serde_json = { workspace = true }
+bincode = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
