@@ -1,5 +1,7 @@
+//! Types for loading [`Navmesh`]es using the [`AssetServer`](bevy_asset::AssetServer).
+
 use bevy_app::prelude::*;
-use bevy_asset::{AssetApp as _, AssetLoader, AsyncReadExt as _, LoadContext, io::Reader};
+use bevy_asset::{AssetApp as _, AssetLoader, LoadContext, io::Reader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -10,14 +12,17 @@ pub(super) fn plugin(app: &mut App) {
     app.init_asset_loader::<NavmeshLoader>();
 }
 
+/// The [`AssetLoader`] for [`Navmesh`] assets. Loads files ending in `.nav`.
 #[derive(Debug, Default)]
 #[non_exhaustive]
 pub struct NavmeshLoader;
 
+/// Settings for the [`NavmeshLoader`].
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct NavmeshLoaderSettings;
 
+/// Errors that can occur when loading a [`Navmesh`] asset.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum NavmeshLoaderError {
