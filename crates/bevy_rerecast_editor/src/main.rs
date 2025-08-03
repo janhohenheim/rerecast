@@ -20,7 +20,7 @@ fn main() -> AppExit {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins((NavmeshPlugins::default(), NavmeshDebugPlugin::default()))
+        .add_plugins(NavmeshPlugins::default())
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,

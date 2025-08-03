@@ -12,12 +12,12 @@ pub mod transmission;
 /// The optional editor integration for authoring the navmesh.
 #[derive(Debug, Default)]
 #[non_exhaustive]
-pub struct RerecastEditorIntegrationPlugin {
+pub struct NavmeshEditorIntegrationPlugin {
     /// The settings for when [`EditorVisible`] is inserted automatically.
     pub visibility_settings: EditorVisibilitySettings,
 }
 
-impl Plugin for RerecastEditorIntegrationPlugin {
+impl Plugin for NavmeshEditorIntegrationPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(brp::plugin);
         app.register_type::<EditorVisible>();

@@ -38,7 +38,7 @@ plugin_group! {
     pub struct NavmeshPlugins {
         :RerecastPlugin,
         #[cfg(feature = "editor_integration")]
-        editor_integration:::RerecastEditorIntegrationPlugin,
+        editor_integration:::NavmeshEditorIntegrationPlugin,
         #[cfg(feature = "debug_plugin")]
         debug:::NavmeshDebugPlugin,
     }
