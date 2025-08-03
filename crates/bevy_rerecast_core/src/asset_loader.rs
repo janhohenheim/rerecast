@@ -39,7 +39,7 @@ impl AssetLoader for NavmeshLoader {
         _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
-        reader.read(&mut bytes).await?;
+        reader.read_to_end(&mut bytes).await?;
         let value = serde_json::from_slice(&bytes)?;
         Ok(value)
     }
