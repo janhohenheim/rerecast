@@ -251,7 +251,7 @@ pub struct NavmeshConfigBuilder {
     /// If small holes are generated in your navmesh around where there are discontinuities in height (for example, stairs or curbs),
     /// you may want to increase the cell height value to increase the vertical rasterization precision of rerecast.
     ///
-    /// [`Self::cell_cell_fraction`] and [`Self::cell_height_fraction`] define voxel/grid/cell size. So their values have significant side effects on all parameters defined in voxel units.
+    /// [`Self::cell_size_fraction`] and [`Self::cell_height_fraction`] define voxel/grid/cell size. So their values have significant side effects on all parameters defined in voxel units.
     ///
     /// The minimum value for this parameter depends on the platform's floating point accuracy, with the practical minimum usually usually such that [`Self::agent_radius`] / [`Self::cell_height_fraction`] = 0.05.
     pub cell_height_fraction: f32,
