@@ -4,7 +4,7 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 #[cfg(feature = "bevy_mesh")]
 mod mesh;
-use bevy_reflect::Reflect;
+use bevy_reflect::prelude::*;
 #[cfg(feature = "bevy_mesh")]
 pub use mesh::{Mesh3dBackendPlugin, TriMeshFromBevyMesh};
 mod backend;
@@ -12,9 +12,11 @@ mod backend;
 pub mod debug;
 pub mod generator;
 pub use backend::*;
+mod asset_loader;
 
 pub use rerecast;
 use rerecast::{DetailNavmesh, NavmeshConfigBuilder, PolygonNavmesh};
+use serde::{Deserialize, Serialize};
 
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.
 #[non_exhaustive]
@@ -23,15 +25,14 @@ pub struct RerecastPlugin;
 
 impl Plugin for RerecastPlugin {
     fn build(&self, app: &mut App) {
-        app.init_asset::<Navmesh>();
-        app.add_plugins(generator::plugin);
+        app.add_plugins((generator::plugin, asset_loader::plugin));
     }
 }
 
 /// Resource containing the navmesh data.
 /// Load this using either a file or by using [`NavmeshGenerator`](generator::NavmeshGenerator)
-#[derive(Debug, Clone, PartialEq, Asset, Reflect)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Asset, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize)]
 pub struct Navmesh {
     pub polygon: PolygonNavmesh,
     pub detail: DetailNavmesh,

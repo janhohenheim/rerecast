@@ -26,22 +26,23 @@ bevy_gizmos = { workspace = true, optional = true, features = ["bevy_render"] }
 bevy_color = { workspace = true, optional = true }
 bevy_pbr = { workspace = true, optional = true }
 
-anyhow = { workspace = true }
+# Serde is already brought in by bevy_asset, so no need to make it optional
+serde = { workspace = true }
 
+anyhow = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
+serde_json = { workspace = true }
 glam = { workspace = true }
-rerecast = { workspace = true, features = ["bevy_reflect"] }
+rerecast = { workspace = true, features = ["bevy_reflect", "serialize"] }
 
 # bevy_mesh
 bevy_mesh = { workspace = true, optional = true }
 bevy_render = { workspace = true, optional = true }
 
-# serialize
-serde = { workspace = true, optional = true }
 
 [features]
 default = ["bevy_mesh", "debug_plugin"]
-serialize = ["dep:serde", "rerecast/serialize"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
 debug_plugin = [
     "dep:bevy_gizmos",
@@ -51,6 +52,7 @@ debug_plugin = [
     "dep:bevy_mesh",
     "dep:bevy_pbr",
 ]
+
 
 [lints]
 workspace = true

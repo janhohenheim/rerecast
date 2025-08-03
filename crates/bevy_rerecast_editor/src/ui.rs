@@ -1,12 +1,8 @@
 use bevy::{
-    color::palettes::tailwind,
-    ecs::system::ObserverSystem,
-    prelude::*,
-    tasks::AsyncComputeTaskPool,
-    ui::Val::*,
-    window::{PrimaryWindow, RawHandleWrapper},
+    color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*,
+    tasks::AsyncComputeTaskPool, ui::Val::*,
 };
-use rfd::{AsyncFileDialog, FileDialog};
+use rfd::AsyncFileDialog;
 
 use crate::{
     backend::BuildNavmesh,

@@ -1,28 +1,17 @@
 #![allow(missing_docs)]
 
-use std::{path::Path, time::Instant};
+use std::time::Instant;
 
 use bevy::{
-    asset::{
-        AssetPlugin, LoadState,
-        io::{
-            AssetSource, AssetSourceId,
-            memory::{Dir, MemoryAssetReader},
-        },
-    },
+    asset::AssetPlugin,
     gltf::GltfPlugin,
     log::LogPlugin,
     prelude::*,
-    render::{
-        RenderPlugin, camera::CameraPlugin, mesh::MeshPlugin, primitives::Aabb,
-        view::VisibilityPlugin,
-    },
+    render::{mesh::MeshPlugin, primitives::Aabb, view::VisibilityPlugin},
     scene::{SceneInstanceReady, ScenePlugin},
 };
-use bevy_app::ScheduleRunnerPlugin;
 use bevy_rerecast::{Mesh3dBackendPlugin, prelude::*};
 use bevy_rerecast_editor_integration::NavmeshEditorIntegrationPlugin;
-use test_utils::AssertEqTest;
 
 #[test]
 fn validate_bevy_navmesh_against_cpp_implementation() {
@@ -65,7 +54,29 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
         .get(&navmesh_handle)
         .unwrap()
         .clone();
-    panic!("compare");
+
+    let expected_navmesh: Handle<Navmesh> = app
+        .world()
+        .resource::<AssetServer>()
+        .load("test/navmesh.nav");
+    let now = Instant::now();
+    let expected_navmesh = loop {
+        if let Some(navmesh) = app
+            .world()
+            .resource::<Assets<Navmesh>>()
+            .get(&expected_navmesh)
+        {
+            break navmesh.clone();
+        }
+        if now.elapsed().as_secs() > 5 {
+            panic!("Timeout waiting for reading reference navmesh");
+        }
+    };
+
+    assert_eq!(
+        expected_navmesh, navmesh,
+        "Generated navmesh does not match reference"
+    );
 }
 
 #[derive(Resource)]

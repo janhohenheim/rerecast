@@ -16,9 +16,7 @@ bevy = { workspace = true, features = [
     "configurable_error_handler",
     "wayland",
 ] }
-bevy_rerecast = { workspace = true, default-features = true, features = [
-    "serialize",
-] }
+bevy_rerecast = { workspace = true, default-features = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
