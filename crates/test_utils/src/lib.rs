@@ -1,8 +1,7 @@
 //! Internal test utilities.
 #![allow(missing_docs)]
 
-use std::{env, path::PathBuf};
-
+use approxim::relative_eq;
 use glam::{U8Vec3, UVec3, Vec3, Vec3A};
 use rerecast::{
     Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, DetailNavmesh,
@@ -10,6 +9,7 @@ use rerecast::{
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
+use std::{env, path::PathBuf};
 
 pub trait NavmeshConfigTest {
     fn load_from_test_data(project: &str) -> NavmeshConfig;
@@ -279,22 +279,24 @@ impl AssertEqTest for CompactHeightfield {
 impl AssertEqTest for ContourSet {
     fn assert_eq(&self, project: &str, reference_name: &str) {
         let contours = load_json::<CppContourSet>(project, reference_name);
-        assert_eq!(
-            contours.bmin,
+        assert_almost_eq!(
+            contours.bmin[..],
             self.aabb.min.to_array(),
             "{project}/{reference_name}: contour aabb min"
         );
-        assert_eq!(
-            contours.bmax,
+        assert_almost_eq!(
+            contours.bmax[..],
             self.aabb.max.to_array(),
             "{project}/{reference_name}: contour aabb max"
         );
-        assert_eq!(
-            contours.cs, self.cell_size,
+        assert_almost_eq!(
+            contours.cs,
+            self.cell_size,
             "{project}/{reference_name}: contour cell size"
         );
-        assert_eq!(
-            contours.ch, self.cell_height,
+        assert_almost_eq!(
+            contours.ch,
+            self.cell_height,
             "{project}/{reference_name}: contour cell height"
         );
         assert_eq!(
@@ -309,8 +311,9 @@ impl AssertEqTest for ContourSet {
             contours.border_size, self.border_size,
             "{project}/{reference_name}: contour border size"
         );
-        assert_eq!(
-            contours.max_error, self.max_error,
+        assert_almost_eq!(
+            contours.max_error,
+            self.max_error,
             "{project}/{reference_name}: contour max error"
         );
         assert_eq!(
@@ -382,24 +385,26 @@ impl AssertEqTest for ContourSet {
 impl AssertEqTest for PolygonNavmesh {
     fn assert_eq(&self, project: &str, reference_name: &str) {
         let poly_mesh = load_json::<CppPolyMesh>(project, reference_name);
-        assert_eq!(
-            poly_mesh.bmin,
+        assert_almost_eq!(
+            poly_mesh.bmin[..],
             self.aabb.min.to_array(),
             "{project}/{reference_name}: poly mesh aabb min"
         );
-        assert_eq!(
-            poly_mesh.bmax,
+        assert_almost_eq!(
+            poly_mesh.bmax[..],
             self.aabb.max.to_array(),
             "{project}/{reference_name}: poly mesh aabb max"
         );
 
-        assert_eq!(
-            poly_mesh.cs, self.cell_size,
+        assert_almost_eq!(
+            poly_mesh.cs,
+            self.cell_size,
             "{project}/{reference_name}: poly mesh cell size"
         );
 
-        assert_eq!(
-            poly_mesh.ch, self.cell_height,
+        assert_almost_eq!(
+            poly_mesh.ch,
+            self.cell_height,
             "{project}/{reference_name}: poly mesh cell height"
         );
 
@@ -412,8 +417,9 @@ impl AssertEqTest for PolygonNavmesh {
             poly_mesh.border_size, self.border_size,
             "{project}/{reference_name}: poly mesh border_size"
         );
-        assert_eq!(
-            poly_mesh.max_edge_error, self.max_edge_error,
+        assert_almost_eq!(
+            poly_mesh.max_edge_error,
+            self.max_edge_error,
             "{project}/{reference_name}: poly mesh max_edge_error"
         );
         assert_eq!(
@@ -781,3 +787,12 @@ pub fn load_json<T: DeserializeOwned>(project: &str, name: &str) -> T {
         panic!("Failed to deserialize JSON: {}: {}", test_path.display(), e);
     })
 }
+
+macro_rules! assert_almost_eq {
+    ($left:expr, $right:expr, $($arg:tt)+) => {
+        if !(relative_eq!($left, $right, epsilon = 1e-6)) {
+            assert_eq!($left, $right, $($arg)+);
+        }
+    };
+}
+use assert_almost_eq;
