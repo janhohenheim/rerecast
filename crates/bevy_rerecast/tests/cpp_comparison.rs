@@ -61,6 +61,7 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
         .load("test/navmesh.nav");
     let now = Instant::now();
     let expected_navmesh = loop {
+        app.update();
         if let Some(navmesh) = app
             .world()
             .resource::<Assets<Navmesh>>()
