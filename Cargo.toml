@@ -19,6 +19,7 @@ serde = "1.0.219"
 serde_json = "1.0.140"
 slotmap = "1.0.7"
 ureq = "3.0.12"
+rfd = "0.15"
 
 # In sync with Bevy
 thiserror = "2.0.12"

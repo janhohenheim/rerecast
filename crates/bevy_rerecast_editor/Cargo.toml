@@ -14,13 +14,17 @@ readme = { workspace = true }
 bevy = { workspace = true, features = [
     "bevy_remote",
     "configurable_error_handler",
+    "wayland",
 ] }
-bevy_rerecast = { workspace = true, features = ["editor_integration"] }
+bevy_rerecast = { workspace = true, default-features = true, features = [
+    "serialize",
+] }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
 thiserror = { workspace = true }
+rfd = { workspace = true }
 
 [lints]
 workspace = true

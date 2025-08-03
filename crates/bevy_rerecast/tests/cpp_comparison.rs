@@ -65,9 +65,7 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
         .get(&navmesh_handle)
         .unwrap()
         .clone();
-
-    navmesh.polygon.assert_eq("dungeon", "poly_mesh");
-    navmesh.detail.assert_eq("dungeon", "poly_mesh_detail");
+    panic!("compare");
 }
 
 #[derive(Resource)]
