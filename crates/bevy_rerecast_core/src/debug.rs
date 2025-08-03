@@ -135,6 +135,13 @@ struct DirtyNavmeshGizmo;
 #[component(on_add = init_detail_navmesh_gizmo)]
 pub struct DetailNavmeshGizmo(pub AssetId<Navmesh>);
 
+impl DetailNavmeshGizmo {
+    /// Creates a new `[DetailNavmeshGizmo`] visualizing the given navmesh once its done generating.
+    pub fn new(navmesh: impl Into<AssetId<Navmesh>>) -> Self {
+        Self(navmesh.into())
+    }
+}
+
 fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
     let gizmo_handle = world
         .resource_mut::<Assets<GizmoAsset>>()
@@ -346,6 +353,13 @@ fn update_dirty_detail_gizmos(
 #[require(DirtyNavmeshGizmo, Visibility)]
 #[component(on_add = init_polygon_navmesh_gizmo)]
 pub struct PolygonNavmeshGizmo(pub AssetId<Navmesh>);
+
+impl PolygonNavmeshGizmo {
+    /// Creates a new [`PolygonNavmeshGizmo`] visualizing the given navmesh once its done generating.
+    pub fn new(navmesh: impl Into<AssetId<Navmesh>>) -> Self {
+        Self(navmesh.into())
+    }
+}
 
 fn init_polygon_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
     let gizmo_handle = world

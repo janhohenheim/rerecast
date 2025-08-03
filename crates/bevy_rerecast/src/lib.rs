@@ -1,6 +1,6 @@
 #![doc = include_str!("../../../readme.md")]
 
-use bevy_app::{PluginGroupBuilder, plugin_group, prelude::*};
+use bevy_app::plugin_group;
 pub use bevy_rerecast_core::*;
 pub use bevy_rerecast_editor_integration as editor_integration;
 
@@ -11,6 +11,7 @@ pub mod prelude {
     pub use crate::{
         Navmesh, NavmeshPlugins,
         generator::{NavmeshGenerator, NavmeshReady},
+        rerecast::NavmeshConfigBuilder,
     };
 }
 
@@ -19,6 +20,8 @@ plugin_group! {
     /// - [`RerecastPlugin`]: The main plugin. Adds functionality for creating and managing navmeshes.
     /// - [`RerecastEditorIntegrationPlugin`](editor_integration::RerecastEditorIntegrationPlugin): Allows communication with the editor.
     ///   Requires the `editor_integration` feature.
+    /// - [`NavmeshDebugPlugin`]: Adds visual debugging functionality for navmeshes.
+    ///   Requires the `debug_plugin` feature.
     ///
     /// Note that rerecast does not do anything until you also add a navmesh affector backend.
     /// A navmesh affector is something that represents non-walkable geometry in form of a [`TriMesh`](rerecast::TriMesh).
@@ -36,5 +39,7 @@ plugin_group! {
         :RerecastPlugin,
         #[cfg(feature = "editor_integration")]
         editor_integration:::RerecastEditorIntegrationPlugin,
+        #[cfg(feature = "debug_plugin")]
+        debug:::NavmeshDebugPlugin,
     }
 }

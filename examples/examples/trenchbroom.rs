@@ -3,10 +3,11 @@
 use avian_rerecast::prelude::*;
 use avian3d::prelude::*;
 use bevy::{
+    input::common_conditions::input_just_pressed,
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
-use bevy_rerecast::prelude::*;
+use bevy_rerecast::{debug::DetailNavmeshGizmo, prelude::*};
 use bevy_trenchbroom::prelude::*;
 
 fn main() -> AppExit {
@@ -21,12 +22,12 @@ fn main() -> AppExit {
         ))
         .register_type::<Worldspawn>()
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((
-            NavmeshPlugins::default(),
-            NavmeshDebugPlugin::default(),
-            AvianRerecastPlugin::default(),
-        ))
+        .add_plugins((NavmeshPlugins::default(), AvianRerecastPlugin::default()))
         .add_systems(Startup, (write_trenchbroom_config, setup).chain())
+        .add_systems(
+            Update,
+            generate_navmesh.run_if(input_just_pressed(KeyCode::Space)),
+        )
         .add_observer(configure_camera)
         .run()
 }
@@ -62,6 +63,30 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Camera3d::default(),
         Transform::from_xyz(10.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+    commands.spawn((
+        Text::new("Press space to generate navmesh"),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(12.0),
+            left: Val::Px(12.0),
+            ..default()
+        },
+    ));
+}
+
+#[derive(Resource)]
+#[allow(dead_code)]
+struct NavmeshHandle(Handle<Navmesh>);
+
+fn generate_navmesh(mut generator: NavmeshGenerator, mut commands: Commands) {
+    let config = NavmeshConfigBuilder {
+        agent_radius: 0.3,
+        agent_height: 1.0,
+        ..default()
+    };
+    let navmesh = generator.generate(config);
+    commands.spawn(DetailNavmeshGizmo::new(&navmesh));
+    commands.insert_resource(NavmeshHandle(navmesh));
 }
 
 fn configure_camera(
