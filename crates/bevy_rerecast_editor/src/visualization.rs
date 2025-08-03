@@ -1,34 +1,17 @@
 use std::collections::HashSet;
 
-use bevy::{
-    asset::RenderAssetUsages,
-    color::palettes::tailwind,
-    prelude::*,
-    render::mesh::{Indices, PrimitiveTopology},
-};
-use bevy_rerecast::{
-    TriMeshFromBevyMesh as _,
-    rerecast::{DetailNavmesh, PolygonNavmesh, TriMesh},
-};
+use bevy::{color::palettes::tailwind, prelude::*};
+use bevy_rerecast::{TriMeshFromBevyMesh as _, debug::NavmeshGizmoConfig, rerecast::TriMesh};
 
-use crate::build::NavmeshAffector;
+use crate::backend::NavmeshAffector;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn_gizmos);
     app.init_resource::<GizmosToDraw>();
     app.add_systems(
         Update,
         (
-            draw_poly_mesh.run_if(resource_exists::<Navmesh>.and(
-                gizmo_enabled(AvailableGizmos::PolyMesh).and(
-                    resource_changed::<Navmesh>.or(toggled_gizmo_on(AvailableGizmos::PolyMesh)),
-                ),
-            )),
-            draw_detail_mesh.run_if(resource_exists::<Navmesh>.and(
-                gizmo_enabled(AvailableGizmos::DetailMesh).and(
-                    resource_changed::<Navmesh>.or(toggled_gizmo_on(AvailableGizmos::DetailMesh)),
-                ),
-            )),
+            draw_poly_mesh.run_if(toggled_gizmo_on(AvailableGizmos::PolyMesh)),
+            draw_detail_mesh.run_if(toggled_gizmo_on(AvailableGizmos::DetailMesh)),
             draw_navmesh_affector.run_if(toggled_gizmo_on(AvailableGizmos::Affector)),
             draw_visual.run_if(toggled_gizmo_on(AvailableGizmos::Visual)),
             hide_poly_mesh.run_if(toggled_gizmo_off(AvailableGizmos::PolyMesh)),
@@ -37,12 +20,6 @@ pub(super) fn plugin(app: &mut App) {
             hide_visual.run_if(toggled_gizmo_off(AvailableGizmos::Visual)),
         ),
     );
-}
-
-#[derive(Resource)]
-pub(crate) struct Navmesh {
-    pub(crate) poly_mesh: PolygonNavmesh,
-    pub(crate) detail_mesh: DetailNavmesh,
 }
 
 #[derive(Resource, Deref, DerefMut)]
@@ -78,10 +55,6 @@ fn toggled_gizmo_off(gizmo: AvailableGizmos) -> impl Condition<()> {
     })
 }
 
-fn gizmo_enabled(gizmo: AvailableGizmos) -> impl Condition<()> {
-    IntoSystem::into_system(move |gizmos: Res<GizmosToDraw>| gizmos.contains(&gizmo))
-}
-
 impl Default for GizmosToDraw {
     fn default() -> Self {
         Self(
@@ -92,194 +65,12 @@ impl Default for GizmosToDraw {
     }
 }
 
-#[derive(Component)]
-struct PolyMeshGizmo;
-
-#[derive(Component)]
-struct DetailMeshGizmo;
-
-fn spawn_gizmos(mut gizmos: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
-    commands.spawn((
-        PolyMeshGizmo,
-        Visibility::Hidden,
-        Gizmo {
-            handle: gizmos.add(GizmoAsset::new()),
-            line_config: GizmoLineConfig {
-                perspective: true,
-                width: 20.0,
-                ..default()
-            },
-            depth_bias: -0.001,
-        },
-    ));
-    commands.spawn((
-        DetailMeshGizmo,
-        Visibility::Hidden,
-        Gizmo {
-            handle: gizmos.add(GizmoAsset::new()),
-            line_config: GizmoLineConfig {
-                perspective: true,
-                width: 20.0,
-                joints: GizmoLineJoint::Bevel,
-                ..default()
-            },
-            depth_bias: -0.001,
-        },
-    ));
+fn draw_poly_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.polygon_navmesh.enabled = true;
 }
 
-fn draw_poly_mesh(
-    gizmo: Single<(Entity, &Gizmo, &mut Visibility), With<PolyMeshGizmo>>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-    navmesh: Res<Navmesh>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut commands: Commands,
-) {
-    let (entity, gizmo, mut visibility) = gizmo.into_inner();
-    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
-        error!("Failed to get gizmo asset");
-        return;
-    };
-
-    gizmo.clear();
-    *visibility = Visibility::Inherited;
-
-    let mesh = &navmesh.poly_mesh;
-    let nvp = mesh.max_vertices_per_polygon as usize;
-    let origin = mesh.aabb.min;
-    let to_local = vec3(mesh.cell_size, mesh.cell_height, mesh.cell_size);
-    for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * nvp..];
-        let mut verts = poly[..nvp]
-            .iter()
-            .filter(|i| **i != PolygonNavmesh::NO_INDEX)
-            .map(|i| {
-                let vert_local = mesh.vertices[*i as usize];
-
-                origin + vert_local.as_vec3() * to_local
-            })
-            .collect::<Vec<_>>();
-        // Connect back to first vertex to finish the polygon
-        verts.push(verts[0]);
-
-        gizmo.linestrip(verts, tailwind::SKY_700);
-    }
-
-    let mut visual_mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
-    let mut visual_verts = Vec::new();
-    let mut visual_indices = Vec::new();
-
-    for i in 0..mesh.polygon_count() {
-        let poly = &mesh.polygons[i * nvp..];
-        let a = origin + mesh.vertices[poly[0] as usize].as_vec3() * to_local;
-        let a_idx = visual_verts.len() as u32;
-        visual_verts.push(a);
-
-        // Fan triangulation
-        for val in poly[1..nvp].windows(2) {
-            let b = val[0];
-            let c = val[1];
-            if b == PolygonNavmesh::NO_INDEX || c == PolygonNavmesh::NO_INDEX {
-                continue;
-            }
-            let b = origin + mesh.vertices[b as usize].as_vec3() * to_local;
-            let c = origin + mesh.vertices[c as usize].as_vec3() * to_local;
-
-            let b_vi = visual_verts.len() as u32;
-            visual_verts.push(b);
-            let c_vi = visual_verts.len() as u32;
-            visual_verts.push(c);
-
-            visual_indices.push(a_idx);
-            visual_indices.push(b_vi);
-            visual_indices.push(c_vi);
-        }
-    }
-    visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
-    visual_mesh.insert_indices(Indices::U32(visual_indices));
-
-    let standard_material = StandardMaterial {
-        base_color: tailwind::BLUE_600.with_alpha(0.7).into(),
-        unlit: true,
-        double_sided: true,
-        alpha_mode: AlphaMode::AlphaToCoverage,
-        ..default()
-    };
-
-    commands.entity(entity).insert((
-        Mesh3d(meshes.add(visual_mesh)),
-        MeshMaterial3d(materials.add(standard_material)),
-    ));
-}
-
-fn draw_detail_mesh(
-    gizmo: Single<(Entity, &Gizmo, &mut Visibility), With<DetailMeshGizmo>>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-    navmesh: Res<Navmesh>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut commands: Commands,
-) {
-    let (entity, gizmo, mut visibility) = gizmo.into_inner();
-    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
-        error!("Failed to get gizmo asset");
-        return;
-    };
-
-    *visibility = Visibility::Inherited;
-    gizmo.clear();
-
-    let mesh = &navmesh.detail_mesh;
-    for submesh in &mesh.meshes {
-        let submesh_verts =
-            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
-        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
-            [..submesh.triangle_count as usize];
-        for tri in submesh_tris {
-            let mut verts = tri
-                .iter()
-                .map(|i| submesh_verts[*i as usize])
-                .collect::<Vec<_>>();
-            // Connect back to first vertex to finish the polygon
-            verts.push(verts[0]);
-
-            gizmo.linestrip(verts, tailwind::GREEN_700);
-        }
-    }
-
-    let mut visual_mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
-    let mut visual_verts = Vec::new();
-    let mut visual_indices = Vec::new();
-
-    for submesh in &mesh.meshes {
-        let submesh_verts =
-            &mesh.vertices[submesh.base_vertex_index as usize..][..submesh.vertex_count as usize];
-
-        let submesh_tris = &mesh.triangles[submesh.base_triangle_index as usize..]
-            [..submesh.triangle_count as usize];
-        for tri in submesh_tris.iter() {
-            for &i in tri {
-                visual_indices.push(i as u32 + visual_verts.len() as u32);
-            }
-        }
-        visual_verts.extend(submesh_verts.iter().copied());
-    }
-    visual_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, visual_verts);
-    visual_mesh.insert_indices(Indices::U32(visual_indices));
-
-    let standard_material = StandardMaterial {
-        base_color: tailwind::EMERALD_200.with_alpha(0.7).into(),
-        unlit: true,
-        double_sided: true,
-        alpha_mode: AlphaMode::AlphaToCoverage,
-        ..default()
-    };
-
-    commands.entity(entity).insert((
-        Mesh3d(meshes.add(visual_mesh)),
-        MeshMaterial3d(materials.add(standard_material)),
-    ));
+fn draw_detail_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.detail_navmesh.enabled = true;
 }
 
 fn draw_navmesh_affector(
@@ -319,19 +110,6 @@ fn draw_visual(mut visibility: Query<&mut Visibility, With<VisualMesh>>) {
     }
 }
 
-fn hide_poly_mesh(
-    gizmo: Single<(&Gizmo, &mut Visibility), With<PolyMeshGizmo>>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-) {
-    let (gizmo, mut visibility) = gizmo.into_inner();
-    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
-        error!("Failed to get gizmo asset");
-        return;
-    };
-    gizmo.clear();
-    *visibility = Visibility::Hidden;
-}
-
 fn hide_affector(
     gizmo_handles: Query<&Gizmo, With<NavmeshAffector>>,
     mut gizmos: ResMut<Assets<GizmoAsset>>,
@@ -345,23 +123,18 @@ fn hide_affector(
     }
 }
 
-fn hide_detail_mesh(
-    gizmo: Single<(&Gizmo, &mut Visibility), With<DetailMeshGizmo>>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-) {
-    let (gizmo, mut visibility) = gizmo.into_inner();
-    let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
-        error!("Failed to get gizmo asset");
-        return;
-    };
-    gizmo.clear();
-    *visibility = Visibility::Hidden;
-}
-
 fn hide_visual(mut visibility: Query<&mut Visibility, With<VisualMesh>>) {
     for mut visibility in visibility.iter_mut() {
         *visibility = Visibility::Hidden;
     }
+}
+
+fn hide_poly_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.polygon_navmesh.enabled = false;
+}
+
+fn hide_detail_mesh(mut config: ResMut<NavmeshGizmoConfig>) {
+    config.detail_navmesh.enabled = false;
 }
 
 #[derive(Component)]

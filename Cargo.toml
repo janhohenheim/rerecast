@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "scenes/*"]
+members = ["crates/*", "examples"]
 resolver = "3"
 exclude = ["./assets/"]
 
@@ -19,6 +19,7 @@ serde = "1.0.219"
 serde_json = "1.0.140"
 slotmap = "1.0.7"
 ureq = "3.0.12"
+rfd = "0.15"
 
 # In sync with Bevy
 thiserror = "2.0.12"
@@ -27,7 +28,9 @@ base64 = "0.22.0"
 glam = "0.29.3"
 
 # Bevy
-bevy = { version = "0.16.0", default-features = false }
+## Bevy itself is only used in tests and examples, so we can use the default features.
+bevy = { version = "0.16.0", default-features = true }
+## Actual crate code should only depend on bevy_ crates with default features disabled.
 bevy_reflect = { version = "0.16.0", default-features = false, features = [
     "glam",
 ] }
@@ -44,13 +47,22 @@ bevy_math = { version = "0.16.0", default-features = false }
 bevy_color = { version = "0.16.0", default-features = false }
 bevy_derive = { version = "0.16.0", default-features = false }
 bevy_platform = { version = "0.16.0", default-features = false }
+bevy_tasks = { version = "0.16.0", default-features = false }
+bevy_gizmos = { version = "0.16.0", default-features = false }
+
+rerecast = { version = "0.0.2", path = "crates/rerecast", default-features = false }
+bevy_rerecast = { version = "0.0.2", path = "crates/bevy_rerecast", default-features = false }
+bevy_rerecast_core = { version = "0.0.2", path = "crates/bevy_rerecast_core", default-features = false }
+bevy_rerecast_editor_integration = { version = "0.0.2", path = "crates/bevy_rerecast_editor_integration", default-features = false }
+avian_rerecast = { version = "0.0.2", path = "crates/avian_rerecast", default-features = false }
+test_utils = { version = "0.0.2", path = "crates/test_utils", default-features = false }
 
 flate2 = { version = "1" }
 bincode = { version = "2", features = ["serde"] }
 anyhow = "1.0.98"
 bevy_trenchbroom = { version = "0.8.1", features = ["avian"] }
 bitflags = "2.9.1"
-approx = "0.5"
+approxim = "0.6"
 tracing = "0.1.41"
 
 [workspace.lints.rust]
@@ -64,6 +76,3 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 # Make sure macros use their standard braces, such as `[]` for `bevy_ecs::children!`.
 nonstandard_macro_braces = "warn"
-
-[patch.crates-io]
-#avian3d = { git = "https://github.com/Jondolf/avian", rev = "4f31166ee5e0cc1116756952d754386333b75cb0" }

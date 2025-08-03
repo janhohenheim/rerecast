@@ -1,1 +1,0 @@
-CC0 by Andreas Mischok: https://polyhaven.com/a/spiaggia_di_mondello

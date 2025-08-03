@@ -1,23 +1,25 @@
 #![doc = include_str!("../../../readme.md")]
 
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy_app::prelude::*;
+use bevy_ecs::prelude::*;
 use bevy_rerecast_core::{NavmeshApp as _, rerecast::TriMesh};
+use bevy_transform::prelude::*;
 
 mod collider_to_trimesh;
 use crate::collider_to_trimesh::ToTriMesh;
 
 /// Everything you need to get started with the Navmesh plugin.
 pub mod prelude {
-    pub use crate::AvianRerecastPlugin;
+    pub use crate::AvianBackendPlugin;
 }
 
 /// The plugin of the crate. Will make all entities with [`Collider`] a collider belonging to a static [`RigidBody`] available for navmesh generation.
 #[non_exhaustive]
 #[derive(Debug, Default)]
-pub struct AvianRerecastPlugin;
+pub struct AvianBackendPlugin;
 
-impl Plugin for AvianRerecastPlugin {
+impl Plugin for AvianBackendPlugin {
     fn build(&self, app: &mut App) {
         app.set_navmesh_affector_backend(collider_backend);
     }

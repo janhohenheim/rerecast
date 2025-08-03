@@ -6,9 +6,10 @@ use bevy::{
 };
 use bevy_rerecast::prelude::*;
 
-mod build;
+mod backend;
 mod camera;
 mod get_navmesh_input;
+mod save;
 mod theme;
 mod ui;
 mod visualization;
@@ -26,8 +27,9 @@ fn main() -> AppExit {
             get_navmesh_input::plugin,
             ui::plugin,
             theme::plugin,
-            build::plugin,
             visualization::plugin,
+            backend::plugin,
+            save::plugin,
         ))
         .run()
 }

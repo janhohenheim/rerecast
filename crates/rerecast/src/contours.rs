@@ -1,3 +1,5 @@
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 use glam::{U16Vec3, Vec3Swizzles};
 
 use crate::{
@@ -641,11 +643,19 @@ pub struct Contour {
     pub area: AreaType,
 }
 
+/// Contour build flags used in [`CompactHeightfield::build_contours`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(transparent)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
+pub struct BuildContoursFlags(u8);
+
 bitflags::bitflags! {
-    /// Contour build flags used in [`CompactHeightfield::build_contours`]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-    #[repr(transparent)]
-    pub struct BuildContoursFlags: u8 {
+    impl BuildContoursFlags: u8 {
         /// Tessellate solid (impassable) edges during contour simplification.
         const TESSELLATE_SOLID_WALL_EDGES = 1;
         /// Tessellate edges between areas during contour simplification.

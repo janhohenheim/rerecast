@@ -13,29 +13,46 @@ readme = { workspace = true }
 [dependencies]
 bevy_ecs = { workspace = true }
 bevy_asset = { workspace = true }
-bevy_transform = { workspace = true }
+bevy_transform = { workspace = true, features = ["bevy-support"] }
+bevy_tasks = { workspace = true }
 bevy_derive = { workspace = true }
 bevy_reflect = { workspace = true }
 bevy_app = { workspace = true }
 bevy_math = { workspace = true }
 
+# debug-plugin
+bevy_platform = { workspace = true, optional = true }
+bevy_gizmos = { workspace = true, optional = true, features = ["bevy_render"] }
+bevy_color = { workspace = true, optional = true }
+bevy_pbr = { workspace = true, optional = true }
+
+# Serde is already brought in by bevy_asset, so no need to make it optional
+serde = { workspace = true }
+
+anyhow = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
+bincode = { workspace = true }
 glam = { workspace = true }
-rerecast = { version = "0.0.2", path = "../rerecast", features = [
-    "bevy_reflect",
-] }
+rerecast = { workspace = true, features = ["bevy_reflect", "serialize"] }
 
 # bevy_mesh
 bevy_mesh = { workspace = true, optional = true }
 bevy_render = { workspace = true, optional = true }
 
-# serialize
-serde = { workspace = true, optional = true }
 
 [features]
-default = ["bevy_mesh"]
-serialize = ["dep:serde", "rerecast/serialize"]
+default = ["bevy_mesh", "debug_plugin"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
+debug_plugin = [
+    "dep:bevy_gizmos",
+    "dep:bevy_platform",
+    "dep:bevy_color",
+    "dep:bevy_render",
+    "dep:bevy_mesh",
+    "dep:bevy_pbr",
+]
+
 
 [lints]
 workspace = true

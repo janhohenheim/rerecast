@@ -1,8 +1,13 @@
-use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
+use bevy::{
+    color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*,
+    tasks::AsyncComputeTaskPool, ui::Val::*,
+};
+use rfd::AsyncFileDialog;
 
 use crate::{
-    build::BuildNavmesh,
+    backend::BuildNavmesh,
     get_navmesh_input::GetNavmeshInput,
+    save::SaveTask,
     theme::{
         palette::BEVY_GRAY,
         widget::{button, checkbox},
@@ -44,7 +49,8 @@ fn spawn_ui(mut commands: Commands) {
                 BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
                 children![
                     button("Load Scene", spawn_load_scene_modal),
-                    button("Build Navmesh", build_navmesh)
+                    button("Build Navmesh", build_navmesh),
+                    button("Save", save_navmesh),
                 ]
             ),
             (
@@ -90,6 +96,28 @@ struct LoadSceneModal;
 
 fn build_navmesh(_: Trigger<Pointer<Click>>, mut commands: Commands) {
     commands.trigger(BuildNavmesh);
+}
+
+fn save_navmesh(
+    _: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    maybe_task: Option<Res<SaveTask>>,
+) {
+    if maybe_task.is_some() {
+        // Already saving, do nothing
+        return;
+    }
+
+    let thread_pool = AsyncComputeTaskPool::get();
+    let future = AsyncFileDialog::new()
+        .add_filter("Navmesh", &["nav"])
+        .add_filter("All files", &["*"])
+        .set_title("Save Navmesh")
+        .set_file_name("navmesh.nav")
+        .set_can_create_directories(true)
+        .save_file();
+    let task = thread_pool.spawn(future);
+    commands.insert_resource(SaveTask(task));
 }
 
 fn spawn_load_scene_modal(_: Trigger<Pointer<Click>>, mut commands: Commands) {

@@ -4,7 +4,7 @@ use avian3d::{
     parry::shape::{Compound, TypedShape},
     prelude::*,
 };
-use bevy::prelude::*;
+use bevy_math::prelude::*;
 use bevy_rerecast_core::rerecast::{AreaType, TriMesh};
 
 /// Convenience trait that allows a [`Collider`] to be converted into a [`TriMesh`].

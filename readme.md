@@ -25,9 +25,9 @@ by Unreal, Unity, Godot, and other game engines.
   - [x] Extract meshes from running game
   - [ ] Configure navmesh generation
   - [x] Visualize navmesh
-  - [ ] Send navmesh to running game
-  - [ ] Save and load navmesh
+  - [x] Save navmesh
+  - [ ] Load navmesh config
 - API
   - [x] Optional editor communication
-  - [ ] Generate navmeshes on demand
-  - [ ] Automatically regenerate navmeshes
+  - [x] Generate navmeshes on demand
+  - [ ] Partially regenerate navmeshes

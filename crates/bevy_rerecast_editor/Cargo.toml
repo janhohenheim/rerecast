@@ -11,18 +11,19 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy = { workspace = true, default-features = true, features = [
+bevy = { workspace = true, features = [
     "bevy_remote",
     "configurable_error_handler",
+    "wayland",
 ] }
-bevy_rerecast = { version = "0.0.2", path = "../bevy_rerecast", features = [
-    "editor_integration",
-] }
+bevy_rerecast = { workspace = true, default-features = true }
 serde_json = { workspace = true }
+bincode = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
 thiserror = { workspace = true }
+rfd = { workspace = true }
 
 [lints]
 workspace = true
