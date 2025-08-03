@@ -2,6 +2,7 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_mesh::{Mesh, PrimitiveTopology};
+use bevy_reflect::prelude::*;
 use bevy_render::prelude::*;
 use bevy_transform::components::GlobalTransform;
 use glam::{UVec3, Vec3A};
@@ -13,17 +14,24 @@ use crate::NavmeshApp as _;
 /// Uses all entities with a [`Mesh3d`] component as navmesh affectors.
 #[derive(Debug, Default)]
 #[non_exhaustive]
-pub struct Mesh3dNavmeshPlugin;
+pub struct Mesh3dBackendPlugin;
 
-impl Plugin for Mesh3dNavmeshPlugin {
+impl Plugin for Mesh3dBackendPlugin {
     fn build(&self, app: &mut App) {
         app.set_navmesh_affector_backend(mesh3d_backend);
+        app.register_type::<ExcludeMeshFromNavmesh>();
     }
 }
 
+/// Component to opt-out a [`Mesh3d`] from navmesh generation when using [`Mesh3dBackendPlugin`].
+/// If that backend is not used, this component has no effect.
+#[derive(Debug, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct ExcludeMeshFromNavmesh;
+
 fn mesh3d_backend(
     meshes: Res<Assets<Mesh>>,
-    affectors: Query<(&GlobalTransform, &Mesh3d)>,
+    affectors: Query<(&GlobalTransform, &Mesh3d), Without<ExcludeMeshFromNavmesh>>,
 ) -> Vec<(GlobalTransform, TriMesh)> {
     affectors
         .iter()

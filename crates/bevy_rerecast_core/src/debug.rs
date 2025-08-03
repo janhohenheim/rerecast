@@ -132,6 +132,7 @@ struct DirtyNavmeshGizmo;
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
 #[require(DirtyNavmeshGizmo, Visibility)]
+#[cfg_attr(feature = "bevy_mesh", require(crate::mesh::ExcludeMeshFromNavmesh))]
 #[component(on_add = init_detail_navmesh_gizmo)]
 pub struct DetailNavmeshGizmo(pub AssetId<Navmesh>);
 
@@ -351,6 +352,7 @@ fn update_dirty_detail_gizmos(
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
 #[require(DirtyNavmeshGizmo, Visibility)]
+#[cfg_attr(feature = "bevy_mesh", require(crate::mesh::ExcludeMeshFromNavmesh))]
 #[component(on_add = init_polygon_navmesh_gizmo)]
 pub struct PolygonNavmeshGizmo(pub AssetId<Navmesh>);
 

@@ -18,7 +18,7 @@ fn main() -> AppExit {
         }))
         .add_plugins(PhysicsPlugins::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((NavmeshPlugins::default(), AvianRerecastPlugin::default()))
+        .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()))
         .add_systems(Startup, setup)
         .add_systems(
             Update,

@@ -22,7 +22,7 @@ fn main() -> AppExit {
         ))
         .register_type::<Worldspawn>()
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((NavmeshPlugins::default(), AvianRerecastPlugin::default()))
+        .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()))
         .add_systems(Startup, (write_trenchbroom_config, setup).chain())
         .add_systems(
             Update,

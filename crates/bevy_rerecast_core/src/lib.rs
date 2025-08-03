@@ -6,7 +6,7 @@ use bevy_asset::prelude::*;
 mod mesh;
 use bevy_reflect::Reflect;
 #[cfg(feature = "bevy_mesh")]
-pub use mesh::{Mesh3dNavmeshPlugin, TriMeshFromBevyMesh};
+pub use mesh::{Mesh3dBackendPlugin, TriMeshFromBevyMesh};
 mod backend;
 #[cfg(feature = "debug_plugin")]
 pub mod debug;

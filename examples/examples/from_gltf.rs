@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
-use bevy_rerecast::{Mesh3dNavmeshPlugin, debug::DetailNavmeshGizmo, prelude::*};
+use bevy_rerecast::{Mesh3dBackendPlugin, debug::DetailNavmeshGizmo, prelude::*};
 
 fn main() -> AppExit {
     App::new()
@@ -14,7 +14,7 @@ fn main() -> AppExit {
             ..default()
         }))
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((NavmeshPlugins::default(), Mesh3dNavmeshPlugin::default()))
+        .add_plugins((NavmeshPlugins::default(), Mesh3dBackendPlugin::default()))
         .add_systems(Startup, setup)
         .add_systems(
             Update,

@@ -20,7 +20,7 @@ use bevy::{
     scene::{SceneInstanceReady, ScenePlugin},
 };
 use bevy_app::ScheduleRunnerPlugin;
-use bevy_rerecast::{Mesh3dNavmeshPlugin, prelude::*};
+use bevy_rerecast::{Mesh3dBackendPlugin, prelude::*};
 use test_utils::AssertEqTest;
 
 #[test]
@@ -28,7 +28,7 @@ fn validate_bevy_navmesh_against_cpp_implementation() {
     let mut app = App::new();
     app.add_plugins(headless_plugins);
 
-    app.add_plugins((NavmeshPlugins::default(), Mesh3dNavmeshPlugin::default()));
+    app.add_plugins((NavmeshPlugins::default(), Mesh3dBackendPlugin::default()));
     app.add_observer(on_navmesh_ready);
 
     app.finish();
