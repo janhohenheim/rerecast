@@ -1,10 +1,5 @@
 //! Serialization and deserialization of data for the editor integration.
 
-use std::{
-    io::{Read as _, Write},
-    time::Instant,
-};
-
 use anyhow::Context as _;
 use base64::prelude::*;
 use bevy_ecs::prelude::*;
