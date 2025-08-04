@@ -13,6 +13,7 @@ readme = { workspace = true }
 [features]
 default = []
 
+debug_plugin = ["bevy_rerecast_core/debug_plugin"]
 pbr_transmission_textures = ["bevy_pbr/pbr_transmission_textures"]
 pbr_specular_textures = ["bevy_pbr/pbr_specular_textures"]
 pbr_multi_layer_material_textures = [
@@ -34,6 +35,7 @@ bevy_derive = { workspace = true }
 bevy_math = { workspace = true }
 bevy_color = { workspace = true }
 bevy_platform = { workspace = true }
+bevy_tasks = { workspace = true }
 bevy_image = { workspace = true }
 
 tracing = { workspace = true }

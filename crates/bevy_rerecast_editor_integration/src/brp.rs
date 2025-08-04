@@ -1,7 +1,10 @@
 //! The optional editor integration for authoring the navmesh.
 
+use std::str::FromStr;
+
 use bevy_app::prelude::*;
-use bevy_asset::prelude::*;
+use bevy_asset::{prelude::*, uuid::Uuid};
+use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::prelude::*;
 use bevy_image::Image;
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
@@ -9,17 +12,19 @@ use bevy_platform::collections::HashMap;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
 use bevy_rerecast_core::NavmeshAffectorBackend;
+use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    EditorVisible,
+    EditorExluded,
     transmission::{SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize},
 };
 
 pub(super) fn plugin(app: &mut App) {
+    app.init_resource::<NavmeshInputTasks>();
     app.add_systems(
         Startup,
         setup_methods.run_if(resource_exists::<RemoteMethods>),
@@ -28,8 +33,12 @@ pub(super) fn plugin(app: &mut App) {
 
 fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
     methods.insert(
-        BRP_GET_NAVMESH_INPUT_METHOD,
+        BRP_GENERATE_EDITOR_INPUT,
         RemoteMethodSystemId::Instant(commands.register_system(get_navmesh_input)),
+    );
+    methods.insert(
+        BRP_POLL_EDITOR_INPUT,
+        RemoteMethodSystemId::Watching(commands.register_system(poll_navmesh_input)),
     );
 }
 
@@ -38,7 +47,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         return Err(BrpError {
             code: bevy_remote::error_codes::INVALID_PARAMS,
             message: format!(
-                "BRP method `{BRP_GET_NAVMESH_INPUT_METHOD}` requires no parameters, but received {params}"
+                "BRP method `{BRP_GENERATE_EDITOR_INPUT}` requires no parameters, but received {params}"
             ),
             data: None,
         });
@@ -46,7 +55,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
 
     let Some(backend_id) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "No navmesh affector backend found. Did you forget to add one?".to_string(),
             data: None,
         });
@@ -71,25 +80,25 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         &Mesh3d,
         &InheritedVisibility,
         Option<&MeshMaterial3d<StandardMaterial>>,
-    ), With<EditorVisible>>();
+    ), Without<EditorExluded>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "Failed to get meshes".to_string(),
             data: None,
         });
     };
     let Some(images) = world.get_resource::<Assets<Image>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "Failed to get images".to_string(),
             data: None,
         });
     };
     let Some(materials) = world.get_resource::<Assets<StandardMaterial>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "Failed to get images".to_string(),
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
+            message: "Failed to get materials".to_string(),
             data: None,
         });
     };
@@ -152,27 +161,124 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
             })
         })
         .collect::<Vec<_>>();
-    let response = NavmeshInputResponse {
+    let response = PollEditorInputResponse {
         affector_meshes: affectors,
         visual_meshes: visuals,
         materials: serialized_materials,
         meshes: serialized_meshes,
         images: serialized_images,
     };
+    let future = async move {
+        serialize(&response).map_err(|e| BrpError {
+            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            message: format!("Failed to serialize navmesh input: {e}"),
+            data: None,
+        })
+    };
+    let id = Uuid::new_v4();
+    let mut tasks = world.resource_mut::<NavmeshInputTasks>();
+    let task = AsyncComputeTaskPool::get().spawn(future);
+    tasks.0.insert(id, task);
 
-    serialize(&response).map_err(|e| BrpError {
+    let response = GenerateEditorInputResponse {
+        id: EditorInputTaskId(id.to_string()),
+    };
+    serde_json::to_value(&response).map_err(|e| BrpError {
         code: bevy_remote::error_codes::INTERNAL_ERROR,
-        message: format!("Failed to serialize navmesh input: {e}"),
+        message: format!("Failed to serialize editor task ID: {e}"),
         data: None,
     })
 }
 
-/// The BRP method that the navmesh editor uses to get the navmesh input.
-pub const BRP_GET_NAVMESH_INPUT_METHOD: &str = "bevy_rerecast/get_navmesh_input";
+fn poll_navmesh_input(
+    In(params): In<Option<Value>>,
+    world: &mut World,
+) -> BrpResult<Option<Value>> {
+    let Some(params) = params else {
+        return Err(BrpError {
+            code: bevy_remote::error_codes::INVALID_PARAMS,
+            message: format!(
+                "BRP method `{BRP_POLL_EDITOR_INPUT}` requires a parameter, but received none"
+            ),
+            data: None,
+        });
+    };
+    let params: PollEditorInputParams = match serde_json::from_value(params.clone()) {
+        Ok(id) => id,
+        Err(e) => {
+            return Err(BrpError {
+                code: bevy_remote::error_codes::INVALID_PARAMS,
+                message: format!(
+                    "{e}. BRP method `{BRP_POLL_EDITOR_INPUT}` requires a parameter of type `PollEditorInputParams`, but received `{params:#?}`"
+                ),
+                data: None,
+            });
+        }
+    };
+    let id = match Uuid::from_str(&params.id.0) {
+        Ok(id) => id,
+        Err(e) => {
+            return Err(BrpError {
+                code: bevy_remote::error_codes::INVALID_PARAMS,
+                message: format!("{e}: Task ID must be a valid UUID"),
+                data: None,
+            });
+        }
+    };
 
-/// The response to [`BRP_GET_NAVMESH_INPUT_METHOD`] requests.
+    let mut tasks = world.resource_mut::<NavmeshInputTasks>();
+    let Some(task) = tasks.get_mut(&id) else {
+        return Err(BrpError {
+            code: bevy_remote::error_codes::INVALID_PARAMS,
+            message: format!(
+                "Got an invalid task ID: {id}. Make sure to only use task IDs returned by `{BRP_GENERATE_EDITOR_INPUT}` and to not poll again once a poll was successful"
+            ),
+            data: None,
+        });
+    };
+
+    match future::block_on(future::poll_once(task)) {
+        Some(result) => {
+            tasks.remove(&id);
+            result.map(Some)
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(Resource, Default, DerefMut, Deref)]
+struct NavmeshInputTasks(HashMap<Uuid, Task<Result<Value, BrpError>>>);
+
+/// The BRP method that the navmesh editor uses to get its input from the running app.
+/// Call without params. Returns [`GenerateEditorInputResponse`].
+pub const BRP_GENERATE_EDITOR_INPUT: &str = "bevy_rerecast/generate_editor_input";
+/// The BRP method that the navmesh editor uses to poll the status of an editor input task.
+/// Call with [`PollEditorInputParams`]. Returns [`PollEditorInputResponse`].
+pub const BRP_POLL_EDITOR_INPUT: &str = "bevy_rerecast/poll_editor_input";
+
+/// The response to [`BRP_GENERATE_EDITOR_INPUT`] requests.
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct NavmeshInputResponse {
+pub struct GenerateEditorInputResponse {
+    /// The ID of the async task that is generating the navmesh input.
+    /// Callers are supposed to poll this ID regularly by calling [`BRP_POLL_EDITOR_INPUT`] with [`PollEditorInputParams`].
+    pub id: EditorInputTaskId,
+}
+
+/// The response to [`BRP_POLL_EDITOR_INPUT`] requests.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct PollEditorInputParams {
+    /// The ID of the async task to poll. Must correspond to the ID returned by [`BRP_GENERATE_EDITOR_INPUT`] through [`GenerateEditorInputResponse`].
+    pub id: EditorInputTaskId,
+}
+
+/// The ID of an editor input task. Must be read from [`GenerateEditorInputResponse`]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct EditorInputTaskId(pub String);
+
+/// Data for the editor. Provided in [`PollEditorInputResponse`].
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct PollEditorInputResponse {
     /// The meshes that affect the navmesh.
     pub affector_meshes: Vec<AffectorMesh>,
     /// Additional meshes that don't affect the navmesh, but are sent to the editor for visualization.
@@ -199,8 +305,8 @@ pub struct AffectorMesh {
 pub struct VisualMesh {
     /// The transform of the mesh.
     pub transform: GlobalTransform,
-    /// The index of the mesh in [`NavmeshInputResponse::meshes`].
+    /// The index of the mesh in [`PollEditorInputResponse::meshes`].
     pub mesh: u32,
-    /// The index of the material in [`NavmeshInputResponse::materials`].
+    /// The index of the material in [`PollEditorInputResponse::materials`].
     pub material: Option<u32>,
 }

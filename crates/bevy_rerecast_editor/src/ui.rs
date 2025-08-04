@@ -1,6 +1,10 @@
 use bevy::{
-    color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*,
-    tasks::AsyncComputeTaskPool, ui::Val::*,
+    color::palettes::tailwind,
+    ecs::system::ObserverSystem,
+    prelude::*,
+    tasks::AsyncComputeTaskPool,
+    ui::Val::*,
+    window::{PrimaryWindow, RawHandleWrapper},
 };
 use rfd::AsyncFileDialog;
 
@@ -102,18 +106,22 @@ fn save_navmesh(
     _: Trigger<Pointer<Click>>,
     mut commands: Commands,
     maybe_task: Option<Res<SaveTask>>,
+    window_handle: Single<&RawHandleWrapper, With<PrimaryWindow>>,
 ) {
     if maybe_task.is_some() {
         // Already saving, do nothing
         return;
     }
 
+    // Safety: we're on the main thread, so this is fine??? I think??
+    let window_handle = unsafe { window_handle.get_handle() };
     let thread_pool = AsyncComputeTaskPool::get();
     let future = AsyncFileDialog::new()
         .add_filter("Navmesh", &["nav"])
         .add_filter("All files", &["*"])
         .set_title("Save Navmesh")
         .set_file_name("navmesh.nav")
+        .set_parent(&window_handle)
         .set_can_create_directories(true)
         .save_file();
     let task = thread_pool.spawn(future);

@@ -3,7 +3,8 @@
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_reflect::prelude::*;
-use bevy_render::mesh::Mesh3d;
+#[cfg(feature = "debug_plugin")]
+use bevy_rerecast_core::debug::{DetailNavmeshGizmo, PolygonNavmeshGizmo};
 use serde::{Deserialize, Serialize};
 
 pub mod brp;
@@ -12,39 +13,31 @@ pub mod transmission;
 /// The optional editor integration for authoring the navmesh.
 #[derive(Debug, Default)]
 #[non_exhaustive]
-pub struct NavmeshEditorIntegrationPlugin {
-    /// The settings for when [`EditorVisible`] is inserted automatically.
-    pub visibility_settings: EditorVisibilitySettings,
-}
+pub struct NavmeshEditorIntegrationPlugin;
 
 impl Plugin for NavmeshEditorIntegrationPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(brp::plugin);
-        app.register_type::<EditorVisible>();
-        match self.visibility_settings {
-            EditorVisibilitySettings::AllMeshes => {
-                app.add_observer(insert_editor_visible_to_meshes);
-            }
-            EditorVisibilitySettings::Manual => {}
+        #[cfg(feature = "debug_plugin")]
+        {
+            app.add_observer(exclude_polygon_gizmo)
+                .add_observer(exclude_detail_gizmo);
         }
+        app.register_type::<EditorExluded>();
     }
 }
 
-fn insert_editor_visible_to_meshes(trigger: Trigger<OnAdd, Mesh3d>, mut commands: Commands) {
-    commands.entity(trigger.target()).insert(EditorVisible);
+#[cfg(feature = "debug_plugin")]
+fn exclude_polygon_gizmo(trigger: Trigger<OnAdd, PolygonNavmeshGizmo>, mut commands: Commands) {
+    commands.entity(trigger.target()).insert(EditorExluded);
 }
 
-/// The settings for when [`EditorVisible`] is inserted automatically.
-#[derive(Debug, Default)]
-pub enum EditorVisibilitySettings {
-    /// All entities with [`Mesh3d`] will have [EditorVisible`] inserted automatically.
-    #[default]
-    AllMeshes,
-    /// [`EditorVisible`] will not be inserted automatically. The user must manually insert it.
-    Manual,
+#[cfg(feature = "debug_plugin")]
+fn exclude_detail_gizmo(trigger: Trigger<OnAdd, DetailNavmeshGizmo>, mut commands: Commands) {
+    commands.entity(trigger.target()).insert(EditorExluded);
 }
 
-/// Component used to mark [`Mesh3d`]es so that they're sent to the editor for previewing the level.
+/// Component used to mark [`Mesh3d`](bevy_render::mesh::Mesh3d)es so that they're not sent to the editor for previewing the level.
 #[derive(Debug, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
-pub struct EditorVisible;
+pub struct EditorExluded;
