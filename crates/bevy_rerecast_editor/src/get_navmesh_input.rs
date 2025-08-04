@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use anyhow::anyhow;
 use bevy::{
     asset::RenderAssetUsages,
@@ -52,25 +50,19 @@ fn fetch_navmesh_input(
             id: Some(serde_json::to_value(1)?),
             params: None,
         };
-        let now = Instant::now();
         let request = ehttp::Request::json(url, &req)?;
         let resp = ehttp::fetch_async(request)
             .await
             .map_err(|s| anyhow!("{s}"))?;
-        println!("Response: {} ms", now.elapsed().as_millis());
-        let now = Instant::now();
 
         // Parse just the outer JSON
         let v: serde_json::Value = resp.json()?;
-        println!("Serde JSON: {} ms", now.elapsed().as_millis());
-        let now = Instant::now();
 
         // Grab the base64 blob from result
         let base64_blob = &v["result"];
 
         // Decode manually
         let response: NavmeshInputResponse = deserialize(base64_blob)?;
-        println!("Deserialize: {} ms", now.elapsed().as_millis());
         Ok(response)
     };
 
