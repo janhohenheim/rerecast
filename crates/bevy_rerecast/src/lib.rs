@@ -2,6 +2,7 @@
 
 use bevy_app::plugin_group;
 pub use bevy_rerecast_core::*;
+#[cfg(feature = "editor_integration")]
 pub use bevy_rerecast_editor_integration as editor_integration;
 
 /// Everything you need to get started with the Navmesh plugins.

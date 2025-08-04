@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    EditorVisible,
+    EditorExluded,
     transmission::{SerializedImage, SerializedMesh, SerializedStandardMaterial, serialize},
 };
 
@@ -80,7 +80,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
         &Mesh3d,
         &InheritedVisibility,
         Option<&MeshMaterial3d<StandardMaterial>>,
-    ), With<EditorVisible>>();
+    ), Without<EditorExluded>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,

@@ -1340,6 +1340,7 @@ version = "0.0.2"
 dependencies = [
  "bevy",
  "bevy_app",
+ "bevy_math",
  "bevy_rerecast_core",
  "bevy_rerecast_editor_integration",
  "test_utils",

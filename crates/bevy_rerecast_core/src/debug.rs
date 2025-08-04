@@ -6,7 +6,7 @@ use bevy_color::{Alpha as _, palettes::tailwind};
 use bevy_ecs::{component::HookContext, prelude::*, world::DeferredWorld};
 use bevy_gizmos::prelude::*;
 use bevy_mesh::{Indices, Mesh, PrimitiveTopology};
-use bevy_pbr::prelude::*;
+use bevy_pbr::{NotShadowCaster, NotShadowReceiver, prelude::*};
 use bevy_reflect::prelude::*;
 use bevy_render::{prelude::*, view::RenderLayers};
 use glam::vec3;
@@ -160,6 +160,8 @@ fn init_detail_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
         },
         config.render_layers,
         MeshMaterial3d(material_handle),
+        NotShadowCaster,
+        NotShadowReceiver,
     ));
 }
 
@@ -380,6 +382,8 @@ fn init_polygon_navmesh_gizmo(mut world: DeferredWorld, ctx: HookContext) {
         },
         config.render_layers,
         MeshMaterial3d(material_handle),
+        NotShadowCaster,
+        NotShadowReceiver,
     ));
 }
 
