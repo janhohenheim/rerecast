@@ -4,21 +4,21 @@
 use approxim::relative_eq;
 use glam::{U8Vec3, UVec3, Vec3, Vec3A};
 use rerecast::{
-    Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, ContourSet, DetailNavmesh,
-    Heightfield, NavmeshConfig, PolygonNavmesh, RegionId, TriMesh,
+    Aabb3d, AreaType, BuildContoursFlags, CompactHeightfield, Config, ContourSet, DetailNavmesh,
+    Heightfield, PolygonNavmesh, RegionId, TriMesh,
 };
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 use std::{env, path::PathBuf};
 
 pub trait NavmeshConfigTest {
-    fn load_from_test_data(project: &str) -> NavmeshConfig;
+    fn load_from_test_data(project: &str) -> Config;
 }
 
-impl NavmeshConfigTest for NavmeshConfig {
-    fn load_from_test_data(project: &str) -> NavmeshConfig {
+impl NavmeshConfigTest for Config {
+    fn load_from_test_data(project: &str) -> Config {
         let config = load_json::<CppConfig>(project, "config");
-        NavmeshConfig {
+        Config {
             width: config.width,
             height: config.height,
             tile_size: config.tile_size,

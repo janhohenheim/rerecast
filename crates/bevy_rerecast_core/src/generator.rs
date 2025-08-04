@@ -8,7 +8,7 @@ use bevy_ecs::{prelude::*, system::SystemParam};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
-use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, NavmeshConfigBuilder, TriMesh};
+use rerecast::{Aabb3d, ConfigBuilder, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
 use crate::{Navmesh, NavmeshAffectorBackend, NavmeshAffectorBackendInput};
 
@@ -43,7 +43,7 @@ impl<'w> NavmeshGenerator<'w> {
     /// Otherwise, the navmesh will be generated for the specified area.
     ///
     /// If you want to generate a navmesh for only a specific subset of entities, call [`Self::generate_for`] instead.
-    pub fn generate(&mut self, config: NavmeshConfigBuilder) -> Handle<Navmesh> {
+    pub fn generate(&mut self, config: ConfigBuilder) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
         self.queue.push((
             handle.clone(),
@@ -64,11 +64,7 @@ impl<'w> NavmeshGenerator<'w> {
     /// Otherwise, the navmesh will be generated for the specified area.
     ///
     /// If you want to generate a navmesh for all available entities as defined by the backend, call [`Self::generate`] instead.
-    pub fn generate_for(
-        &mut self,
-        entities: &[Entity],
-        config: NavmeshConfigBuilder,
-    ) -> Handle<Navmesh> {
+    pub fn generate_for(&mut self, entities: &[Entity], config: ConfigBuilder) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
         self.queue.push((
             handle.clone(),
@@ -155,7 +151,7 @@ pub struct NavmeshReady(pub Handle<Navmesh>);
 
 async fn generate_navmesh(
     affectors: Vec<(GlobalTransform, TriMesh)>,
-    config_builder: NavmeshConfigBuilder,
+    config_builder: ConfigBuilder,
 ) -> Result<Navmesh> {
     let mut trimesh = TriMesh::default();
     for (transform, mut current_trimesh) in affectors {

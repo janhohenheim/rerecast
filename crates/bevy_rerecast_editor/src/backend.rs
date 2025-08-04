@@ -3,7 +3,7 @@ use bevy_rerecast::{
     NavmeshAffectorBackendInput, NavmeshApp,
     debug::{DetailNavmeshGizmo, PolygonNavmeshGizmo},
     prelude::*,
-    rerecast::{NavmeshConfigBuilder, TriMesh},
+    rerecast::{ConfigBuilder, TriMesh},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -30,7 +30,7 @@ pub(crate) struct NavmeshAffector(pub(crate) TriMesh);
 pub(crate) struct BuildNavmesh;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub(crate) struct BuildNavmeshConfig(pub(crate) NavmeshConfigBuilder);
+pub(crate) struct BuildNavmeshConfig(pub(crate) ConfigBuilder);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct NavmeshHandle(pub(crate) Handle<Navmesh>);

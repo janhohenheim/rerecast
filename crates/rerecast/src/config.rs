@@ -29,7 +29,7 @@ use bevy_reflect::prelude::*;
     all(feature = "serialize", feature = "bevy_reflect"),
     reflect(Serialize, Deserialize)
 )]
-pub struct NavmeshConfig {
+pub struct Config {
     /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
 
@@ -220,7 +220,7 @@ pub struct NavmeshConfig {
     all(feature = "serialize", feature = "bevy_reflect"),
     reflect(Serialize, Deserialize)
 )]
-pub struct NavmeshConfigBuilder {
+pub struct ConfigBuilder {
     /// How many cells should fit in the [`Self::agent_radius`] on the xz-plane to use for fields. `[Limit: > 0]`.
     ///
     /// The voxelization cell size defines the voxel size along both axes of the ground plane: x and z in Recast.
@@ -347,7 +347,7 @@ pub struct NavmeshConfigBuilder {
     pub area_volumes: Vec<ConvexVolume>,
 }
 
-impl Default for NavmeshConfigBuilder {
+impl Default for ConfigBuilder {
     fn default() -> Self {
         Self {
             cell_size_fraction: 2.0,
@@ -372,15 +372,15 @@ impl Default for NavmeshConfigBuilder {
     }
 }
 
-impl NavmeshConfigBuilder {
+impl ConfigBuilder {
     /// Builds a [`NavmeshConfig`] from the current configuration.
-    pub fn build(self) -> NavmeshConfig {
+    pub fn build(self) -> Config {
         let cell_size = self.agent_radius / self.cell_size_fraction;
         let cell_height = self.agent_radius / self.cell_height_fraction;
         let walkable_radius = (self.agent_radius / cell_size).ceil() as u16;
         // Reserve enough padding.
         let border_size = walkable_radius + 3;
-        NavmeshConfig {
+        Config {
             width: if self.tiling {
                 self.tile_size + border_size * 2
             } else {

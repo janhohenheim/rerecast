@@ -79,7 +79,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 struct NavmeshHandle(Handle<Navmesh>);
 
 fn generate_navmesh(mut generator: NavmeshGenerator, mut commands: Commands) {
-    let config = NavmeshConfigBuilder {
+    let config = ConfigBuilder {
         agent_radius: 0.3,
         agent_height: 1.0,
         ..default()

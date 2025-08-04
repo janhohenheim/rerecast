@@ -4,7 +4,7 @@ use bevy_ecs::{prelude::*, system::SystemId};
 use bevy_platform::collections::HashSet;
 use bevy_reflect::prelude::*;
 use bevy_transform::prelude::*;
-use rerecast::{NavmeshConfigBuilder, TriMesh};
+use rerecast::{ConfigBuilder, TriMesh};
 use serde::{Deserialize, Serialize};
 
 /// The current backend registered through [`NavmeshApp::set_navmesh_affector_backend`]
@@ -41,7 +41,7 @@ impl NavmeshApp for App {
 #[reflect(Serialize, Deserialize)]
 pub struct NavmeshAffectorBackendInput {
     /// The user-provided configuration for the navmesh.
-    pub config: NavmeshConfigBuilder,
+    pub config: ConfigBuilder,
     /// An optional list of entities to generate navmesh affectors for.
     /// If `Some`, the backend is expected to only consider the specified entities when generating affectors.
     /// If `None`, the backend is expected to generate affectors for as many entities as is reasonable.

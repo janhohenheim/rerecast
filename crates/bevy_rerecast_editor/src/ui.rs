@@ -6,7 +6,7 @@ use bevy::{
     ui::Val::*,
     window::{PrimaryWindow, RawHandleWrapper},
 };
-use bevy_rerecast::prelude::NavmeshConfigBuilder;
+use bevy_rerecast::prelude::ConfigBuilder;
 use bevy_ui_text_input::TextInputContents;
 
 use rfd::AsyncFileDialog;
@@ -177,7 +177,7 @@ fn read_config_inputs(
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
 ) {
     let d = BuildNavmeshConfig::default();
-    config.0 = NavmeshConfigBuilder {
+    config.0 = ConfigBuilder {
         cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
         cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
         agent_max_slope: d.agent_max_slope,

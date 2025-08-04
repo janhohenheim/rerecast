@@ -12,7 +12,7 @@ pub mod prelude {
     pub use crate::{
         Navmesh, NavmeshPlugins,
         generator::{NavmeshGenerator, NavmeshReady},
-        rerecast::NavmeshConfigBuilder,
+        rerecast::ConfigBuilder,
     };
 }
 

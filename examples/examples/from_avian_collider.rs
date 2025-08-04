@@ -99,7 +99,7 @@ fn setup(
 struct NavmeshHandle(Handle<Navmesh>);
 
 fn generate_navmesh(mut generator: NavmeshGenerator, mut commands: Commands) {
-    let config = NavmeshConfigBuilder::default();
+    let config = ConfigBuilder::default();
     let navmesh = generator.generate(config);
     commands.spawn(DetailNavmeshGizmo::new(&navmesh));
     commands.insert_resource(NavmeshHandle(navmesh));

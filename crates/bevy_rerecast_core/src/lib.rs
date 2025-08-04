@@ -15,7 +15,7 @@ pub use backend::*;
 pub mod asset_loader;
 
 pub use rerecast;
-use rerecast::{DetailNavmesh, NavmeshConfigBuilder, PolygonNavmesh};
+use rerecast::{ConfigBuilder, DetailNavmesh, PolygonNavmesh};
 use serde::{Deserialize, Serialize};
 
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.
@@ -50,5 +50,5 @@ pub struct Navmesh {
     pub detail: DetailNavmesh,
 
     /// The configuration that was used to generate this navmesh.
-    pub config: NavmeshConfigBuilder,
+    pub config: ConfigBuilder,
 }
