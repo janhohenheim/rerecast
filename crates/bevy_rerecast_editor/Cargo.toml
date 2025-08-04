@@ -23,6 +23,7 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 ehttp = { workspace = true, features = ["native-async", "json"] }
 thiserror = { workspace = true }
+bevy_ui_text_input = { workspace = true }
 rfd = { workspace = true }
 
 [lints]

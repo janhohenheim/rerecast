@@ -1,26 +1,30 @@
 use bevy::{
     color::palettes::tailwind,
-    ecs::system::ObserverSystem,
+    ecs::{prelude::*, relationship::RelatedSpawner, spawn::SpawnWith, system::ObserverSystem},
     prelude::*,
-    tasks::AsyncComputeTaskPool,
+    tasks::prelude::*,
     ui::Val::*,
     window::{PrimaryWindow, RawHandleWrapper},
 };
+use bevy_rerecast::prelude::NavmeshConfigBuilder;
+use bevy_ui_text_input::TextInputContents;
+
 use rfd::AsyncFileDialog;
 
 use crate::{
-    backend::BuildNavmesh,
+    backend::{BuildNavmesh, BuildNavmeshConfig},
     get_navmesh_input::GetNavmeshInput,
     save::SaveTask,
     theme::{
         palette::BEVY_GRAY,
-        widget::{button, checkbox},
+        widget::{button, checkbox, decimal_input},
     },
     visualization::{AvailableGizmos, GizmosToDraw},
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_ui);
+    app.add_systems(Update, read_config_inputs);
     app.add_observer(close_modal);
 }
 
@@ -66,15 +70,46 @@ fn spawn_ui(mut commands: Commands) {
                     padding: UiRect::all(Px(30.0)),
                     ..default()
                 },
-                children![
-                    checkbox("Show Visual", toggle_gizmo(AvailableGizmos::Visual)),
-                    checkbox("Show Affector", toggle_gizmo(AvailableGizmos::Affector)),
-                    checkbox("Show Polygon Mesh", toggle_gizmo(AvailableGizmos::PolyMesh)),
-                    checkbox(
+                Children::spawn(SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
+                    parent.spawn(checkbox(
+                        "Show Visual",
+                        toggle_gizmo(AvailableGizmos::Visual),
+                    ));
+                    parent.spawn(checkbox(
+                        "Show Affector",
+                        toggle_gizmo(AvailableGizmos::Affector),
+                    ));
+                    parent.spawn(checkbox(
+                        "Show Polygon Mesh",
+                        toggle_gizmo(AvailableGizmos::PolyMesh),
+                    ));
+                    parent.spawn(checkbox(
                         "Show Detail Mesh",
-                        toggle_gizmo(AvailableGizmos::DetailMesh)
-                    )
-                ],
+                        toggle_gizmo(AvailableGizmos::DetailMesh),
+                    ));
+
+                    parent.spawn(decimal_input(
+                        "Cell Size Fraction",
+                        BuildNavmeshConfig::default().cell_size_fraction,
+                        CellSizeInput,
+                    ));
+
+                    parent.spawn(decimal_input(
+                        "Cell Height Fraction",
+                        BuildNavmeshConfig::default().cell_height_fraction,
+                        CellHeightInput,
+                    ));
+                    parent.spawn(decimal_input(
+                        "Agent Radius",
+                        BuildNavmeshConfig::default().agent_radius,
+                        WalkableRadiusInput,
+                    ));
+                    parent.spawn(decimal_input(
+                        "Agent Height",
+                        BuildNavmeshConfig::default().agent_height,
+                        WalkableHeightInput,
+                    ));
+                })),
                 BackgroundColor(BEVY_GRAY.with_alpha(0.6)),
             ),
             (
@@ -93,6 +128,75 @@ fn spawn_ui(mut commands: Commands) {
             )
         ],
     ));
+}
+
+#[derive(Component)]
+struct CellSizeInput;
+
+#[derive(Component)]
+struct CellHeightInput;
+
+#[derive(Component)]
+struct WalkableSlopeInput;
+
+#[derive(Component)]
+struct WalkableHeightInput;
+
+#[derive(Component)]
+struct WalkableClimbInput;
+
+#[derive(Component)]
+struct WalkableRadiusInput;
+
+#[derive(Component)]
+struct MinRegionAreaInput;
+
+#[derive(Component)]
+struct MergeRegionAreaInput;
+
+#[derive(Component)]
+struct MaxSimplificationErrorInput;
+
+#[derive(Component)]
+struct MaxEdgeLenInput;
+
+#[derive(Component)]
+struct MaxVerticesPerPolygonInput;
+
+#[derive(Component)]
+struct DetailSampleDistanceInput;
+
+#[derive(Component)]
+struct DetailSampleMaxErrorInput;
+
+fn read_config_inputs(
+    mut config: ResMut<BuildNavmeshConfig>,
+    cell_size: Single<&TextInputContents, With<CellSizeInput>>,
+    cell_height: Single<&TextInputContents, With<CellHeightInput>>,
+    walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
+    walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
+) {
+    let d = BuildNavmeshConfig::default();
+    config.0 = NavmeshConfigBuilder {
+        cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
+        cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
+        agent_max_slope: d.agent_max_slope,
+        agent_height: walkable_height.get().parse().unwrap_or(d.agent_height),
+        agent_max_climb: d.agent_max_climb,
+        agent_radius: walkable_radius.get().parse().unwrap_or(d.agent_radius),
+        region_min_size: d.region_min_size,
+        region_merge_size: d.region_merge_size,
+        detail_sample_max_error: d.detail_sample_max_error,
+        tile_size: d.tile_size,
+        aabb: d.aabb,
+        contour_flags: d.contour_flags,
+        tiling: d.tiling,
+        area_volumes: d.area_volumes.clone(),
+        edge_max_len_factor: d.edge_max_len_factor,
+        edge_max_error: d.edge_max_error,
+        verts_per_poly: d.verts_per_poly,
+        detail_sample_dist: d.detail_sample_dist,
+    };
 }
 
 #[derive(Component)]
