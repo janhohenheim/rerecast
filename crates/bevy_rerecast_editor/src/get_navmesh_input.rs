@@ -3,7 +3,7 @@ use bevy::{
     asset::RenderAssetUsages,
     platform::collections::HashMap,
     prelude::*,
-    remote::{BrpError, BrpRequest, error_codes::INTERNAL_ERROR},
+    remote::BrpRequest,
     render::mesh::{Indices, PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
 };
@@ -97,9 +97,8 @@ fn poll_remote_navmesh_input(
     let Some(result) = future::block_on(future::poll_once(task)) else {
         return Ok(());
     };
-    let response = result.map_err(|e| {
+    let response = result.inspect_err(|_e| {
         commands.remove_resource::<GetNavmeshInputRequestTask>();
-        e
     })?;
     let future = async {
         // Create the URL. We're going to need it to issue the HTTP request.

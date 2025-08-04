@@ -240,7 +240,7 @@ fn poll_navmesh_input(
     match future::block_on(future::poll_once(task)) {
         Some(result) => {
             tasks.remove(&id);
-            result.map(|v| Some(v))
+            result.map(Some)
         }
         None => Ok(None),
     }
