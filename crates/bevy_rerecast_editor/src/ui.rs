@@ -12,7 +12,7 @@ use bevy_ui_text_input::TextInputContents;
 use rfd::AsyncFileDialog;
 
 use crate::{
-    backend::{BuildNavmesh, BuildNavmeshConfig},
+    backend::{BuildNavmesh, GlobalNavmeshConfig},
     get_navmesh_input::GetNavmeshInput,
     save::SaveTask,
     theme::{
@@ -90,23 +90,23 @@ fn spawn_ui(mut commands: Commands) {
 
                     parent.spawn(decimal_input(
                         "Cell Size Fraction",
-                        BuildNavmeshConfig::default().cell_size_fraction,
+                        GlobalNavmeshConfig::default().cell_size_fraction,
                         CellSizeInput,
                     ));
 
                     parent.spawn(decimal_input(
                         "Cell Height Fraction",
-                        BuildNavmeshConfig::default().cell_height_fraction,
+                        GlobalNavmeshConfig::default().cell_height_fraction,
                         CellHeightInput,
                     ));
                     parent.spawn(decimal_input(
                         "Agent Radius",
-                        BuildNavmeshConfig::default().agent_radius,
+                        GlobalNavmeshConfig::default().agent_radius,
                         WalkableRadiusInput,
                     ));
                     parent.spawn(decimal_input(
                         "Agent Height",
-                        BuildNavmeshConfig::default().agent_height,
+                        GlobalNavmeshConfig::default().agent_height,
                         WalkableHeightInput,
                     ));
                 })),
@@ -170,13 +170,13 @@ struct DetailSampleDistanceInput;
 struct DetailSampleMaxErrorInput;
 
 fn read_config_inputs(
-    mut config: ResMut<BuildNavmeshConfig>,
+    mut config: ResMut<GlobalNavmeshConfig>,
     cell_size: Single<&TextInputContents, With<CellSizeInput>>,
     cell_height: Single<&TextInputContents, With<CellHeightInput>>,
     walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
 ) {
-    let d = BuildNavmeshConfig::default();
+    let d = GlobalNavmeshConfig::default();
     config.0 = ConfigBuilder {
         cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
         cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),

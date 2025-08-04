@@ -9,7 +9,7 @@ use bevy_rerecast::{
 pub(super) fn plugin(app: &mut App) {
     app.set_navmesh_affector_backend(editor_backend);
     app.add_observer(build_navmesh);
-    app.init_resource::<BuildNavmeshConfig>()
+    app.init_resource::<GlobalNavmeshConfig>()
         .init_resource::<NavmeshHandle>();
 }
 
@@ -30,7 +30,7 @@ pub(crate) struct NavmeshAffector(pub(crate) TriMesh);
 pub(crate) struct BuildNavmesh;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub(crate) struct BuildNavmeshConfig(pub(crate) ConfigBuilder);
+pub(crate) struct GlobalNavmeshConfig(pub(crate) ConfigBuilder);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct NavmeshHandle(pub(crate) Handle<Navmesh>);
@@ -38,7 +38,7 @@ pub(crate) struct NavmeshHandle(pub(crate) Handle<Navmesh>);
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
     mut commands: Commands,
-    config: Res<BuildNavmeshConfig>,
+    config: Res<GlobalNavmeshConfig>,
     mut navmesh_generator: NavmeshGenerator,
 ) {
     let handle = navmesh_generator.generate(config.0.clone());

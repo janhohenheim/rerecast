@@ -19,7 +19,7 @@ use bevy_rerecast::{
 };
 
 use crate::{
-    backend::{BuildNavmeshConfig, NavmeshAffector, NavmeshHandle},
+    backend::{GlobalNavmeshConfig, NavmeshAffector, NavmeshHandle},
     visualization::VisualMesh,
 };
 
@@ -48,7 +48,7 @@ enum GetNavmeshInputRequestTask {
 fn generate_navmesh_input(
     _: Trigger<GetNavmeshInput>,
     mut commands: Commands,
-    config: Res<BuildNavmeshConfig>,
+    config: Res<GlobalNavmeshConfig>,
     maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
 ) {
     if maybe_task.is_some() {
