@@ -20,7 +20,7 @@ pub fn serialize<T: Serialize>(val: &T) -> Result<Value> {
 }
 
 /// Deserializes a JSON value in the format expected by the editor integration to a value.
-pub fn deserialize<T: DeserializeOwned>(value: &Value) -> Result<T> {
+pub fn deserialize<T: DeserializeOwned>(value: &Value) -> anyhow::Result<T> {
     let value_string = value.as_str().context("Expected a string")?;
     let gz_bytes = BASE64_STANDARD.decode(value_string)?;
 

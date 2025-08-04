@@ -21,7 +21,7 @@ serde_json = { workspace = true }
 bincode = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
-ureq = { workspace = true, features = ["json"] }
+ehttp = { workspace = true, features = ["native-async", "json"] }
 thiserror = { workspace = true }
 rfd = { workspace = true }
 
