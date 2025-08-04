@@ -2,7 +2,9 @@
 [![crates.io](https://img.shields.io/crates/v/rerecast)](https://crates.io/crates/rerecast)
 [![docs.rs](https://docs.rs/rerecast/badge.svg)](https://docs.rs/rerecast)
 
-Rust port of of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
+![`rerecast` logo](https://raw.githubusercontent.com/janhohenheim/rerecast/refs/heads/main/logo.svg)
+
+Rust port of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
 by Unreal, Unity, Godot, and other game engines.
 
 ## Features & Roadmap
@@ -23,9 +25,9 @@ by Unreal, Unity, Godot, and other game engines.
   - [x] Extract meshes from running game
   - [ ] Configure navmesh generation
   - [x] Visualize navmesh
-  - [ ] Send navmesh to running game
-  - [ ] Save and load navmesh
+  - [x] Save navmesh
+  - [ ] Load navmesh config
 - API
   - [x] Optional editor communication
-  - [ ] Generate navmeshes on demand
-  - [ ] Automatically regenerate navmeshes
+  - [x] Generate navmeshes on demand
+  - [ ] Partially regenerate navmeshes

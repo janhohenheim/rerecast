@@ -1,11 +1,19 @@
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 use std::ops::{Add, AddAssign};
 
+/// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[repr(transparent)]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
+pub struct RegionId(u16);
 bitflags::bitflags! {
-    /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-    #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-    #[repr(transparent)]
-    pub struct RegionId: u16 {
+    impl RegionId: u16 {
         /// The default region, which is used for spans that are not in a region, i.e. not walkable.
         const NONE = 0;
         /// Heightfield border flag.

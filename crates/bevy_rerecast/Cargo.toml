@@ -11,52 +11,36 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_ecs = { workspace = true }
-bevy_reflect = { workspace = true }
 bevy_app = { workspace = true }
-slotmap = { workspace = true }
-thiserror = { workspace = true }
-anyhow = { workspace = true }
-glam = { workspace = true }
-rerecast = { version = "0.0.2", path = "../rerecast", features = [
-    "bevy_reflect",
-] }
+bevy_math = { workspace = true }
+bevy_rerecast_core = { workspace = true }
+bevy_rerecast_editor_integration = { workspace = true, optional = true }
 
-# from_mesh
-bevy_mesh = { workspace = true, optional = true }
-bevy_render = { workspace = true, optional = true }
-
-# Editor integration
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-bevy_remote = { workspace = true, optional = true }
-bevy_asset = { workspace = true, optional = true }
-bevy_derive = { workspace = true, optional = true }
-bevy_transform = { workspace = true, optional = true }
-bevy_pbr = { workspace = true, optional = true }
-bevy_platform = { workspace = true, optional = true }
-bevy_image = { workspace = true, optional = true }
-bevy_rerecast_transmission = { version = "0.0.2", path = "../bevy_rerecast_transmission", optional = true }
-tracing = { workspace = true, optional = true }
+[dev-dependencies]
+bevy = { workspace = true }
+test_utils = { workspace = true }
 
 [features]
-default = ["editor_integration"]
-editor_integration = [
-    "serialize",
-    "from_mesh",
-    "dep:bevy_transform",
-    "dep:bevy_remote",
-    "dep:bevy_derive",
-    "dep:serde_json",
-    "dep:tracing",
-    "dep:bevy_rerecast_transmission",
-    "dep:bevy_asset",
-    "dep:bevy_pbr",
-    "dep:bevy_platform",
-    "dep:bevy_image",
+default = ["bevy_mesh", "editor_integration", "debug_plugin"]
+bevy_mesh = ["bevy_rerecast_core/bevy_mesh"]
+debug_plugin = [
+    "bevy_rerecast_core/debug_plugin",
+    "bevy_rerecast_editor_integration?/debug_plugin",
 ]
-serialize = ["dep:serde", "rerecast/serialize", "bevy_transform?/serialize"]
-from_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
+editor_integration = ["dep:bevy_rerecast_editor_integration"]
+
+pbr_transmission_textures = [
+    "bevy_rerecast_editor_integration?/pbr_transmission_textures",
+]
+pbr_specular_textures = [
+    "bevy_rerecast_editor_integration?/pbr_specular_textures",
+]
+pbr_multi_layer_material_textures = [
+    "bevy_rerecast_editor_integration?/pbr_multi_layer_material_textures",
+]
+pbr_anisotropy_texture = [
+    "bevy_rerecast_editor_integration?/pbr_anisotropy_texture",
+]
 
 [lints]
 workspace = true

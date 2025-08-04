@@ -1,9 +1,20 @@
-use bevy::{color::palettes::tailwind, ecs::system::ObserverSystem, prelude::*, ui::Val::*};
+use bevy::{
+    color::palettes::tailwind,
+    ecs::{prelude::*, system::ObserverSystem},
+    prelude::*,
+    tasks::prelude::*,
+    ui::Val::*,
+    window::{PrimaryWindow, RawHandleWrapper},
+};
+use bevy_rerecast::prelude::NavmeshConfigBuilder;
 use bevy_ui_text_input::TextInputContents;
 
+use rfd::AsyncFileDialog;
+
 use crate::{
-    build::{BuildNavmesh, BuildNavmeshConfig},
+    backend::{BuildNavmesh, BuildNavmeshConfig},
     get_navmesh_input::GetNavmeshInput,
+    save::SaveTask,
     theme::{
         palette::BEVY_GRAY,
         widget::{button, checkbox, decimal_input},
@@ -46,7 +57,8 @@ fn spawn_ui(mut commands: Commands) {
                 BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
                 children![
                     button("Load Scene", spawn_load_scene_modal),
-                    button("Build Navmesh", build_navmesh)
+                    button("Build Navmesh", build_navmesh),
+                    button("Save", save_navmesh),
                 ]
             ),
             (
@@ -67,18 +79,18 @@ fn spawn_ui(mut commands: Commands) {
                         toggle_gizmo(AvailableGizmos::DetailMesh)
                     ),
                     decimal_input(
-                        "Cell Size",
-                        BuildNavmeshConfig::default().cell_size,
+                        "Cell Size Fraction",
+                        BuildNavmeshConfig::default().cell_size_fraction,
                         CellSizeInput
                     ),
                     decimal_input(
-                        "Cell Height",
-                        BuildNavmeshConfig::default().cell_height,
+                        "Cell Height Fraction",
+                        BuildNavmeshConfig::default().cell_height_fraction,
                         CellHeightInput
                     ),
                     decimal_input(
                         "Walkable Slope",
-                        BuildNavmeshConfig::default().walkable_slope,
+                        BuildNavmeshConfig::default().agent_max_slope,
                         WalkableSlopeInput
                     )
                 ],
@@ -127,9 +139,6 @@ struct MinRegionAreaInput;
 struct MergeRegionAreaInput;
 
 #[derive(Component)]
-struct BorderSizeInput;
-
-#[derive(Component)]
 struct MaxSimplificationErrorInput;
 
 #[derive(Component)]
@@ -137,9 +146,6 @@ struct MaxEdgeLenInput;
 
 #[derive(Component)]
 struct MaxVerticesPerPolygonInput;
-
-#[derive(Component)]
-struct ContourFlagsInput;
 
 #[derive(Component)]
 struct DetailSampleDistanceInput;
@@ -157,45 +163,49 @@ fn read_config_inputs(
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
     min_region_area: Single<&TextInputContents, With<MinRegionAreaInput>>,
     merge_region_area: Single<&TextInputContents, With<MergeRegionAreaInput>>,
-    border_size: Single<&TextInputContents, With<BorderSizeInput>>,
     max_simplification_error: Single<&TextInputContents, With<MaxSimplificationErrorInput>>,
     max_edge_len: Single<&TextInputContents, With<MaxEdgeLenInput>>,
     max_vertices_per_polygon: Single<&TextInputContents, With<MaxVerticesPerPolygonInput>>,
-    contour_flags: Single<&TextInputContents, With<ContourFlagsInput>>,
     detail_sample_distance: Single<&TextInputContents, With<DetailSampleDistanceInput>>,
     detail_sample_max_error: Single<&TextInputContents, With<DetailSampleMaxErrorInput>>,
 ) {
     let d = BuildNavmeshConfig::default();
-    config.cell_size = cell_size.get().parse().unwrap_or(d.cell_size);
-    config.cell_height = cell_height.get().parse().unwrap_or(d.cell_height);
-    config.walkable_slope = walkable_slope.get().parse().unwrap_or(d.walkable_slope);
-    config.walkable_height = walkable_height.get().parse().unwrap_or(d.walkable_height);
-    config.walkable_climb = walkable_climb.get().parse().unwrap_or(d.walkable_climb);
-    config.walkable_radius = walkable_radius.get().parse().unwrap_or(d.walkable_radius);
-    config.min_region_area = min_region_area.get().parse().unwrap_or(d.min_region_area);
-    config.merge_region_area = merge_region_area
-        .get()
-        .parse()
-        .unwrap_or(d.merge_region_area);
-    config.border_size = border_size.get().parse().unwrap_or(d.border_size);
-    config.max_simplification_error = max_simplification_error
-        .get()
-        .parse()
-        .unwrap_or(d.max_simplification_error);
-    config.max_edge_len = max_edge_len.get().parse().unwrap_or(d.max_edge_len);
-    config.max_vertices_per_polygon = max_vertices_per_polygon
-        .get()
-        .parse()
-        .unwrap_or(d.max_vertices_per_polygon);
-    // config.contour_flags = contour_flags.get().parse().unwrap_or(d.contour_flags);
-    config.detail_sample_dist = detail_sample_distance
-        .get()
-        .parse()
-        .unwrap_or(d.detail_sample_dist);
-    config.detail_sample_max_error = detail_sample_max_error
-        .get()
-        .parse()
-        .unwrap_or(d.detail_sample_max_error);
+    config.0 = NavmeshConfigBuilder {
+        cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
+        cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
+        agent_max_slope: walkable_slope.get().parse().unwrap_or(d.agent_max_slope),
+        agent_height: walkable_height.get().parse().unwrap_or(d.agent_height),
+        agent_max_climb: walkable_climb.get().parse().unwrap_or(d.agent_max_climb),
+        agent_radius: walkable_radius.get().parse().unwrap_or(d.agent_radius),
+        region_min_size: min_region_area.get().parse().unwrap_or(d.region_min_size),
+        region_merge_size: merge_region_area
+            .get()
+            .parse()
+            .unwrap_or(d.region_merge_size),
+        detail_sample_max_error: detail_sample_max_error
+            .get()
+            .parse()
+            .unwrap_or(d.detail_sample_max_error),
+
+        edge_max_len_factor: max_edge_len.get().parse().unwrap_or(d.edge_max_len_factor),
+        verts_per_poly: max_vertices_per_polygon
+            .get()
+            .parse()
+            .unwrap_or(d.verts_per_poly),
+        detail_sample_dist: detail_sample_distance
+            .get()
+            .parse()
+            .unwrap_or(d.detail_sample_dist),
+        edge_max_error: max_simplification_error
+            .get()
+            .parse()
+            .unwrap_or(d.detail_sample_max_error),
+        tile_size: d.tile_size,
+        aabb: d.aabb,
+        contour_flags: d.contour_flags,
+        tiling: d.tiling,
+        area_volumes: d.area_volumes.clone(),
+    };
 }
 
 #[derive(Component)]
@@ -203,6 +213,32 @@ struct LoadSceneModal;
 
 fn build_navmesh(_: Trigger<Pointer<Click>>, mut commands: Commands) {
     commands.trigger(BuildNavmesh);
+}
+
+fn save_navmesh(
+    _: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    maybe_task: Option<Res<SaveTask>>,
+    window_handle: Single<&RawHandleWrapper, With<PrimaryWindow>>,
+) {
+    if maybe_task.is_some() {
+        // Already saving, do nothing
+        return;
+    }
+
+    // Safety: we're on the main thread, so this is fine??? I think??
+    let window_handle = unsafe { window_handle.get_handle() };
+    let thread_pool = AsyncComputeTaskPool::get();
+    let future = AsyncFileDialog::new()
+        .add_filter("Navmesh", &["nav"])
+        .add_filter("All files", &["*"])
+        .set_title("Save Navmesh")
+        .set_file_name("navmesh.nav")
+        .set_parent(&window_handle)
+        .set_can_create_directories(true)
+        .save_file();
+    let task = thread_pool.spawn(future);
+    commands.insert_resource(SaveTask(task));
 }
 
 fn spawn_load_scene_modal(_: Trigger<Pointer<Click>>, mut commands: Commands) {

@@ -4,7 +4,8 @@
 //! It is used to represent the height of a non-occupied voxel column.
 //!
 //! The spans are stored in a [`Spans`](crate::span::Spans) collection.
-
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
 use slotmap::SlotMap;
 use std::ops::{Deref, DerefMut};
 
@@ -92,6 +93,11 @@ impl Span {
 /// When two spans are merged, the area type of the merged span is the maximum of the two area types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 #[repr(transparent)]
 pub struct AreaType(pub u8);
 

@@ -1,9 +1,10 @@
+#[cfg(feature = "bevy_reflect")]
+use bevy_reflect::prelude::*;
+use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use std::{
     f32,
     ops::{Deref, DerefMut},
 };
-
-use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
@@ -23,6 +24,11 @@ use crate::{
 /// See the individual field definitions for details related to the structure the mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct DetailNavmesh {
     /// The sub-mesh data.
     ///
@@ -110,6 +116,11 @@ pub struct DetailNavmesh {
 /// A sub-mesh in [`DetailNavmesh::meshes`]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
+#[cfg_attr(
+    all(feature = "serialize", feature = "bevy_reflect"),
+    reflect(Serialize, Deserialize)
+)]
 pub struct SubMesh {
     /// The index in [`DetailNavmesh::vertices`] that begins this sub-mesh.
     pub base_vertex_index: u32,
@@ -787,9 +798,10 @@ fn overlap_edges(pts: &[Vec3A], edges: &[Edges], nedges: usize, s1: usize, t1: u
     false
 }
 
+#[inline]
 fn overlap_seg_seg2(a: Vec3A, b: Vec3A, c: Vec3A, d: Vec3A) -> bool {
-    let a1 = cross2(a.xz(), b.xz(), c.xz());
-    let a2 = cross2(a.xz(), b.xz(), d.xz());
+    let a1 = cross2(a.xz(), b.xz(), d.xz());
+    let a2 = cross2(a.xz(), b.xz(), c.xz());
     if a1 * a2 < 0.0 {
         let a3 = cross2(c.xz(), d.xz(), a.xz());
         let a4 = a3 + a2 - a1;
@@ -826,9 +838,9 @@ fn circum_circle_squared(p1: Vec3A, p2: Vec3A, p3: Vec3A, c: &mut Vec3A) -> f32 
 
 #[inline]
 fn cross2(p1: Vec2, p2: Vec2, p3: Vec2) -> f32 {
-    let uv1 = p2 - p1;
-    let uv2 = p3 - p1;
-    uv1.x * uv2.y - uv1.y * uv2.x
+    let a = p2 - p1;
+    let b = p3 - p1;
+    a.x * b.y - a.y * b.x
 }
 
 fn add_edge(
@@ -1312,7 +1324,7 @@ impl HeightPatch {
                 let hx = ax - self.xmin as i32 - bs as i32;
                 let hz = az - self.zmin as i32 - bs as i32;
 
-                if hx as u16 > self.width || hz as u16 >= self.height {
+                if hx as u16 >= self.width || hz as u16 >= self.height {
                     continue;
                 }
 

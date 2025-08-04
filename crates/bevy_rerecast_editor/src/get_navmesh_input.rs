@@ -1,55 +1,175 @@
-use anyhow::Context as _;
-use bevy::{platform::collections::HashMap, prelude::*, remote::BrpRequest};
-use bevy_rerecast::{
-    NavmeshAffector,
-    editor_integration::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+use anyhow::anyhow;
+use bevy::{
+    asset::RenderAssetUsages,
+    platform::collections::HashMap,
+    prelude::*,
+    remote::BrpRequest,
+    render::mesh::{Indices, PrimitiveTopology},
+    tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
 };
-use bevy_rerecast_transmission::deserialize;
+use bevy_rerecast::{
+    NavmeshAffectorBackendInput,
+    editor_integration::{
+        brp::{
+            BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputParams,
+            GenerateEditorInputResponse, PollEditorInputParams, PollEditorInputResponse,
+        },
+        transmission::deserialize,
+    },
+};
 
-use crate::visualization::VisualMesh;
+use crate::{
+    backend::{BuildNavmeshConfig, NavmeshAffector, NavmeshHandle},
+    visualization::VisualMesh,
+};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_observer(fetch_navmesh_input);
+    app.add_observer(generate_navmesh_input);
+    app.add_systems(
+        Update,
+        // the `run_if` needs to be on both systems because the resource is allowed to stop existing in-between them.
+        (
+            poll_remote_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
+            poll_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
+        )
+            .chain(),
+    );
 }
 
 #[derive(Event)]
 pub(crate) struct GetNavmeshInput;
 
-fn fetch_navmesh_input(
-    _: Trigger<GetNavmeshInput>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
-    mesh_handles: Query<
-        Entity,
-        (
-            With<Mesh3d>,
-            Or<(With<VisualMesh>, With<NavmeshAffector<Mesh3d>>)>,
-        ),
-    >,
-    gizmo_handles: Query<&Gizmo>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-) -> Result {
-    // Create the URL. We're going to need it to issue the HTTP request.
-    let host_part = format!("{}:{}", "127.0.0.1", 15702);
-    let url = format!("http://{host_part}/");
+#[derive(Resource)]
+enum GetNavmeshInputRequestTask {
+    Generate(Task<Result<GenerateEditorInputResponse, anyhow::Error>>),
+    Poll(Task<Result<PollEditorInputResponse, anyhow::Error>>),
+}
 
-    let req = BrpRequest {
-        jsonrpc: String::from("2.0"),
-        method: String::from(BRP_GET_NAVMESH_INPUT_METHOD),
-        id: Some(serde_json::to_value(1)?),
-        params: None,
+fn generate_navmesh_input(
+    _: Trigger<GetNavmeshInput>,
+    mut commands: Commands,
+    config: Res<BuildNavmeshConfig>,
+    maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
+) {
+    if maybe_task.is_some() {
+        // There's already an ongoing task, so we'll wait for it to complete.
+        return;
+    }
+    let config = config.0.clone();
+    let future = async move {
+        let params = GenerateEditorInputParams {
+            backend_input: NavmeshAffectorBackendInput {
+                config,
+                filter: None,
+            },
+        };
+        let json = serde_json::to_value(params)?;
+        // Create the URL. We're going to need it to issue the HTTP request.
+        let host_part = format!("{}:{}", "127.0.0.1", 15702);
+        let url = format!("http://{host_part}/");
+        let req = BrpRequest {
+            jsonrpc: String::from("2.0"),
+            method: String::from(BRP_GENERATE_EDITOR_INPUT),
+            id: None,
+            params: Some(json),
+        };
+        let request = ehttp::Request::json(url, &req)?;
+        let resp = ehttp::fetch_async(request)
+            .await
+            .map_err(|s| anyhow!("{s}"))?;
+
+        let mut v: serde_json::Value = resp.json()?;
+
+        let Some(val) = v.get_mut("result") else {
+            let Some(error) = v.get("error") else {
+                return Err(anyhow!(
+                    "BRP error: Response returned neither 'result' nor 'error' field"
+                ));
+            };
+            return Err(anyhow!("BRP error: {error}"));
+        };
+        let val = val.take();
+
+        // Decode manually
+        let response: GenerateEditorInputResponse = serde_json::from_value(val)?;
+        Ok(response)
     };
 
-    let response = ureq::post(&url)
-        .send_json(req)?
-        .body_mut()
-        .read_json::<serde_json::Value>()?;
-    let result = response
-        .get("result")
-        .context("Failed to get `result` from response")?;
-    let response: NavmeshInputResponse = deserialize(result)?;
+    let task = IoTaskPool::get().spawn(future);
+    commands.insert_resource(GetNavmeshInputRequestTask::Generate(task));
+}
+
+fn poll_remote_navmesh_input(
+    mut commands: Commands,
+    mut task: ResMut<GetNavmeshInputRequestTask>,
+) -> Result {
+    let GetNavmeshInputRequestTask::Generate(task) = task.as_mut() else {
+        return Ok(());
+    };
+    let Some(result) = future::block_on(future::poll_once(task)) else {
+        return Ok(());
+    };
+    let response = result.inspect_err(|_e| {
+        commands.remove_resource::<GetNavmeshInputRequestTask>();
+    })?;
+    let future = async {
+        // Create the URL. We're going to need it to issue the HTTP request.
+        let host_part = format!("{}:{}", "127.0.0.1", 15702);
+        let url = format!("http://{host_part}/");
+        let params = PollEditorInputParams { id: response.id };
+        let json = serde_json::to_value(params)?;
+        let req = BrpRequest {
+            jsonrpc: String::from("2.0"),
+            method: String::from(BRP_POLL_EDITOR_INPUT),
+            id: None,
+            params: Some(json),
+        };
+        let request = ehttp::Request::json(url, &req)?;
+        let resp = ehttp::fetch_async(request)
+            .await
+            .map_err(|s| anyhow!("{s}"))?;
+
+        let mut v: serde_json::Value = resp.json()?;
+
+        let Some(val) = v.get_mut("result") else {
+            let Some(error) = v.get("error") else {
+                return Err(anyhow!(
+                    "BRP error: Response returned neither 'result' nor 'error' field"
+                ));
+            };
+            return Err(anyhow!("BRP error: {error}"));
+        };
+        let val = val.take();
+
+        // Decode manually
+        let response: PollEditorInputResponse = deserialize(&val)?;
+        Ok(response)
+    };
+
+    let task = AsyncComputeTaskPool::get().spawn(future);
+    commands.insert_resource(GetNavmeshInputRequestTask::Poll(task));
+    Ok(())
+}
+
+fn poll_navmesh_input(
+    mut task: ResMut<GetNavmeshInputRequestTask>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
+    mesh_handles: Query<Entity, (With<Mesh3d>, Or<(With<VisualMesh>, With<NavmeshAffector>)>)>,
+    gizmo_handles: Query<&Gizmo>,
+    mut gizmos: ResMut<Assets<GizmoAsset>>,
+    mut navmesh_handle: ResMut<NavmeshHandle>,
+) -> Result {
+    let GetNavmeshInputRequestTask::Poll(task) = task.as_mut() else {
+        return Ok(());
+    };
+    let Some(result) = future::block_on(future::poll_once(task)) else {
+        return Ok(());
+    };
+    commands.remove_resource::<GetNavmeshInputRequestTask>();
+    let response = result?;
 
     for entity in mesh_handles.iter() {
         commands.entity(entity).despawn();
@@ -62,12 +182,21 @@ fn fetch_navmesh_input(
     }
 
     for affector in response.affector_meshes {
-        let mesh = affector.mesh.into_mesh();
+        let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, affector.mesh.vertices.clone())
+            .with_inserted_indices(Indices::U32(
+                affector
+                    .mesh
+                    .indices
+                    .iter()
+                    .flat_map(|indices| indices.to_array())
+                    .collect(),
+            ));
 
         commands.spawn((
             affector.transform.compute_transform(),
             Mesh3d(meshes.add(mesh)),
-            NavmeshAffector::<Mesh3d>::default(),
+            NavmeshAffector(affector.mesh),
             Visibility::Hidden,
             Gizmo {
                 handle: gizmos.add(GizmoAsset::new()),
@@ -123,6 +252,8 @@ fn fetch_navmesh_input(
             VisualMesh,
         ));
     }
+    // Clear previous navmesh
+    navmesh_handle.0 = Default::default();
 
     Ok(())
 }
