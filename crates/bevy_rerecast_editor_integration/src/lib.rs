@@ -37,7 +37,7 @@ fn exclude_detail_gizmo(trigger: Trigger<OnAdd, DetailNavmeshGizmo>, mut command
     commands.entity(trigger.target()).insert(EditorExluded);
 }
 
-/// Component used to mark [`Mesh3d`]es so that they're not sent to the editor for previewing the level.
+/// Component used to mark [`Mesh3d`](bevy_render::mesh::Mesh3d)es so that they're not sent to the editor for previewing the level.
 #[derive(Debug, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct EditorExluded;

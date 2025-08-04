@@ -305,8 +305,8 @@ pub struct AffectorMesh {
 pub struct VisualMesh {
     /// The transform of the mesh.
     pub transform: GlobalTransform,
-    /// The index of the mesh in [`NavmeshInputResponse::meshes`].
+    /// The index of the mesh in [`PollEditorInputResponse::meshes`].
     pub mesh: u32,
-    /// The index of the material in [`NavmeshInputResponse::materials`].
+    /// The index of the material in [`PollEditorInputResponse::materials`].
     pub material: Option<u32>,
 }
