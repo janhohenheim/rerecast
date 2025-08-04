@@ -1406,6 +1406,7 @@ dependencies = [
  "bevy_remote",
  "bevy_render",
  "bevy_rerecast_core",
+ "bevy_tasks",
  "bevy_transform",
  "bincode",
  "flate2",

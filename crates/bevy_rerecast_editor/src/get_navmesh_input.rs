@@ -8,7 +8,7 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures_lite::future},
 };
 use bevy_rerecast::editor_integration::{
-    brp::{BRP_GET_NAVMESH_INPUT_METHOD, NavmeshInputResponse},
+    brp::{BRP_GENERATE_EDITOR_INPUT, PollEditorInputResponse},
     transmission::deserialize,
 };
 
@@ -29,7 +29,7 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct GetNavmeshInput;
 
 #[derive(Resource)]
-pub(crate) struct GetNavmeshInputRequestTask(Task<Result<NavmeshInputResponse, anyhow::Error>>);
+pub(crate) struct GetNavmeshInputRequestTask(Task<Result<PollEditorInputResponse, anyhow::Error>>);
 
 fn fetch_navmesh_input(
     _: Trigger<GetNavmeshInput>,
@@ -46,7 +46,7 @@ fn fetch_navmesh_input(
         let url = format!("http://{host_part}/");
         let req = BrpRequest {
             jsonrpc: String::from("2.0"),
-            method: String::from(BRP_GET_NAVMESH_INPUT_METHOD),
+            method: String::from(BRP_GENERATE_EDITOR_INPUT),
             id: Some(serde_json::to_value(1)?),
             params: None,
         };
@@ -62,7 +62,7 @@ fn fetch_navmesh_input(
         let base64_blob = &v["result"];
 
         // Decode manually
-        let response: NavmeshInputResponse = deserialize(base64_blob)?;
+        let response: PollEditorInputResponse = deserialize(base64_blob)?;
         Ok(response)
     };
 
