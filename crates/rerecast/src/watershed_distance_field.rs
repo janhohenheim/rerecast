@@ -17,8 +17,7 @@ impl CompactHeightfield {
     /// Prepare for region partitioning, by calculating distance field along the walkable surface.
     pub fn build_distance_field(&mut self) {
         let distance_field = self.calculate_distance_field();
-        // Safety: Unwrap is fine as long as `spans` is not empty, as `distance_field` has the same length
-        self.max_distance = *distance_field.iter().max().unwrap();
+        self.max_distance = distance_field.iter().max().copied().unwrap_or_default();
         let distance_field = self.box_blur(1, &distance_field);
         self.dist = distance_field;
     }
