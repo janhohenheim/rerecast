@@ -67,7 +67,7 @@ impl<'w> NavmeshGenerator<'w> {
     /// If you want to generate a navmesh for all available entities as defined by the backend, call [`Self::generate`] instead.
     pub fn generate_for(
         &mut self,
-        entities: impl Into<HashSet<Entity>>,
+        entities: &[Entity],
         config: NavmeshConfigBuilder,
     ) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
@@ -75,7 +75,7 @@ impl<'w> NavmeshGenerator<'w> {
             handle.clone(),
             NavmeshAffectorBackendInput {
                 config,
-                filter: Some(entities.into()),
+                filter: Some(entities.into_iter().copied().collect()),
             },
         ));
         handle
