@@ -1,6 +1,6 @@
 use bevy::{
     color::palettes::tailwind,
-    ecs::{prelude::*, system::ObserverSystem},
+    ecs::{prelude::*, relationship::RelatedSpawner, spawn::SpawnWith, system::ObserverSystem},
     prelude::*,
     tasks::prelude::*,
     ui::Val::*,
@@ -70,30 +70,46 @@ fn spawn_ui(mut commands: Commands) {
                     padding: UiRect::all(Px(30.0)),
                     ..default()
                 },
-                children![
-                    checkbox("Show Visual", toggle_gizmo(AvailableGizmos::Visual)),
-                    checkbox("Show Affector", toggle_gizmo(AvailableGizmos::Affector)),
-                    checkbox("Show Polygon Mesh", toggle_gizmo(AvailableGizmos::PolyMesh)),
-                    checkbox(
+                Children::spawn(SpawnWith(|parent: &mut RelatedSpawner<ChildOf>| {
+                    parent.spawn(checkbox(
+                        "Show Visual",
+                        toggle_gizmo(AvailableGizmos::Visual),
+                    ));
+                    parent.spawn(checkbox(
+                        "Show Affector",
+                        toggle_gizmo(AvailableGizmos::Affector),
+                    ));
+                    parent.spawn(checkbox(
+                        "Show Polygon Mesh",
+                        toggle_gizmo(AvailableGizmos::PolyMesh),
+                    ));
+                    parent.spawn(checkbox(
                         "Show Detail Mesh",
-                        toggle_gizmo(AvailableGizmos::DetailMesh)
-                    ),
-                    decimal_input(
+                        toggle_gizmo(AvailableGizmos::DetailMesh),
+                    ));
+
+                    parent.spawn(decimal_input(
                         "Cell Size Fraction",
                         BuildNavmeshConfig::default().cell_size_fraction,
-                        CellSizeInput
-                    ),
-                    decimal_input(
+                        CellSizeInput,
+                    ));
+
+                    parent.spawn(decimal_input(
                         "Cell Height Fraction",
                         BuildNavmeshConfig::default().cell_height_fraction,
-                        CellHeightInput
-                    ),
-                    decimal_input(
-                        "Walkable Slope",
-                        BuildNavmeshConfig::default().agent_max_slope,
-                        WalkableSlopeInput
-                    )
-                ],
+                        CellHeightInput,
+                    ));
+                    parent.spawn(decimal_input(
+                        "Agent Radius",
+                        BuildNavmeshConfig::default().agent_radius,
+                        WalkableRadiusInput,
+                    ));
+                    parent.spawn(decimal_input(
+                        "Agent Height",
+                        BuildNavmeshConfig::default().agent_height,
+                        WalkableHeightInput,
+                    ));
+                })),
                 BackgroundColor(BEVY_GRAY.with_alpha(0.6)),
             ),
             (
@@ -157,54 +173,29 @@ fn read_config_inputs(
     mut config: ResMut<BuildNavmeshConfig>,
     cell_size: Single<&TextInputContents, With<CellSizeInput>>,
     cell_height: Single<&TextInputContents, With<CellHeightInput>>,
-    walkable_slope: Single<&TextInputContents, With<WalkableSlopeInput>>,
     walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
-    walkable_climb: Single<&TextInputContents, With<WalkableClimbInput>>,
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
-    min_region_area: Single<&TextInputContents, With<MinRegionAreaInput>>,
-    merge_region_area: Single<&TextInputContents, With<MergeRegionAreaInput>>,
-    max_simplification_error: Single<&TextInputContents, With<MaxSimplificationErrorInput>>,
-    max_edge_len: Single<&TextInputContents, With<MaxEdgeLenInput>>,
-    max_vertices_per_polygon: Single<&TextInputContents, With<MaxVerticesPerPolygonInput>>,
-    detail_sample_distance: Single<&TextInputContents, With<DetailSampleDistanceInput>>,
-    detail_sample_max_error: Single<&TextInputContents, With<DetailSampleMaxErrorInput>>,
 ) {
     let d = BuildNavmeshConfig::default();
     config.0 = NavmeshConfigBuilder {
         cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
         cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
-        agent_max_slope: walkable_slope.get().parse().unwrap_or(d.agent_max_slope),
+        agent_max_slope: d.agent_max_slope,
         agent_height: walkable_height.get().parse().unwrap_or(d.agent_height),
-        agent_max_climb: walkable_climb.get().parse().unwrap_or(d.agent_max_climb),
+        agent_max_climb: d.agent_max_climb,
         agent_radius: walkable_radius.get().parse().unwrap_or(d.agent_radius),
-        region_min_size: min_region_area.get().parse().unwrap_or(d.region_min_size),
-        region_merge_size: merge_region_area
-            .get()
-            .parse()
-            .unwrap_or(d.region_merge_size),
-        detail_sample_max_error: detail_sample_max_error
-            .get()
-            .parse()
-            .unwrap_or(d.detail_sample_max_error),
-
-        edge_max_len_factor: max_edge_len.get().parse().unwrap_or(d.edge_max_len_factor),
-        verts_per_poly: max_vertices_per_polygon
-            .get()
-            .parse()
-            .unwrap_or(d.verts_per_poly),
-        detail_sample_dist: detail_sample_distance
-            .get()
-            .parse()
-            .unwrap_or(d.detail_sample_dist),
-        edge_max_error: max_simplification_error
-            .get()
-            .parse()
-            .unwrap_or(d.detail_sample_max_error),
+        region_min_size: d.region_min_size,
+        region_merge_size: d.region_merge_size,
+        detail_sample_max_error: d.detail_sample_max_error,
         tile_size: d.tile_size,
         aabb: d.aabb,
         contour_flags: d.contour_flags,
         tiling: d.tiling,
         area_volumes: d.area_volumes.clone(),
+        edge_max_len_factor: d.edge_max_len_factor,
+        edge_max_error: d.edge_max_error,
+        verts_per_poly: d.verts_per_poly,
+        detail_sample_dist: d.detail_sample_dist,
     };
 }
 
