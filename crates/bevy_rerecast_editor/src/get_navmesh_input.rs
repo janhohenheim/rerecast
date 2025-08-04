@@ -3,12 +3,15 @@ use bevy::{
     asset::RenderAssetUsages,
     platform::collections::HashMap,
     prelude::*,
-    remote::BrpRequest,
+    remote::{BrpError, BrpRequest, error_codes::INTERNAL_ERROR},
     render::mesh::{Indices, PrimitiveTopology},
-    tasks::{AsyncComputeTaskPool, Task, futures_lite::future},
+    tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
 };
 use bevy_rerecast::editor_integration::{
-    brp::{BRP_GENERATE_EDITOR_INPUT, PollEditorInputResponse},
+    brp::{
+        BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputResponse,
+        PollEditorInputParams, PollEditorInputResponse,
+    },
     transmission::deserialize,
 };
 
@@ -18,10 +21,15 @@ use crate::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_observer(fetch_navmesh_input);
+    app.add_observer(generate_navmesh_input);
     app.add_systems(
         Update,
-        poll_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
+        // the `run_if` needs to be on both systems because the resource is allowed to stop existing in-between them.
+        (
+            poll_remote_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
+            poll_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
+        )
+            .chain(),
     );
 }
 
@@ -29,9 +37,12 @@ pub(super) fn plugin(app: &mut App) {
 pub(crate) struct GetNavmeshInput;
 
 #[derive(Resource)]
-pub(crate) struct GetNavmeshInputRequestTask(Task<Result<PollEditorInputResponse, anyhow::Error>>);
+enum GetNavmeshInputRequestTask {
+    Generate(Task<Result<GenerateEditorInputResponse, anyhow::Error>>),
+    Poll(Task<Result<PollEditorInputResponse, anyhow::Error>>),
+}
 
-fn fetch_navmesh_input(
+fn generate_navmesh_input(
     _: Trigger<GetNavmeshInput>,
     mut commands: Commands,
     maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
@@ -47,7 +58,7 @@ fn fetch_navmesh_input(
         let req = BrpRequest {
             jsonrpc: String::from("2.0"),
             method: String::from(BRP_GENERATE_EDITOR_INPUT),
-            id: Some(serde_json::to_value(1)?),
+            id: None,
             params: None,
         };
         let request = ehttp::Request::json(url, &req)?;
@@ -55,19 +66,78 @@ fn fetch_navmesh_input(
             .await
             .map_err(|s| anyhow!("{s}"))?;
 
-        // Parse just the outer JSON
-        let v: serde_json::Value = resp.json()?;
+        let mut v: serde_json::Value = resp.json()?;
 
-        // Grab the base64 blob from result
-        let base64_blob = &v["result"];
+        let Some(val) = v.get_mut("result") else {
+            let Some(error) = v.get("error") else {
+                return Err(anyhow!(
+                    "BRP error: Response returned neither 'result' nor 'error' field"
+                ));
+            };
+            return Err(anyhow!("BRP error: {error}"));
+        };
+        let val = val.take();
 
         // Decode manually
-        let response: PollEditorInputResponse = deserialize(base64_blob)?;
+        let response: GenerateEditorInputResponse = serde_json::from_value(val)?;
+        Ok(response)
+    };
+
+    let task = IoTaskPool::get().spawn(future);
+    commands.insert_resource(GetNavmeshInputRequestTask::Generate(task));
+}
+
+fn poll_remote_navmesh_input(
+    mut commands: Commands,
+    mut task: ResMut<GetNavmeshInputRequestTask>,
+) -> Result {
+    let GetNavmeshInputRequestTask::Generate(task) = task.as_mut() else {
+        return Ok(());
+    };
+    let Some(result) = future::block_on(future::poll_once(task)) else {
+        return Ok(());
+    };
+    let response = result.map_err(|e| {
+        commands.remove_resource::<GetNavmeshInputRequestTask>();
+        e
+    })?;
+    let future = async {
+        // Create the URL. We're going to need it to issue the HTTP request.
+        let host_part = format!("{}:{}", "127.0.0.1", 15702);
+        let url = format!("http://{host_part}/");
+        let params = PollEditorInputParams { id: response.id };
+        let json = serde_json::to_value(params)?;
+        let req = BrpRequest {
+            jsonrpc: String::from("2.0"),
+            method: String::from(BRP_POLL_EDITOR_INPUT),
+            id: None,
+            params: Some(json),
+        };
+        let request = ehttp::Request::json(url, &req)?;
+        let resp = ehttp::fetch_async(request)
+            .await
+            .map_err(|s| anyhow!("{s}"))?;
+
+        let mut v: serde_json::Value = resp.json()?;
+
+        let Some(val) = v.get_mut("result") else {
+            let Some(error) = v.get("error") else {
+                return Err(anyhow!(
+                    "BRP error: Response returned neither 'result' nor 'error' field"
+                ));
+            };
+            return Err(anyhow!("BRP error: {error}"));
+        };
+        let val = val.take();
+
+        // Decode manually
+        let response: PollEditorInputResponse = deserialize(&val)?;
         Ok(response)
     };
 
     let task = AsyncComputeTaskPool::get().spawn(future);
-    commands.insert_resource(GetNavmeshInputRequestTask(task));
+    commands.insert_resource(GetNavmeshInputRequestTask::Poll(task));
+    Ok(())
 }
 
 fn poll_navmesh_input(
@@ -81,7 +151,10 @@ fn poll_navmesh_input(
     mut gizmos: ResMut<Assets<GizmoAsset>>,
     mut navmesh_handle: ResMut<NavmeshHandle>,
 ) -> Result {
-    let Some(result) = future::block_on(future::poll_once(&mut task.0)) else {
+    let GetNavmeshInputRequestTask::Poll(task) = task.as_mut() else {
+        return Ok(());
+    };
+    let Some(result) = future::block_on(future::poll_once(task)) else {
         return Ok(());
     };
     commands.remove_resource::<GetNavmeshInputRequestTask>();

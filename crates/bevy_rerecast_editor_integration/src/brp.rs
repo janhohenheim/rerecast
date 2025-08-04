@@ -55,7 +55,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
 
     let Some(backend_id) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "No navmesh affector backend found. Did you forget to add one?".to_string(),
             data: None,
         });
@@ -83,22 +83,22 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
     ), With<EditorVisible>>();
     let Some(meshes) = world.get_resource::<Assets<Mesh>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "Failed to get meshes".to_string(),
             data: None,
         });
     };
     let Some(images) = world.get_resource::<Assets<Image>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
             message: "Failed to get images".to_string(),
             data: None,
         });
     };
     let Some(materials) = world.get_resource::<Assets<StandardMaterial>>() else {
         return Err(BrpError {
-            code: bevy_remote::error_codes::INTERNAL_ERROR,
-            message: "Failed to get images".to_string(),
+            code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
+            message: "Failed to get materials".to_string(),
             data: None,
         });
     };
@@ -238,7 +238,10 @@ fn poll_navmesh_input(
     };
 
     match future::block_on(future::poll_once(task)) {
-        Some(result) => result.map(|v| Some(v)),
+        Some(result) => {
+            tasks.remove(&id);
+            result.map(|v| Some(v))
+        }
         None => Ok(None),
     }
 }
