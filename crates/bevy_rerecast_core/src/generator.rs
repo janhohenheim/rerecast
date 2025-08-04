@@ -74,7 +74,7 @@ impl<'w> NavmeshGenerator<'w> {
             handle.clone(),
             NavmeshAffectorBackendInput {
                 config,
-                filter: Some(entities.into_iter().copied().collect()),
+                filter: Some(entities.iter().copied().collect()),
             },
         ));
         handle
