@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_rerecast::{
-    NavmeshApp,
+    NavmeshAffectorBackendInput, NavmeshApp,
     debug::{DetailNavmeshGizmo, PolygonNavmeshGizmo},
     prelude::*,
     rerecast::{NavmeshConfigBuilder, TriMesh},
@@ -14,6 +14,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 fn editor_backend(
+    _: In<NavmeshAffectorBackendInput>,
     affectors: Query<(&GlobalTransform, &NavmeshAffector)>,
 ) -> Vec<(GlobalTransform, TriMesh)> {
     affectors

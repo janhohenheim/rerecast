@@ -5,12 +5,13 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemParam};
+use bevy_platform::collections::HashSet;
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
 use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, NavmeshConfigBuilder, TriMesh};
 
-use crate::{Navmesh, NavmeshAffectorBackend};
+use crate::{Navmesh, NavmeshAffectorBackend, NavmeshAffectorBackendInput};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<NavmeshQueue>();
@@ -41,15 +42,48 @@ impl<'w> NavmeshGenerator<'w> {
     ///
     /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
     /// Otherwise, the navmesh will be generated for the specified area.
+    ///
+    /// If you want to generate a navmesh for only a specific subset of entities, call [`Self::generate_for`] instead.
     pub fn generate(&mut self, config: NavmeshConfigBuilder) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        self.queue.push((handle.clone(), config));
+        self.queue.push((
+            handle.clone(),
+            NavmeshAffectorBackendInput {
+                config,
+                filter: None,
+            },
+        ));
+        handle
+    }
+
+    /// Queue a navmesh generation task for a specific subset of entities.
+    /// When you call this method, a new navmesh will be generated asynchronously.
+    /// Calling it multiple times will queue multiple navmeshes to be generated.
+    /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
+    ///
+    /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
+    /// Otherwise, the navmesh will be generated for the specified area.
+    ///
+    /// If you want to generate a navmesh for all available entities as defined by the backend, call [`Self::generate`] instead.
+    pub fn generate_for(
+        &mut self,
+        entities: impl Into<HashSet<Entity>>,
+        config: NavmeshConfigBuilder,
+    ) -> Handle<Navmesh> {
+        let handle = self.navmeshes.reserve_handle();
+        self.queue.push((
+            handle.clone(),
+            NavmeshAffectorBackendInput {
+                config,
+                filter: Some(entities.into()),
+            },
+        ));
         handle
     }
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshConfigBuilder)>);
+struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshAffectorBackendInput)>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 struct NavmeshTaskQueue(Vec<(Handle<Navmesh>, Task<Result<Navmesh>>)>);
@@ -64,28 +98,26 @@ fn drain_queue_into_tasks(world: &mut World) {
         };
         std::mem::take(&mut queue.0)
     };
-    if queue.is_empty() {
-        return;
-    }
-    let Some(backend) = world.get_resource::<NavmeshAffectorBackend>() else {
-        tracing::error!("Cannot generate navmesh: No backend available");
-        return;
-    };
-    let affectors = match world.run_system(backend.0) {
-        Ok(affectors) => affectors,
-        Err(err) => {
-            tracing::error!("Cannot generate navmesh: Backend error: {err}");
+    for (handle, input) in queue {
+        let Some(backend) = world.get_resource::<NavmeshAffectorBackend>() else {
+            tracing::error!("Cannot generate navmesh: No backend available");
             return;
-        }
-    };
-    let Some(mut tasks_queue) = world.get_resource_mut::<NavmeshTaskQueue>() else {
-        tracing::error!(
-            "Cannot generate navmesh: No task queue available. Please submit a bug report"
-        );
-        return;
-    };
-    let thread_pool = AsyncComputeTaskPool::get();
-    for (handle, config) in queue {
+        };
+        let config = input.config.clone();
+        let affectors = match world.run_system_with(backend.0, input) {
+            Ok(affectors) => affectors,
+            Err(err) => {
+                tracing::error!("Cannot generate navmesh: Backend error: {err}");
+                return;
+            }
+        };
+        let Some(mut tasks_queue) = world.get_resource_mut::<NavmeshTaskQueue>() else {
+            tracing::error!(
+                "Cannot generate navmesh: No task queue available. Please submit a bug report"
+            );
+            return;
+        };
+        let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(generate_navmesh(affectors.clone(), config));
         tasks_queue.push((handle, task));
     }
