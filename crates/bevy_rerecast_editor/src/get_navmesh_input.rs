@@ -7,16 +7,19 @@ use bevy::{
     render::mesh::{Indices, PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
 };
-use bevy_rerecast::editor_integration::{
-    brp::{
-        BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputResponse,
-        PollEditorInputParams, PollEditorInputResponse,
+use bevy_rerecast::{
+    NavmeshAffectorBackendInput,
+    editor_integration::{
+        brp::{
+            BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputParams,
+            GenerateEditorInputResponse, PollEditorInputParams, PollEditorInputResponse,
+        },
+        transmission::deserialize,
     },
-    transmission::deserialize,
 };
 
 use crate::{
-    backend::{NavmeshAffector, NavmeshHandle},
+    backend::{BuildNavmeshConfig, NavmeshAffector, NavmeshHandle},
     visualization::VisualMesh,
 };
 
@@ -45,13 +48,22 @@ enum GetNavmeshInputRequestTask {
 fn generate_navmesh_input(
     _: Trigger<GetNavmeshInput>,
     mut commands: Commands,
+    config: Res<BuildNavmeshConfig>,
     maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
 ) {
     if maybe_task.is_some() {
         // There's already an ongoing task, so we'll wait for it to complete.
         return;
     }
-    let future = async {
+    let config = config.0.clone();
+    let future = async move {
+        let params = GenerateEditorInputParams {
+            backend_input: NavmeshAffectorBackendInput {
+                config,
+                filter: None,
+            },
+        };
+        let json = serde_json::to_value(params)?;
         // Create the URL. We're going to need it to issue the HTTP request.
         let host_part = format!("{}:{}", "127.0.0.1", 15702);
         let url = format!("http://{host_part}/");
@@ -59,7 +71,7 @@ fn generate_navmesh_input(
             jsonrpc: String::from("2.0"),
             method: String::from(BRP_GENERATE_EDITOR_INPUT),
             id: None,
-            params: None,
+            params: Some(json),
         };
         let request = ehttp::Request::json(url, &req)?;
         let resp = ehttp::fetch_async(request)

@@ -11,7 +11,7 @@ use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-use bevy_rerecast_core::NavmeshAffectorBackend;
+use bevy_rerecast_core::{NavmeshAffectorBackend, NavmeshAffectorBackendInput};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
@@ -42,17 +42,35 @@ fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
     );
 }
 
+/// The parameters for [`BRP_GENERATE_EDITOR_INPUT`].
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct GenerateEditorInputParams {
+    /// Input for the navmesh affector backend.
+    pub backend_input: NavmeshAffectorBackendInput,
+}
+
 fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpResult {
-    if let Some(params) = params {
+    let Some(params) = params else {
         return Err(BrpError {
             code: bevy_remote::error_codes::INVALID_PARAMS,
             message: format!(
-                "BRP method `{BRP_GENERATE_EDITOR_INPUT}` requires no parameters, but received {params}"
+                "BRP method `{BRP_GENERATE_EDITOR_INPUT}` requires a parameter, but received none"
             ),
             data: None,
         });
-    }
-
+    };
+    let params: GenerateEditorInputParams = match serde_json::from_value(params.clone()) {
+        Ok(id) => id,
+        Err(e) => {
+            return Err(BrpError {
+                code: bevy_remote::error_codes::INVALID_PARAMS,
+                message: format!(
+                    "{e}. BRP method `{BRP_GENERATE_EDITOR_INPUT}` requires a parameter of type `GenerateEditorInputParams`, but received `{params:#?}`"
+                ),
+                data: None,
+            });
+        }
+    };
     let Some(backend_id) = world.get_resource::<NavmeshAffectorBackend>().cloned() else {
         return Err(BrpError {
             code: bevy_remote::error_codes::RESOURCE_NOT_PRESENT,
@@ -60,7 +78,7 @@ fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpRes
             data: None,
         });
     };
-    let affectors = match world.run_system(*backend_id) {
+    let affectors = match world.run_system_with(*backend_id, params.backend_input) {
         Ok(result) => result,
         Err(err) => {
             return Err(BrpError {

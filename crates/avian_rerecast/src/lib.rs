@@ -3,7 +3,7 @@
 use avian3d::prelude::*;
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_rerecast_core::{NavmeshApp as _, rerecast::TriMesh};
+use bevy_rerecast_core::{NavmeshAffectorBackendInput, NavmeshApp as _, rerecast::TriMesh};
 use bevy_transform::prelude::*;
 
 mod collider_to_trimesh;
@@ -26,12 +26,20 @@ impl Plugin for AvianBackendPlugin {
 }
 
 fn collider_backend(
-    colliders: Query<(&GlobalTransform, &Collider, &ColliderOf)>,
+    input: In<NavmeshAffectorBackendInput>,
+    colliders: Query<(Entity, &GlobalTransform, &Collider, &ColliderOf)>,
     bodies: Query<&RigidBody>,
 ) -> Vec<(GlobalTransform, TriMesh)> {
     colliders
         .iter()
-        .filter_map(|(transform, collider, collider_of)| {
+        .filter_map(|(entity, transform, collider, collider_of)| {
+            if input
+                .filter
+                .as_ref()
+                .is_some_and(|entities| !entities.contains(&entity))
+            {
+                return None;
+            }
             let body = bodies.get(collider_of.body).ok()?;
             if !body.is_static() {
                 return None;
