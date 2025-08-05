@@ -38,9 +38,6 @@ impl<'w> NavmeshGenerator<'w> {
     /// When you call this method, a new navmesh will be generated asynchronously.
     /// Calling it multiple times will queue multiple navmeshes to be generated.
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
-    ///
-    /// If [`ConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
-    /// Otherwise, the navmesh will be generated for the specified area.
     pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
         self.queue.push((handle.clone(), settings));

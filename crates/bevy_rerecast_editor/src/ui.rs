@@ -170,7 +170,6 @@ fn read_config_inputs(
         verts_per_poly: d.verts_per_poly,
         detail_sample_dist: d.detail_sample_dist,
         filter: None,
-        up: d.up,
     };
 }
 
