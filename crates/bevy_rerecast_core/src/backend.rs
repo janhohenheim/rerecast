@@ -160,7 +160,7 @@ pub struct NavmeshSettings {
     ///
     /// If left unspecified, the AABB will be automatically computed based on the available navmesh affectors.
     pub aabb: Aabb3d,
-    /// Flags controlling the [`ContourSet`](crate::ContourSet) generation process.
+    /// Flags controlling the [`ContourSet`](crate::rerecast::ContourSet) generation process.
     pub contour_flags: BuildContoursFlags,
     /// Whether the navmesh should be tiled or not.
     pub tiling: bool,

@@ -2,7 +2,7 @@ use crate::{Aabb3d, BuildContoursFlags, ConvexVolume};
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 
-/// Specifies a configuration to use when performing Recast builds. Usually built using [`NavmeshConfigBuilder`].
+/// Specifies a configuration to use when performing Recast builds. Usually built using [`ConfigBuilder`].
 ///
 /// This is a convenience structure that represents an aggregation of parameters used at different stages in the Recast build process.
 /// Some values are derived during the build process. Not all parameters are used for all build processes.
@@ -205,7 +205,7 @@ pub struct Config {
     pub area_volumes: Vec<ConvexVolume>,
 }
 
-/// A builder for [`NavmeshConfig`]. The config has lots of interdependent configurations,
+/// A builder for [`Config`]. The config has lots of interdependent configurations,
 /// so this builder provides a convenient way to set all the necessary parameters.
 ///
 /// The most important parameters are:
@@ -373,7 +373,7 @@ impl Default for ConfigBuilder {
 }
 
 impl ConfigBuilder {
-    /// Builds a [`NavmeshConfig`] from the current configuration.
+    /// Builds a [`Config`] from the current configuration.
     pub fn build(self) -> Config {
         let cell_size = self.agent_radius / self.cell_size_fraction;
         let cell_height = self.agent_radius / self.cell_height_fraction;
