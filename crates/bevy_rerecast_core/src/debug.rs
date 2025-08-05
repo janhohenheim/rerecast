@@ -402,6 +402,7 @@ impl FromWorld for GizmoHandles {
                     unlit: true,
                     double_sided: true,
                     alpha_mode: AlphaMode::AlphaToCoverage,
+                    depth_bias: -0.001,
                     ..Default::default()
                 },
             ),
@@ -411,6 +412,7 @@ impl FromWorld for GizmoHandles {
                     unlit: true,
                     double_sided: true,
                     alpha_mode: AlphaMode::AlphaToCoverage,
+                    depth_bias: -0.001,
                     ..Default::default()
                 },
             ),
@@ -434,8 +436,8 @@ impl Default for NavmeshGizmoConfig {
             polygon_navmesh: GizmoConfig {
                 enabled: false,
                 line: GizmoLineConfig {
-                    perspective: true,
-                    width: 20.0,
+                    perspective: false,
+                    width: 1.3,
                     ..Default::default()
                 },
                 depth_bias: -0.001,
@@ -444,8 +446,8 @@ impl Default for NavmeshGizmoConfig {
             detail_navmesh: GizmoConfig {
                 enabled: true,
                 line: GizmoLineConfig {
-                    perspective: true,
-                    width: 20.0,
+                    perspective: false,
+                    width: 1.3,
                     ..Default::default()
                 },
                 depth_bias: -0.001,

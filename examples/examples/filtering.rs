@@ -42,7 +42,7 @@ fn setup(
     let material_red = materials.add(Color::from(tailwind::RED_500));
     let material_blue = materials.add(Color::from(tailwind::SKY_500));
     let cube = Cuboid::new(1.0, 1.0, 1.0);
-    let plane = Plane3d::new(Vec3::Z, Vec2::splat(500.0));
+    let plane = Cuboid::new(1000.0, 1.0, 1000.0);
     let ground = commands
         .spawn((
             Name::new("Ground"),
@@ -76,11 +76,11 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        Transform::default().looking_to(Vec3::new(0.5, -2.0, -2.0), Vec3::Z),
+        Transform::default().looking_to(Vec3::new(0.5, -2.0, -2.0), Vec3::Y),
     ));
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(0.0, 0.0, 2000.0).looking_at(Vec3::ZERO, Vec3::Z),
+        Transform::from_xyz(0.0, 2000.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
     commands.spawn((
@@ -107,8 +107,8 @@ fn generate_navmesh(
 ) {
     let settings = NavmeshSettings {
         filter: Some(filter.0.clone()),
-        aabb: Some(Aabb3d::new(Vec3::ZERO, Vec3::new(500.0, 500.0, 10.0))),
-        ..NavmeshSettings::from_agent_2d(5.0, 10.0)
+        aabb: Some(Aabb3d::new(Vec3::ZERO, Vec3::new(500.0, 10.0, 500.0))),
+        ..NavmeshSettings::from_agent_3d(5.0, 10.0)
     };
     let navmesh = generator.generate(settings);
     commands.spawn(DetailNavmeshGizmo::new(&navmesh));
