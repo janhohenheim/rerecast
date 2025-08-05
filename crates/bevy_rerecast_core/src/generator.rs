@@ -117,11 +117,11 @@ fn poll_tasks(
     mut navmeshes: ResMut<Assets<Navmesh>>,
 ) {
     let mut removed_ids = Vec::new();
-    for (id, task) in tasks.iter_mut() {
+    for (&id, task) in tasks.iter_mut() {
         let Some(navmesh) = future::block_on(future::poll_once(task)) else {
             continue;
         };
-        removed_ids.push(id.clone());
+        removed_ids.push(id);
         let navmesh = match navmesh {
             Ok(navmesh) => navmesh,
             Err(err) => {
@@ -130,7 +130,7 @@ fn poll_tasks(
             }
         };
         // Process the generated navmesh
-        navmeshes.insert(id.clone(), navmesh);
+        navmeshes.insert(id, navmesh);
     }
     for id in removed_ids {
         if let Some(_task) = tasks.remove(&id) {
