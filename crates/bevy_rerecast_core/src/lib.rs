@@ -15,7 +15,7 @@ pub use backend::*;
 pub mod asset_loader;
 
 pub use rerecast;
-use rerecast::{ConfigBuilder, DetailNavmesh, PolygonNavmesh};
+use rerecast::{DetailNavmesh, PolygonNavmesh};
 use serde::{Deserialize, Serialize};
 
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.

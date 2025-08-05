@@ -40,7 +40,7 @@ impl NavmeshApp for App {
 #[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
 pub struct NavmeshSettings {
-    /// How many cells should fit in the [`Self::agent_radius`] on the xz-plane to use for fields. `[Limit: > 0]`.
+    /// How many cells should fit in the [`Self::agent_radius`] on the horizontal plane to use for fields. `[Limit: > 0]`.
     ///
     /// The voxelization cell size defines the voxel size along both axes of the ground plane: x and z in Recast.
     /// The resulting value is derived from the character radius r. For example, setting `cell_size_fraction` to 2 will result in the
@@ -62,7 +62,7 @@ pub struct NavmeshSettings {
     /// The maximum value for this parameter depends on the platform's floating point accuracy,
     /// with the practical maximum usually such that [`Self::agent_radius`] / [`Self::cell_size_fraction`] = 0.05.
     pub cell_size_fraction: f32,
-    /// How many cells should fit in the [`Self::agent_height`] on the y-axis to use for fields. `[Limit: > 0]`
+    /// How many cells should fit in the [`Self::agent_height`] on the up-axis to use for fields. `[Limit: > 0]`
     ///
     /// The voxelization cell height is defined separately in order to allow for greater precision in height tests.
     /// A good starting point for [`Self::cell_height_fraction`] is twice the size of [`Self::cell_size_fraction`].
@@ -139,7 +139,7 @@ pub struct NavmeshSettings {
     /// If the value is less than 1.1, some sawtoothing starts to appear at the generated edges.
     /// If the value is more than 1.5, the mesh simplification starts to cut some corners it shouldn't.
     ///
-    /// The effect of this parameter only applies to the xz-plane.
+    /// The effect of this parameter only applies to the horizontal plane.
     pub edge_max_error: f32,
     /// The maximum number of vertices allowed for polygons generated during the
     /// contour to polygon conversion process. `[Limit: >= 3]`
@@ -152,7 +152,7 @@ pub struct NavmeshSettings {
     /// The maximum distance the detail mesh surface should deviate from heightfield
     /// data. (For height detail only.) `[Limit: >=0] [Units: wu]`
     pub detail_sample_max_error: f32,
-    /// The width/height size of tiles on the xz-plane. `[Limit: >= 0] [Units: vx]`
+    /// The width/height size of tiles on the horizontal plane. `[Limit: >= 0] [Units: vx]`
     ///
     /// This field is only used when building multi-tile meshes, i.e. when [`Self::tiling`] is `true`.
     pub tile_size: u16,
@@ -170,6 +170,7 @@ pub struct NavmeshSettings {
     /// If `Some`, the backend is expected to only consider the specified entities when generating affectors.
     /// If `None`, the backend is expected to generate affectors for as many entities as is reasonable.
     pub filter: Option<HashSet<Entity>>,
+    /// The up direction. Typically [`Vec3::Y`] for 3D and [`Vec3::Z`] for 2D.
     pub up: Vec3,
 }
 
@@ -202,6 +203,7 @@ impl Default for NavmeshSettings {
 }
 
 impl NavmeshSettings {
+    /// Creates a new [`NavmeshSettings`] instance from a 3D agent's radius and height.
     pub fn from_agent_3d(radius: f32, height: f32) -> Self {
         Self {
             agent_radius: radius,
@@ -210,6 +212,8 @@ impl NavmeshSettings {
             ..Self::default()
         }
     }
+
+    /// Creates a new [`NavmeshSettings`] instance from a 2D agent's radius and height.
     pub fn from_agent_2d(radius: f32, height: f32) -> Self {
         Self {
             agent_radius: radius,

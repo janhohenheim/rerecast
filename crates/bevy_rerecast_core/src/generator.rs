@@ -1,6 +1,6 @@
 //! Utilities for generating navmeshes at runtime.
 
-use anyhow::{Context as _, bail};
+use anyhow::Context as _;
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
@@ -8,7 +8,7 @@ use bevy_ecs::{prelude::*, system::SystemParam};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
-use rerecast::{Aabb3d, ConfigBuilder, DetailNavmesh, HeightfieldBuilder, TriMesh};
+use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
 use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
 
