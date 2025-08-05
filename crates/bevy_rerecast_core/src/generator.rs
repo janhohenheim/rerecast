@@ -1,6 +1,6 @@
 //! Utilities for generating navmeshes at runtime.
 
-use anyhow::Context as _;
+use anyhow::{Context as _, bail};
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
@@ -69,8 +69,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             tracing::error!("Cannot generate navmesh: No backend available");
             return;
         };
-        let config = input.clone().into_rerecast_config();
-        let affectors = match world.run_system_with(backend.0, input) {
+        let affectors = match world.run_system_with(backend.0, input.clone()) {
             Ok(affectors) => affectors,
             Err(err) => {
                 tracing::error!("Cannot generate navmesh: Backend error: {err}");
@@ -84,7 +83,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             return;
         };
         let thread_pool = AsyncComputeTaskPool::get();
-        let task = thread_pool.spawn(generate_navmesh(affectors.clone(), config));
+        let task = thread_pool.spawn(generate_navmesh(affectors.clone(), input));
         tasks_queue.push((handle, task));
     }
 }
@@ -122,7 +121,7 @@ pub struct NavmeshReady(pub Handle<Navmesh>);
 
 async fn generate_navmesh(
     affectors: Vec<(GlobalTransform, TriMesh)>,
-    config_builder: ConfigBuilder,
+    settings: NavmeshSettings,
 ) -> Result<Navmesh> {
     let mut trimesh = TriMesh::default();
     for (transform, mut current_trimesh) in affectors {
@@ -132,9 +131,52 @@ async fn generate_navmesh(
         }
         trimesh.extend(current_trimesh);
     }
+    match settings.up {
+        Vec3::Y => {
+            // Already in Bevy's coordinate system
+        }
+        Vec3::NEG_Y => {
+            for vertex in &mut trimesh.vertices {
+                vertex.y = -vertex.y;
+            }
+        }
+        Vec3::Z => {
+            for vertex in &mut trimesh.vertices {
+                let z = vertex.z;
+                vertex.z = vertex.y;
+                vertex.y = z
+            }
+        }
+        Vec3::NEG_Z => {
+            for vertex in &mut trimesh.vertices {
+                let z = vertex.z;
+                vertex.z = vertex.y;
+                vertex.y = -z
+            }
+        }
+        Vec3::X => {
+            for vertex in &mut trimesh.vertices {
+                let x = vertex.x;
+                vertex.x = vertex.y;
+                vertex.y = x
+            }
+        }
+        Vec3::NEG_X => {
+            for vertex in &mut trimesh.vertices {
+                let x = vertex.x;
+                vertex.x = vertex.y;
+                vertex.y = -x
+            }
+        }
+        _ => {
+            return Err(BevyError::from(anyhow::anyhow!(
+                "Failed to generate navmesh: Unsupported up vector. Expected a coordinate axis unit vector, but got {}",
+                settings.up
+            )));
+        }
+    }
+    let mut config_builder = settings.clone().into_rerecast_config();
     let config = {
-        let mut config_builder = config_builder.clone();
-
         if config_builder.aabb == Aabb3d::default() {
             config_builder.aabb = trimesh
                 .compute_aabb()
@@ -195,6 +237,6 @@ async fn generate_navmesh(
     Ok(Navmesh {
         polygon: poly_mesh,
         detail: detail_mesh,
-        config: config_builder,
+        settings,
     })
 }

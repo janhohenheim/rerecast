@@ -50,5 +50,5 @@ pub struct Navmesh {
     pub detail: DetailNavmesh,
 
     /// The configuration that was used to generate this navmesh.
-    pub config: ConfigBuilder,
+    pub settings: NavmeshSettings,
 }

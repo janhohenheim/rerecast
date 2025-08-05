@@ -79,11 +79,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 struct NavmeshHandle(Handle<Navmesh>);
 
 fn generate_navmesh(mut generator: NavmeshGenerator, mut commands: Commands) {
-    let settings = NavmeshSettings {
-        agent_radius: 0.3,
-        agent_height: 1.0,
-        ..default()
-    };
+    let settings = NavmeshSettings::from_agent_3d(0.3, 1.0);
     let navmesh = generator.generate(settings);
     commands.spawn(DetailNavmeshGizmo::new(&navmesh));
     commands.insert_resource(NavmeshHandle(navmesh));

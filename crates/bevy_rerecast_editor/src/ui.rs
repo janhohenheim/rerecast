@@ -149,7 +149,7 @@ fn read_config_inputs(
     walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
 ) {
-    let d = GlobalNavmeshSettings::default();
+    let d = NavmeshSettings::default();
     settings.0 = NavmeshSettings {
         cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
         cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
@@ -170,6 +170,7 @@ fn read_config_inputs(
         verts_per_poly: d.verts_per_poly,
         detail_sample_dist: d.detail_sample_dist,
         filter: None,
+        up: d.up,
     };
 }
 

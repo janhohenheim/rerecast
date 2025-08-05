@@ -37,7 +37,7 @@ impl NavmeshApp for App {
 }
 
 /// The input passed to the navmesh affector backend system.
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
 pub struct NavmeshSettings {
     /// How many cells should fit in the [`Self::agent_radius`] on the xz-plane to use for fields. `[Limit: > 0]`.
@@ -158,8 +158,8 @@ pub struct NavmeshSettings {
     pub tile_size: u16,
     /// The navmesh's AABB [Units: wu]
     ///
-    /// If left unspecified, the AABB will be automatically computed based on the available navmesh affectors.
-    pub aabb: Aabb3d,
+    /// If left at `None`, the AABB will be automatically computed based on the available navmesh affectors.
+    pub aabb: Option<Aabb3d>,
     /// Flags controlling the [`ContourSet`](crate::rerecast::ContourSet) generation process.
     pub contour_flags: BuildContoursFlags,
     /// Whether the navmesh should be tiled or not.
@@ -170,6 +170,7 @@ pub struct NavmeshSettings {
     /// If `Some`, the backend is expected to only consider the specified entities when generating affectors.
     /// If `None`, the backend is expected to generate affectors for as many entities as is reasonable.
     pub filter: Option<HashSet<Entity>>,
+    pub up: Vec3,
 }
 
 impl Default for NavmeshSettings {
@@ -187,7 +188,7 @@ impl Default for NavmeshSettings {
             detail_sample_dist: cfg.detail_sample_dist,
             detail_sample_max_error: cfg.detail_sample_max_error,
             tile_size: cfg.tile_size,
-            aabb: Aabb3d::new(Vec3::ZERO, Vec3::ZERO),
+            aabb: None,
             contour_flags: cfg.contour_flags,
             tiling: cfg.tiling,
             area_volumes: cfg.area_volumes,
@@ -195,11 +196,29 @@ impl Default for NavmeshSettings {
             cell_size_fraction: cfg.cell_size_fraction,
             cell_height_fraction: cfg.cell_height_fraction,
             edge_max_len_factor: cfg.edge_max_len_factor,
+            up: Vec3::Y,
         }
     }
 }
 
 impl NavmeshSettings {
+    pub fn from_agent_3d(radius: f32, height: f32) -> Self {
+        Self {
+            agent_radius: radius,
+            agent_height: height,
+            up: Vec3::Y,
+            ..Self::default()
+        }
+    }
+    pub fn from_agent_2d(radius: f32, height: f32) -> Self {
+        Self {
+            agent_radius: radius,
+            agent_height: height,
+            up: Vec3::Z,
+            ..Self::default()
+        }
+    }
+
     pub(crate) fn into_rerecast_config(self) -> rerecast::ConfigBuilder {
         rerecast::ConfigBuilder {
             agent_height: self.agent_height,
@@ -213,10 +232,13 @@ impl NavmeshSettings {
             detail_sample_dist: self.detail_sample_dist,
             detail_sample_max_error: self.detail_sample_max_error,
             tile_size: self.tile_size,
-            aabb: rerecast::Aabb3d {
-                min: self.aabb.min.into(),
-                max: self.aabb.max.into(),
-            },
+            aabb: self
+                .aabb
+                .map(|aabb| rerecast::Aabb3d {
+                    min: aabb.min.into(),
+                    max: aabb.max.into(),
+                })
+                .unwrap_or_default(),
             contour_flags: self.contour_flags,
             tiling: self.tiling,
             area_volumes: self.area_volumes,
