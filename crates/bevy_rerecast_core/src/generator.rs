@@ -5,6 +5,7 @@ use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemParam};
+use bevy_platform::collections::HashMap;
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::{U16Vec3, Vec3, Vec3A};
@@ -31,6 +32,7 @@ pub struct NavmeshGenerator<'w> {
     )]
     navmeshes: Res<'w, Assets<Navmesh>>,
     queue: ResMut<'w, NavmeshQueue>,
+    task_queue: ResMut<'w, NavmeshTaskQueue>,
 }
 
 impl<'w> NavmeshGenerator<'w> {
@@ -40,16 +42,40 @@ impl<'w> NavmeshGenerator<'w> {
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        self.queue.push((handle.clone(), settings));
+        self.queue.insert(handle.id(), settings);
         handle
+    }
+
+    /// Queue a navmesh regeneration task.
+    /// When you call this method, an existing navmesh will be regenerated asynchronously.
+    /// Calling it multiple times will have no effect until the regeneration is complete.
+    /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
+    ///
+    /// Returns `true` if the regeneration was queued, `false` if it was already queued.
+    pub fn regenerate(
+        &mut self,
+        id: impl Into<AssetId<Navmesh>>,
+        settings: NavmeshSettings,
+    ) -> bool {
+        let id = id.into();
+        if self
+            .queue
+            .keys()
+            .chain(self.task_queue.keys())
+            .any(|queued_id| queued_id == &id)
+        {
+            return false;
+        }
+        self.queue.insert(id, settings);
+        true
     }
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshSettings)>);
+struct NavmeshQueue(HashMap<AssetId<Navmesh>, NavmeshSettings>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-struct NavmeshTaskQueue(Vec<(Handle<Navmesh>, Task<Result<Navmesh>>)>);
+struct NavmeshTaskQueue(HashMap<AssetId<Navmesh>, Task<Result<Navmesh>>>);
 
 fn drain_queue_into_tasks(world: &mut World) {
     let queue = {
@@ -81,7 +107,7 @@ fn drain_queue_into_tasks(world: &mut World) {
         };
         let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(generate_navmesh(affectors.clone(), input));
-        tasks_queue.push((handle, task));
+        tasks_queue.insert(handle, task);
     }
 }
 
@@ -90,12 +116,12 @@ fn poll_tasks(
     mut tasks: ResMut<NavmeshTaskQueue>,
     mut navmeshes: ResMut<Assets<Navmesh>>,
 ) {
-    let mut removed_indices = Vec::new();
-    for (index, (handle, task)) in tasks.iter_mut().enumerate() {
+    let mut removed_ids = Vec::new();
+    for (id, task) in tasks.iter_mut() {
         let Some(navmesh) = future::block_on(future::poll_once(task)) else {
             continue;
         };
-        removed_indices.push(index);
+        removed_ids.push(id.clone());
         let navmesh = match navmesh {
             Ok(navmesh) => navmesh,
             Err(err) => {
@@ -104,17 +130,18 @@ fn poll_tasks(
             }
         };
         // Process the generated navmesh
-        navmeshes.insert(handle, navmesh);
+        navmeshes.insert(id.clone(), navmesh);
     }
-    for index in removed_indices {
-        let (handle, _task) = tasks.swap_remove(index);
-        commands.trigger(NavmeshReady(handle));
+    for id in removed_ids {
+        if let Some(_task) = tasks.remove(&id) {
+            commands.trigger(NavmeshReady(id));
+        }
     }
 }
 
 /// Triggered when a navmesh created by the [`NavmeshGenerator`] is ready.
 #[derive(Debug, Event, Deref, DerefMut)]
-pub struct NavmeshReady(pub Handle<Navmesh>);
+pub struct NavmeshReady(pub AssetId<Navmesh>);
 
 async fn generate_navmesh(
     affectors: Vec<(GlobalTransform, TriMesh)>,
