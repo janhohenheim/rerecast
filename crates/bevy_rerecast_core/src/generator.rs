@@ -7,7 +7,7 @@ use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemParam};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
-use glam::Vec3;
+use glam::{U16Vec3, Vec3, Vec3A};
 use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
 use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
@@ -128,6 +128,11 @@ async fn generate_navmesh(
         }
         trimesh.extend(current_trimesh);
     }
+    if settings.up_z {
+        for vertex in &mut trimesh.vertices {
+            *vertex = Vec3A::new(vertex.y, vertex.z, vertex.x);
+        }
+    }
 
     let mut config_builder = settings.clone().into_rerecast_config();
     let config = {
@@ -135,6 +140,19 @@ async fn generate_navmesh(
             config_builder.aabb = trimesh
                 .compute_aabb()
                 .context("Failed to compute AABB: trimesh is empty")?;
+        }
+
+        if settings.up_z {
+            config_builder.aabb.min = Vec3::new(
+                config_builder.aabb.min.y,
+                config_builder.aabb.min.z,
+                config_builder.aabb.min.x,
+            );
+            config_builder.aabb.max = Vec3::new(
+                config_builder.aabb.max.y,
+                config_builder.aabb.max.z,
+                config_builder.aabb.max.x,
+            );
         }
         config_builder.build()
     };
@@ -188,9 +206,30 @@ async fn generate_navmesh(
         config.detail_sample_dist,
         config.detail_sample_max_error,
     )?;
-    Ok(Navmesh {
+
+    let up = settings.up_z;
+    let mut navmesh = Navmesh {
         polygon: poly_mesh,
         detail: detail_mesh,
         settings,
-    })
+    };
+    if up {
+        for vertex in &mut navmesh.polygon.vertices {
+            *vertex = U16Vec3::new(vertex.z, vertex.x, vertex.y);
+        }
+        for vertex in &mut navmesh.detail.vertices {
+            *vertex = Vec3::new(vertex.z, vertex.x, vertex.y);
+        }
+        navmesh.polygon.aabb.min = Vec3::new(
+            navmesh.polygon.aabb.min.z,
+            navmesh.polygon.aabb.min.x,
+            navmesh.polygon.aabb.min.y,
+        );
+        navmesh.polygon.aabb.max = Vec3::new(
+            navmesh.polygon.aabb.max.z,
+            navmesh.polygon.aabb.max.x,
+            navmesh.polygon.aabb.max.y,
+        );
+    }
+    Ok(navmesh)
 }

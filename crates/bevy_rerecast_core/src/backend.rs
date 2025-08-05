@@ -39,6 +39,7 @@ impl NavmeshApp for App {
 #[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(Serialize, Deserialize)]
 pub struct NavmeshSettings {
+    pub up_z: bool,
     /// How many cells should fit in the [`Self::agent_radius`] on the horizontal plane to use for fields. `[Limit: > 0]`.
     ///
     /// The voxelization cell size defines the voxel size along both axes of the ground plane: x and z in Recast.
@@ -175,6 +176,7 @@ impl Default for NavmeshSettings {
     fn default() -> Self {
         let cfg = ConfigBuilder::default();
         Self {
+            up_z: false,
             agent_height: cfg.agent_height,
             agent_radius: cfg.agent_radius,
             agent_max_climb: cfg.agent_max_climb,
