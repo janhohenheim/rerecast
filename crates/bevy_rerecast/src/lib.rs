@@ -7,12 +7,9 @@ pub use bevy_rerecast_editor_integration as editor_integration;
 
 /// Everything you need to get started with the Navmesh plugins.
 pub mod prelude {
-    #[cfg(feature = "debug_plugin")]
-    pub use crate::debug::NavmeshDebugPlugin;
     pub use crate::{
-        Navmesh, NavmeshPlugins,
+        Navmesh, NavmeshApp as _, NavmeshPlugins, NavmeshSettings,
         generator::{NavmeshGenerator, NavmeshReady},
-        rerecast::NavmeshConfigBuilder,
     };
 }
 

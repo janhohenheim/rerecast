@@ -3,11 +3,11 @@
 use avian3d::prelude::*;
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_rerecast_core::{NavmeshAffectorBackendInput, NavmeshApp as _, rerecast::TriMesh};
+use bevy_rerecast_core::{NavmeshApp as _, NavmeshSettings, rerecast::TriMesh};
 use bevy_transform::prelude::*;
 
 mod collider_to_trimesh;
-use crate::collider_to_trimesh::ToTriMesh;
+pub use crate::collider_to_trimesh::ColliderToTriMesh;
 
 /// Everything you need to get started with the Navmesh plugin.
 pub mod prelude {
@@ -26,7 +26,7 @@ impl Plugin for AvianBackendPlugin {
 }
 
 fn collider_backend(
-    input: In<NavmeshAffectorBackendInput>,
+    input: In<NavmeshSettings>,
     colliders: Query<(Entity, &GlobalTransform, &Collider, &ColliderOf)>,
     bodies: Query<&RigidBody>,
 ) -> Vec<(GlobalTransform, TriMesh)> {

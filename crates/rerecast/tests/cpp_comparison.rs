@@ -3,7 +3,7 @@
 use std::fs;
 
 use glam::Vec2;
-use rerecast::{AreaType, ConvexVolume, DetailNavmesh, HeightfieldBuilder, NavmeshConfig};
+use rerecast::{AreaType, Config, ConvexVolume, DetailNavmesh, HeightfieldBuilder};
 use test_utils::*;
 
 #[test]
@@ -29,7 +29,7 @@ fn validate_navmesh_against_cpp_implementation() {
 
         let geometry = load_json::<CppGeometry>(project, "geometry");
         let mut trimesh = geometry.to_trimesh();
-        let config = NavmeshConfig::load_from_test_data(project);
+        let config = Config::load_from_test_data(project);
         assert_eq!(
             config.aabb,
             trimesh.compute_aabb().unwrap(),

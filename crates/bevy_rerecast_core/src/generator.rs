@@ -1,16 +1,17 @@
 //! Utilities for generating navmeshes at runtime.
 
-use anyhow::Context as _;
+use anyhow::{Context as _, anyhow};
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemParam};
+use bevy_platform::collections::HashMap;
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::{TransformSystem, components::GlobalTransform};
-use glam::Vec3;
-use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, NavmeshConfigBuilder, TriMesh};
+use glam::{U16Vec3, Vec3, Vec3A};
+use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
-use crate::{Navmesh, NavmeshAffectorBackend, NavmeshAffectorBackendInput};
+use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<NavmeshQueue>();
@@ -31,6 +32,7 @@ pub struct NavmeshGenerator<'w> {
     )]
     navmeshes: Res<'w, Assets<Navmesh>>,
     queue: ResMut<'w, NavmeshQueue>,
+    task_queue: ResMut<'w, NavmeshTaskQueue>,
 }
 
 impl<'w> NavmeshGenerator<'w> {
@@ -38,54 +40,42 @@ impl<'w> NavmeshGenerator<'w> {
     /// When you call this method, a new navmesh will be generated asynchronously.
     /// Calling it multiple times will queue multiple navmeshes to be generated.
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
-    ///
-    /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
-    /// Otherwise, the navmesh will be generated for the specified area.
-    ///
-    /// If you want to generate a navmesh for only a specific subset of entities, call [`Self::generate_for`] instead.
-    pub fn generate(&mut self, config: NavmeshConfigBuilder) -> Handle<Navmesh> {
+    pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        self.queue.push((
-            handle.clone(),
-            NavmeshAffectorBackendInput {
-                config,
-                filter: None,
-            },
-        ));
+        self.queue.insert(handle.id(), settings);
         handle
     }
 
-    /// Queue a navmesh generation task for a specific subset of entities.
-    /// When you call this method, a new navmesh will be generated asynchronously.
-    /// Calling it multiple times will queue multiple navmeshes to be generated.
+    /// Queue a navmesh regeneration task.
+    /// When you call this method, an existing navmesh will be regenerated asynchronously.
+    /// Calling it multiple times will have no effect until the regeneration is complete.
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     ///
-    /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
-    /// Otherwise, the navmesh will be generated for the specified area.
-    ///
-    /// If you want to generate a navmesh for all available entities as defined by the backend, call [`Self::generate`] instead.
-    pub fn generate_for(
+    /// Returns `true` if the regeneration was successfully queued now, `false` if it was already previously queued.
+    pub fn regenerate(
         &mut self,
-        entities: &[Entity],
-        config: NavmeshConfigBuilder,
-    ) -> Handle<Navmesh> {
-        let handle = self.navmeshes.reserve_handle();
-        self.queue.push((
-            handle.clone(),
-            NavmeshAffectorBackendInput {
-                config,
-                filter: Some(entities.iter().copied().collect()),
-            },
-        ));
-        handle
+        id: impl Into<AssetId<Navmesh>>,
+        settings: NavmeshSettings,
+    ) -> bool {
+        let id = id.into();
+        if self
+            .queue
+            .keys()
+            .chain(self.task_queue.keys())
+            .any(|queued_id| queued_id == &id)
+        {
+            return false;
+        }
+        self.queue.insert(id, settings);
+        true
     }
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshAffectorBackendInput)>);
+struct NavmeshQueue(HashMap<AssetId<Navmesh>, NavmeshSettings>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-struct NavmeshTaskQueue(Vec<(Handle<Navmesh>, Task<Result<Navmesh>>)>);
+struct NavmeshTaskQueue(HashMap<AssetId<Navmesh>, Task<Result<Navmesh>>>);
 
 fn drain_queue_into_tasks(world: &mut World) {
     let queue = {
@@ -102,8 +92,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             tracing::error!("Cannot generate navmesh: No backend available");
             return;
         };
-        let config = input.config.clone();
-        let affectors = match world.run_system_with(backend.0, input) {
+        let affectors = match world.run_system_with(backend.0, input.clone()) {
             Ok(affectors) => affectors,
             Err(err) => {
                 tracing::error!("Cannot generate navmesh: Backend error: {err}");
@@ -117,8 +106,8 @@ fn drain_queue_into_tasks(world: &mut World) {
             return;
         };
         let thread_pool = AsyncComputeTaskPool::get();
-        let task = thread_pool.spawn(generate_navmesh(affectors.clone(), config));
-        tasks_queue.push((handle, task));
+        let task = thread_pool.spawn(generate_navmesh(affectors.clone(), input));
+        tasks_queue.insert(handle, task);
     }
 }
 
@@ -127,12 +116,12 @@ fn poll_tasks(
     mut tasks: ResMut<NavmeshTaskQueue>,
     mut navmeshes: ResMut<Assets<Navmesh>>,
 ) {
-    let mut removed_indices = Vec::new();
-    for (index, (handle, task)) in tasks.iter_mut().enumerate() {
+    let mut removed_ids = Vec::new();
+    for (&id, task) in tasks.iter_mut() {
         let Some(navmesh) = future::block_on(future::poll_once(task)) else {
             continue;
         };
-        removed_indices.push(index);
+        removed_ids.push(id);
         let navmesh = match navmesh {
             Ok(navmesh) => navmesh,
             Err(err) => {
@@ -141,21 +130,22 @@ fn poll_tasks(
             }
         };
         // Process the generated navmesh
-        navmeshes.insert(handle, navmesh);
+        navmeshes.insert(id, navmesh);
     }
-    for index in removed_indices {
-        let (handle, _task) = tasks.swap_remove(index);
-        commands.trigger(NavmeshReady(handle));
+    for id in removed_ids {
+        if let Some(_task) = tasks.remove(&id) {
+            commands.trigger(NavmeshReady(id));
+        }
     }
 }
 
 /// Triggered when a navmesh created by the [`NavmeshGenerator`] is ready.
 #[derive(Debug, Event, Deref, DerefMut)]
-pub struct NavmeshReady(pub Handle<Navmesh>);
+pub struct NavmeshReady(pub AssetId<Navmesh>);
 
 async fn generate_navmesh(
     affectors: Vec<(GlobalTransform, TriMesh)>,
-    config_builder: NavmeshConfigBuilder,
+    settings: NavmeshSettings,
 ) -> Result<Navmesh> {
     let mut trimesh = TriMesh::default();
     for (transform, mut current_trimesh) in affectors {
@@ -165,13 +155,54 @@ async fn generate_navmesh(
         }
         trimesh.extend(current_trimesh);
     }
-    let config = {
-        let mut config_builder = config_builder.clone();
+    let up = settings.up;
+    match up {
+        Vec3::Y => {
+            // already Bevy's coordinate system
+        }
+        Vec3::Z => {
+            for vertex in &mut trimesh.vertices {
+                *vertex = Vec3A::new(vertex.y, vertex.z, vertex.x);
+            }
+        }
+        Vec3::X => {
+            for vertex in &mut trimesh.vertices {
+                *vertex = Vec3A::new(vertex.z, vertex.x, vertex.y);
+            }
+        }
+        _ => {
+            return Err(BevyError::from(anyhow!(
+                "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+            )));
+        }
+    }
 
+    let mut config_builder = settings.clone().into_rerecast_config();
+    let config = {
         if config_builder.aabb == Aabb3d::default() {
             config_builder.aabb = trimesh
                 .compute_aabb()
                 .context("Failed to compute AABB: trimesh is empty")?;
+        }
+        let min = &mut config_builder.aabb.min;
+        let max = &mut config_builder.aabb.max;
+        match up {
+            Vec3::Y => {
+                // already Bevy's coordinate system
+            }
+            Vec3::Z => {
+                *min = Vec3::new(min.y, min.z, min.x);
+                *max = Vec3::new(max.y, max.z, max.x);
+            }
+            Vec3::X => {
+                *min = Vec3::new(min.z, min.x, min.y);
+                *max = Vec3::new(max.z, max.x, max.y);
+            }
+            _ => {
+                return Err(BevyError::from(anyhow!(
+                    "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+                )));
+            }
         }
         config_builder.build()
     };
@@ -225,9 +256,44 @@ async fn generate_navmesh(
         config.detail_sample_dist,
         config.detail_sample_max_error,
     )?;
-    Ok(Navmesh {
+
+    let mut navmesh = Navmesh {
         polygon: poly_mesh,
         detail: detail_mesh,
-        config: config_builder,
-    })
+        settings,
+    };
+    let min = &mut navmesh.polygon.aabb.min;
+    let max = &mut navmesh.polygon.aabb.max;
+    match up {
+        Vec3::Y => {
+            // already Bevy's coordinate system
+        }
+        Vec3::Z => {
+            for vertex in &mut navmesh.polygon.vertices {
+                *vertex = U16Vec3::new(vertex.z, vertex.x, vertex.y);
+            }
+            for vertex in &mut navmesh.detail.vertices {
+                *vertex = Vec3::new(vertex.z, vertex.x, vertex.y);
+            }
+            *min = Vec3::new(min.z, min.x, min.y);
+            *max = Vec3::new(max.z, max.x, max.y);
+        }
+        Vec3::X => {
+            for vertex in &mut navmesh.polygon.vertices {
+                *vertex = U16Vec3::new(vertex.y, vertex.z, vertex.x);
+            }
+            for vertex in &mut navmesh.detail.vertices {
+                *vertex = Vec3::new(vertex.y, vertex.z, vertex.x);
+            }
+            *min = Vec3::new(min.y, min.z, min.x);
+            *max = Vec3::new(max.y, max.z, max.x);
+        }
+        _ => {
+            return Err(BevyError::from(anyhow!(
+                "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+            )));
+        }
+    }
+
+    Ok(navmesh)
 }

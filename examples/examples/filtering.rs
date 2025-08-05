@@ -5,6 +5,8 @@ use avian3d::prelude::*;
 use bevy::{
     color::palettes::tailwind,
     input::common_conditions::input_just_pressed,
+    math::bounding::Aabb3d,
+    platform::collections::HashSet,
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
@@ -28,59 +30,57 @@ fn main() -> AppExit {
         .run()
 }
 
+#[derive(Resource)]
+struct NavmeshFilter(HashSet<Entity>);
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let material_gray = materials.add(Color::from(tailwind::GRAY_300));
+    let material_gray = materials.add(Color::from(tailwind::GRAY_300).with_alpha(0.2));
     let material_red = materials.add(Color::from(tailwind::RED_500));
-    let shape = Cuboid::new(50.0, 0.1, 50.0);
+    let material_blue = materials.add(Color::from(tailwind::SKY_500));
+    let cube = Cuboid::new(1.0, 1.0, 1.0);
+    let plane = Cuboid::new(1000.0, 1000.0, 1.0);
+    let ground = commands
+        .spawn((
+            Name::new("Ground"),
+            Mesh3d(meshes.add(plane)),
+            RigidBody::Static,
+            Collider::from(plane),
+            MeshMaterial3d(material_blue.clone()),
+        ))
+        .id();
     commands.spawn((
-        Name::new("Ground"),
-        Mesh3d(meshes.add(shape)),
+        Name::new("Outer Cube"),
+        Mesh3d(meshes.add(cube)),
         RigidBody::Static,
-        Collider::from(shape),
+        Collider::from(cube),
+        Transform::default().with_scale(Vec3::splat(1000.0)),
         MeshMaterial3d(material_gray.clone()),
     ));
-    let shape = Cuboid::new(3.0, 2.0, 1.0);
-    commands.spawn((
-        Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
-        RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(0.0, 1.0, 0.0),
-        MeshMaterial3d(material_gray.clone()),
-    ));
-    let shape = Cuboid::new(1.0, 2.0, 3.0);
-    commands.spawn((
-        Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
-        RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(-4.0, 1.0, 5.0),
-        MeshMaterial3d(material_gray.clone()),
-    ));
+    let inner_cube = commands
+        .spawn((
+            Name::new("Inner Cube"),
+            Mesh3d(meshes.add(cube)),
+            RigidBody::Static,
+            Collider::from(cube),
+            Transform::default().with_scale(Vec3::splat(100.0)),
+            MeshMaterial3d(material_red.clone()),
+        ))
+        .id();
 
-    let shape = Cuboid::new(10.0, 1.0, 10.0);
-    commands.spawn((
-        Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
-        RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(10.0, 3.0, 3.0),
-        MeshMaterial3d(material_red.clone()),
-    ));
     commands.spawn((
         DirectionalLight {
             shadows_enabled: true,
             ..default()
         },
-        Transform::default().looking_to(Vec3::new(0.5, -1.0, 0.3), Vec3::Y),
+        Transform::default().looking_to(Vec3::new(0.5, -2.0, -2.0), Vec3::Z),
     ));
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(10.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 0.0, 2000.0).looking_at(Vec3::ZERO, Vec3::Z),
     ));
 
     commands.spawn((
@@ -92,14 +92,24 @@ fn setup(
             ..default()
         },
     ));
+
+    commands.insert_resource(NavmeshFilter([ground, inner_cube].into_iter().collect()));
 }
 
 #[derive(Resource)]
 #[allow(dead_code)]
 struct NavmeshHandle(Handle<Navmesh>);
 
-fn generate_navmesh(mut generator: NavmeshGenerator, mut commands: Commands) {
-    let settings = NavmeshSettings::default();
+fn generate_navmesh(
+    mut generator: NavmeshGenerator,
+    mut commands: Commands,
+    filter: Res<NavmeshFilter>,
+) {
+    let settings = NavmeshSettings {
+        filter: Some(filter.0.clone()),
+        aabb: Some(Aabb3d::new(Vec3::ZERO, Vec3::new(500.0, 500.0, 10.0))),
+        ..NavmeshSettings::from_agent_2d(5.0, 10.0)
+    };
     let navmesh = generator.generate(settings);
     commands.spawn(DetailNavmeshGizmo::new(&navmesh));
     commands.insert_resource(NavmeshHandle(navmesh));

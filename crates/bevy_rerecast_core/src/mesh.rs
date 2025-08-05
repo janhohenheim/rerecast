@@ -8,7 +8,7 @@ use bevy_transform::components::GlobalTransform;
 use glam::{UVec3, Vec3A};
 use rerecast::{AreaType, TriMesh};
 
-use crate::{NavmeshAffectorBackendInput, NavmeshApp as _};
+use crate::{NavmeshApp as _, NavmeshSettings};
 
 /// A backend for navmesh generation.
 /// Uses all entities with a [`Mesh3d`] component as navmesh affectors.
@@ -30,7 +30,7 @@ impl Plugin for Mesh3dBackendPlugin {
 pub struct ExcludeMeshFromNavmesh;
 
 fn mesh3d_backend(
-    input: In<NavmeshAffectorBackendInput>,
+    input: In<NavmeshSettings>,
     meshes: Res<Assets<Mesh>>,
     affectors: Query<(Entity, &GlobalTransform, &Mesh3d), Without<ExcludeMeshFromNavmesh>>,
 ) -> Vec<(GlobalTransform, TriMesh)> {

@@ -1,20 +1,19 @@
 use bevy::prelude::*;
 use bevy_rerecast::{
-    NavmeshAffectorBackendInput, NavmeshApp,
     debug::{DetailNavmeshGizmo, PolygonNavmeshGizmo},
     prelude::*,
-    rerecast::{NavmeshConfigBuilder, TriMesh},
+    rerecast::TriMesh,
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.set_navmesh_affector_backend(editor_backend);
     app.add_observer(build_navmesh);
-    app.init_resource::<BuildNavmeshConfig>()
+    app.init_resource::<GlobalNavmeshSettings>()
         .init_resource::<NavmeshHandle>();
 }
 
 fn editor_backend(
-    _: In<NavmeshAffectorBackendInput>,
+    _: In<NavmeshSettings>,
     affectors: Query<(&GlobalTransform, &NavmeshAffector)>,
 ) -> Vec<(GlobalTransform, TriMesh)> {
     affectors
@@ -30,7 +29,7 @@ pub(crate) struct NavmeshAffector(pub(crate) TriMesh);
 pub(crate) struct BuildNavmesh;
 
 #[derive(Resource, Default, Deref, DerefMut)]
-pub(crate) struct BuildNavmeshConfig(pub(crate) NavmeshConfigBuilder);
+pub(crate) struct GlobalNavmeshSettings(pub(crate) NavmeshSettings);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub(crate) struct NavmeshHandle(pub(crate) Handle<Navmesh>);
@@ -38,7 +37,7 @@ pub(crate) struct NavmeshHandle(pub(crate) Handle<Navmesh>);
 fn build_navmesh(
     _trigger: Trigger<BuildNavmesh>,
     mut commands: Commands,
-    config: Res<BuildNavmeshConfig>,
+    config: Res<GlobalNavmeshSettings>,
     mut navmesh_generator: NavmeshGenerator,
 ) {
     let handle = navmesh_generator.generate(config.0.clone());
