@@ -10,7 +10,7 @@ use bevy::{
     render::{mesh::MeshPlugin, primitives::Aabb, view::VisibilityPlugin},
     scene::{SceneInstanceReady, ScenePlugin},
 };
-use bevy_rerecast::{Mesh3dBackendPlugin, prelude::*};
+use bevy_rerecast::{Mesh3dBackendPlugin, debug::NavmeshDebugPlugin, prelude::*};
 use bevy_rerecast_editor_integration::NavmeshEditorIntegrationPlugin;
 
 #[test]

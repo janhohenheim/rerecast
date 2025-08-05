@@ -137,37 +137,10 @@ struct CellSizeInput;
 struct CellHeightInput;
 
 #[derive(Component)]
-struct WalkableSlopeInput;
-
-#[derive(Component)]
 struct WalkableHeightInput;
 
 #[derive(Component)]
-struct WalkableClimbInput;
-
-#[derive(Component)]
 struct WalkableRadiusInput;
-
-#[derive(Component)]
-struct MinRegionAreaInput;
-
-#[derive(Component)]
-struct MergeRegionAreaInput;
-
-#[derive(Component)]
-struct MaxSimplificationErrorInput;
-
-#[derive(Component)]
-struct MaxEdgeLenInput;
-
-#[derive(Component)]
-struct MaxVerticesPerPolygonInput;
-
-#[derive(Component)]
-struct DetailSampleDistanceInput;
-
-#[derive(Component)]
-struct DetailSampleMaxErrorInput;
 
 fn read_config_inputs(
     mut settings: ResMut<GlobalNavmeshSettings>,
