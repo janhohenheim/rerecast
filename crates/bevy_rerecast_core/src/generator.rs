@@ -51,7 +51,7 @@ impl<'w> NavmeshGenerator<'w> {
     /// Calling it multiple times will have no effect until the regeneration is complete.
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     ///
-    /// Returns `true` if the regeneration was queued, `false` if it was already queued.
+    /// Returns `true` if the regeneration was successfully queued now, `false` if it was already previously queued.
     pub fn regenerate(
         &mut self,
         id: impl Into<AssetId<Navmesh>>,
