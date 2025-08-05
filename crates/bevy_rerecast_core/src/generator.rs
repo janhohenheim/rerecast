@@ -131,50 +131,7 @@ async fn generate_navmesh(
         }
         trimesh.extend(current_trimesh);
     }
-    match settings.up {
-        Vec3::Y => {
-            // Already in Bevy's coordinate system
-        }
-        Vec3::NEG_Y => {
-            for vertex in &mut trimesh.vertices {
-                vertex.y = -vertex.y;
-            }
-        }
-        Vec3::Z => {
-            for vertex in &mut trimesh.vertices {
-                let z = vertex.z;
-                vertex.z = vertex.y;
-                vertex.y = z
-            }
-        }
-        Vec3::NEG_Z => {
-            for vertex in &mut trimesh.vertices {
-                let z = vertex.z;
-                vertex.z = vertex.y;
-                vertex.y = -z
-            }
-        }
-        Vec3::X => {
-            for vertex in &mut trimesh.vertices {
-                let x = vertex.x;
-                vertex.x = vertex.y;
-                vertex.y = x
-            }
-        }
-        Vec3::NEG_X => {
-            for vertex in &mut trimesh.vertices {
-                let x = vertex.x;
-                vertex.x = vertex.y;
-                vertex.y = -x
-            }
-        }
-        _ => {
-            return Err(BevyError::from(anyhow::anyhow!(
-                "Failed to generate navmesh: Unsupported up vector. Expected a coordinate axis unit vector, but got {}",
-                settings.up
-            )));
-        }
-    }
+
     let mut config_builder = settings.clone().into_rerecast_config();
     let config = {
         if config_builder.aabb == Aabb3d::default() {

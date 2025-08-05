@@ -5,7 +5,6 @@ use bevy_math::bounding::Aabb3d;
 use bevy_platform::collections::HashSet;
 use bevy_reflect::prelude::*;
 use bevy_transform::prelude::*;
-use glam::Vec3;
 use rerecast::{BuildContoursFlags, ConfigBuilder, ConvexVolume, TriMesh};
 use serde::{Deserialize, Serialize};
 
@@ -170,8 +169,6 @@ pub struct NavmeshSettings {
     /// If `Some`, the backend is expected to only consider the specified entities when generating affectors.
     /// If `None`, the backend is expected to generate affectors for as many entities as is reasonable.
     pub filter: Option<HashSet<Entity>>,
-    /// The up direction. Typically [`Vec3::Y`] for 3D and [`Vec3::Z`] for 2D.
-    pub up: Vec3,
 }
 
 impl Default for NavmeshSettings {
@@ -197,28 +194,16 @@ impl Default for NavmeshSettings {
             cell_size_fraction: cfg.cell_size_fraction,
             cell_height_fraction: cfg.cell_height_fraction,
             edge_max_len_factor: cfg.edge_max_len_factor,
-            up: Vec3::Y,
         }
     }
 }
 
 impl NavmeshSettings {
     /// Creates a new [`NavmeshSettings`] instance from a 3D agent's radius and height.
-    pub fn from_agent_3d(radius: f32, height: f32) -> Self {
+    pub fn from_agent(radius: f32, height: f32) -> Self {
         Self {
             agent_radius: radius,
             agent_height: height,
-            up: Vec3::Y,
-            ..Self::default()
-        }
-    }
-
-    /// Creates a new [`NavmeshSettings`] instance from a 2D agent's radius and height.
-    pub fn from_agent_2d(radius: f32, height: f32) -> Self {
-        Self {
-            agent_radius: radius,
-            agent_height: height,
-            up: Vec3::Z,
             ..Self::default()
         }
     }

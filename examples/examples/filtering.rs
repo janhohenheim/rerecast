@@ -108,7 +108,7 @@ fn generate_navmesh(
     let settings = NavmeshSettings {
         filter: Some(filter.0.clone()),
         aabb: Some(Aabb3d::new(Vec3::ZERO, Vec3::new(500.0, 10.0, 500.0))),
-        ..NavmeshSettings::from_agent_3d(5.0, 10.0)
+        ..NavmeshSettings::from_agent(5.0, 10.0)
     };
     let navmesh = generator.generate(settings);
     commands.spawn(DetailNavmeshGizmo::new(&navmesh));
