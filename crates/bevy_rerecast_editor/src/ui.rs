@@ -6,13 +6,13 @@ use bevy::{
     ui::Val::*,
     window::{PrimaryWindow, RawHandleWrapper},
 };
-use bevy_rerecast::prelude::ConfigBuilder;
+use bevy_rerecast::prelude::*;
 use bevy_ui_text_input::TextInputContents;
 
 use rfd::AsyncFileDialog;
 
 use crate::{
-    backend::{BuildNavmesh, GlobalNavmeshConfig},
+    backend::{BuildNavmesh, GlobalNavmeshSettings},
     get_navmesh_input::GetNavmeshInput,
     save::SaveTask,
     theme::{
@@ -90,23 +90,23 @@ fn spawn_ui(mut commands: Commands) {
 
                     parent.spawn(decimal_input(
                         "Cell Size Fraction",
-                        GlobalNavmeshConfig::default().cell_size_fraction,
+                        GlobalNavmeshSettings::default().cell_size_fraction,
                         CellSizeInput,
                     ));
 
                     parent.spawn(decimal_input(
                         "Cell Height Fraction",
-                        GlobalNavmeshConfig::default().cell_height_fraction,
+                        GlobalNavmeshSettings::default().cell_height_fraction,
                         CellHeightInput,
                     ));
                     parent.spawn(decimal_input(
                         "Agent Radius",
-                        GlobalNavmeshConfig::default().agent_radius,
+                        GlobalNavmeshSettings::default().agent_radius,
                         WalkableRadiusInput,
                     ));
                     parent.spawn(decimal_input(
                         "Agent Height",
-                        GlobalNavmeshConfig::default().agent_height,
+                        GlobalNavmeshSettings::default().agent_height,
                         WalkableHeightInput,
                     ));
                 })),
@@ -170,14 +170,14 @@ struct DetailSampleDistanceInput;
 struct DetailSampleMaxErrorInput;
 
 fn read_config_inputs(
-    mut config: ResMut<GlobalNavmeshConfig>,
+    mut settings: ResMut<GlobalNavmeshSettings>,
     cell_size: Single<&TextInputContents, With<CellSizeInput>>,
     cell_height: Single<&TextInputContents, With<CellHeightInput>>,
     walkable_height: Single<&TextInputContents, With<WalkableHeightInput>>,
     walkable_radius: Single<&TextInputContents, With<WalkableRadiusInput>>,
 ) {
-    let d = GlobalNavmeshConfig::default();
-    config.0 = ConfigBuilder {
+    let d = GlobalNavmeshSettings::default();
+    settings.0 = NavmeshSettings {
         cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
         cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
         agent_max_slope: d.agent_max_slope,
@@ -196,6 +196,7 @@ fn read_config_inputs(
         edge_max_error: d.edge_max_error,
         verts_per_poly: d.verts_per_poly,
         detail_sample_dist: d.detail_sample_dist,
+        filter: None,
     };
 }
 

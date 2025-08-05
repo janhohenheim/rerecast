@@ -7,19 +7,16 @@ use bevy::{
     render::mesh::{Indices, PrimitiveTopology},
     tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
 };
-use bevy_rerecast::{
-    NavmeshAffectorBackendInput,
-    editor_integration::{
-        brp::{
-            BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputParams,
-            GenerateEditorInputResponse, PollEditorInputParams, PollEditorInputResponse,
-        },
-        transmission::deserialize,
+use bevy_rerecast::editor_integration::{
+    brp::{
+        BRP_GENERATE_EDITOR_INPUT, BRP_POLL_EDITOR_INPUT, GenerateEditorInputParams,
+        GenerateEditorInputResponse, PollEditorInputParams, PollEditorInputResponse,
     },
+    transmission::deserialize,
 };
 
 use crate::{
-    backend::{GlobalNavmeshConfig, NavmeshAffector, NavmeshHandle},
+    backend::{GlobalNavmeshSettings, NavmeshAffector, NavmeshHandle},
     visualization::VisualMesh,
 };
 
@@ -48,20 +45,17 @@ enum GetNavmeshInputRequestTask {
 fn generate_navmesh_input(
     _: Trigger<GetNavmeshInput>,
     mut commands: Commands,
-    config: Res<GlobalNavmeshConfig>,
+    settings: Res<GlobalNavmeshSettings>,
     maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
 ) {
     if maybe_task.is_some() {
         // There's already an ongoing task, so we'll wait for it to complete.
         return;
     }
-    let config = config.0.clone();
+    let settings = settings.0.clone();
     let future = async move {
         let params = GenerateEditorInputParams {
-            backend_input: NavmeshAffectorBackendInput {
-                config,
-                filter: None,
-            },
+            backend_input: settings,
         };
         let json = serde_json::to_value(params)?;
         // Create the URL. We're going to need it to issue the HTTP request.

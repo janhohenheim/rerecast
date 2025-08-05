@@ -12,7 +12,7 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_rerecast = { workspace = true }
+bevy_rerecast = { workspace = true, default-features = true }
 avian_rerecast = { workspace = true }
 bevy = { workspace = true, features = ["bevy_remote"] }
 bevy_trenchbroom = { workspace = true }

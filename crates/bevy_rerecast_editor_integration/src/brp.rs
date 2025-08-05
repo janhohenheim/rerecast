@@ -11,7 +11,7 @@ use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_platform::collections::HashMap;
 use bevy_remote::{BrpError, BrpResult, RemoteMethodSystemId, RemoteMethods};
 use bevy_render::prelude::*;
-use bevy_rerecast_core::{NavmeshAffectorBackend, NavmeshAffectorBackendInput};
+use bevy_rerecast_core::{NavmeshAffectorBackend, NavmeshSettings};
 use bevy_tasks::{AsyncComputeTaskPool, Task, futures_lite::future};
 use bevy_transform::prelude::*;
 use rerecast::TriMesh;
@@ -46,7 +46,7 @@ fn setup_methods(mut methods: ResMut<RemoteMethods>, mut commands: Commands) {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct GenerateEditorInputParams {
     /// Input for the navmesh affector backend.
-    pub backend_input: NavmeshAffectorBackendInput,
+    pub backend_input: NavmeshSettings,
 }
 
 fn get_navmesh_input(In(params): In<Option<Value>>, world: &mut World) -> BrpResult {

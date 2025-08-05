@@ -10,7 +10,7 @@ use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::Vec3;
 use rerecast::{Aabb3d, ConfigBuilder, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
-use crate::{Navmesh, NavmeshAffectorBackend, NavmeshAffectorBackendInput};
+use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<NavmeshQueue>();
@@ -41,44 +41,15 @@ impl<'w> NavmeshGenerator<'w> {
     ///
     /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
     /// Otherwise, the navmesh will be generated for the specified area.
-    ///
-    /// If you want to generate a navmesh for only a specific subset of entities, call [`Self::generate_for`] instead.
-    pub fn generate(&mut self, config: ConfigBuilder) -> Handle<Navmesh> {
+    pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        self.queue.push((
-            handle.clone(),
-            NavmeshAffectorBackendInput {
-                config,
-                filter: None,
-            },
-        ));
-        handle
-    }
-
-    /// Queue a navmesh generation task for a specific subset of entities.
-    /// When you call this method, a new navmesh will be generated asynchronously.
-    /// Calling it multiple times will queue multiple navmeshes to be generated.
-    /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
-    ///
-    /// If [`NavmeshConfigBuilder::aabb`] is left empty, the navmesh will be generated for the entire world.
-    /// Otherwise, the navmesh will be generated for the specified area.
-    ///
-    /// If you want to generate a navmesh for all available entities as defined by the backend, call [`Self::generate`] instead.
-    pub fn generate_for(&mut self, entities: &[Entity], config: ConfigBuilder) -> Handle<Navmesh> {
-        let handle = self.navmeshes.reserve_handle();
-        self.queue.push((
-            handle.clone(),
-            NavmeshAffectorBackendInput {
-                config,
-                filter: Some(entities.iter().copied().collect()),
-            },
-        ));
+        self.queue.push((handle.clone(), settings));
         handle
     }
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshAffectorBackendInput)>);
+struct NavmeshQueue(Vec<(Handle<Navmesh>, NavmeshSettings)>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 struct NavmeshTaskQueue(Vec<(Handle<Navmesh>, Task<Result<Navmesh>>)>);
@@ -98,7 +69,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             tracing::error!("Cannot generate navmesh: No backend available");
             return;
         };
-        let config = input.config.clone();
+        let config = input.clone().into_rerecast_config();
         let affectors = match world.run_system_with(backend.0, input) {
             Ok(affectors) => affectors,
             Err(err) => {
