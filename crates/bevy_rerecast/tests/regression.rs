@@ -14,7 +14,7 @@ use bevy_rerecast::{Mesh3dBackendPlugin, debug::NavmeshDebugPlugin, prelude::*};
 use bevy_rerecast_editor_integration::NavmeshEditorIntegrationPlugin;
 
 #[test]
-fn validate_bevy_navmesh_against_cpp_implementation() {
+fn test_gltf_generation() {
     let mut app = App::new();
     app.add_plugins(headless_plugins);
 
