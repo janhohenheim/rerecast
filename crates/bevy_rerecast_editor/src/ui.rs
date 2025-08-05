@@ -169,6 +169,7 @@ fn read_config_inputs(
         edge_max_error: d.edge_max_error,
         verts_per_poly: d.verts_per_poly,
         detail_sample_dist: d.detail_sample_dist,
+        up: d.up,
         filter: None,
     };
 }

@@ -1,6 +1,6 @@
 //! Utilities for generating navmeshes at runtime.
 
-use anyhow::Context as _;
+use anyhow::{Context as _, anyhow};
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};
@@ -128,9 +128,25 @@ async fn generate_navmesh(
         }
         trimesh.extend(current_trimesh);
     }
-    if settings.up_z {
-        for vertex in &mut trimesh.vertices {
-            *vertex = Vec3A::new(vertex.y, vertex.z, vertex.x);
+    let up = settings.up;
+    match up {
+        Vec3::Y => {
+            // already Bevy's coordinate system
+        }
+        Vec3::Z => {
+            for vertex in &mut trimesh.vertices {
+                *vertex = Vec3A::new(vertex.y, vertex.z, vertex.x);
+            }
+        }
+        Vec3::X => {
+            for vertex in &mut trimesh.vertices {
+                *vertex = Vec3A::new(vertex.z, vertex.x, vertex.y);
+            }
+        }
+        _ => {
+            return Err(BevyError::from(anyhow!(
+                "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+            )));
         }
     }
 
@@ -141,18 +157,25 @@ async fn generate_navmesh(
                 .compute_aabb()
                 .context("Failed to compute AABB: trimesh is empty")?;
         }
-
-        if settings.up_z {
-            config_builder.aabb.min = Vec3::new(
-                config_builder.aabb.min.y,
-                config_builder.aabb.min.z,
-                config_builder.aabb.min.x,
-            );
-            config_builder.aabb.max = Vec3::new(
-                config_builder.aabb.max.y,
-                config_builder.aabb.max.z,
-                config_builder.aabb.max.x,
-            );
+        let min = &mut config_builder.aabb.min;
+        let max = &mut config_builder.aabb.max;
+        match up {
+            Vec3::Y => {
+                // already Bevy's coordinate system
+            }
+            Vec3::Z => {
+                *min = Vec3::new(min.y, min.z, min.x);
+                *max = Vec3::new(max.y, max.z, max.x);
+            }
+            Vec3::X => {
+                *min = Vec3::new(min.z, min.x, min.y);
+                *max = Vec3::new(max.z, max.x, max.y);
+            }
+            _ => {
+                return Err(BevyError::from(anyhow!(
+                    "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+                )));
+            }
         }
         config_builder.build()
     };
@@ -207,29 +230,43 @@ async fn generate_navmesh(
         config.detail_sample_max_error,
     )?;
 
-    let up = settings.up_z;
     let mut navmesh = Navmesh {
         polygon: poly_mesh,
         detail: detail_mesh,
         settings,
     };
-    if up {
-        for vertex in &mut navmesh.polygon.vertices {
-            *vertex = U16Vec3::new(vertex.z, vertex.x, vertex.y);
+    let min = &mut navmesh.polygon.aabb.min;
+    let max = &mut navmesh.polygon.aabb.max;
+    match up {
+        Vec3::Y => {
+            // already Bevy's coordinate system
         }
-        for vertex in &mut navmesh.detail.vertices {
-            *vertex = Vec3::new(vertex.z, vertex.x, vertex.y);
+        Vec3::Z => {
+            for vertex in &mut navmesh.polygon.vertices {
+                *vertex = U16Vec3::new(vertex.z, vertex.x, vertex.y);
+            }
+            for vertex in &mut navmesh.detail.vertices {
+                *vertex = Vec3::new(vertex.z, vertex.x, vertex.y);
+            }
+            *min = Vec3::new(min.z, min.x, min.y);
+            *max = Vec3::new(max.z, max.x, max.y);
         }
-        navmesh.polygon.aabb.min = Vec3::new(
-            navmesh.polygon.aabb.min.z,
-            navmesh.polygon.aabb.min.x,
-            navmesh.polygon.aabb.min.y,
-        );
-        navmesh.polygon.aabb.max = Vec3::new(
-            navmesh.polygon.aabb.max.z,
-            navmesh.polygon.aabb.max.x,
-            navmesh.polygon.aabb.max.y,
-        );
+        Vec3::X => {
+            for vertex in &mut navmesh.polygon.vertices {
+                *vertex = U16Vec3::new(vertex.y, vertex.z, vertex.x);
+            }
+            for vertex in &mut navmesh.detail.vertices {
+                *vertex = Vec3::new(vertex.y, vertex.z, vertex.x);
+            }
+            *min = Vec3::new(min.y, min.z, min.x);
+            *max = Vec3::new(max.y, max.z, max.x);
+        }
+        _ => {
+            return Err(BevyError::from(anyhow!(
+                "Unsupported up direction. Expected one of Vec3::Y, Vec3::Z, or Vec3X, but got {up}"
+            )));
+        }
     }
+
     Ok(navmesh)
 }
