@@ -7,7 +7,7 @@ use bevy_rerecast_core::{NavmeshApp as _, NavmeshSettings, rerecast::TriMesh};
 use bevy_transform::prelude::*;
 
 mod collider_to_trimesh;
-use crate::collider_to_trimesh::ToTriMesh;
+pub use crate::collider_to_trimesh::ColliderToTriMesh;
 
 /// Everything you need to get started with the Navmesh plugin.
 pub mod prelude {

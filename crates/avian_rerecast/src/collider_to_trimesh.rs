@@ -8,7 +8,7 @@ use bevy_math::prelude::*;
 use bevy_rerecast_core::rerecast::{AreaType, TriMesh};
 
 /// Convenience trait that allows a [`Collider`] to be converted into a [`TriMesh`].
-pub trait ToTriMesh {
+pub trait ColliderToTriMesh {
     /// Converts the collider into a [`TriMesh`].
     ///
     /// # Arguments
@@ -34,7 +34,7 @@ pub trait ToTriMesh {
     fn to_trimesh(&self, subdivisions: u32) -> Option<TriMesh>;
 }
 
-impl ToTriMesh for Collider {
+impl ColliderToTriMesh for Collider {
     fn to_trimesh(&self, subdivisions: u32) -> Option<TriMesh> {
         shape_to_trimesh(&self.shape().as_typed_shape(), subdivisions)
     }
