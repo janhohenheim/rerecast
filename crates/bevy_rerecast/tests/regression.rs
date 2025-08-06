@@ -143,7 +143,7 @@ impl TestApp for App {
         app.finish();
         app.cleanup();
         app.add_observer(|trigger: Trigger<NavmeshReady>, mut commands: Commands| {
-            commands.insert_resource(NavmeshReadyResource(trigger.event().id()));
+            commands.insert_resource(NavmeshReadyResource(trigger.event().0));
         });
         app
     }
