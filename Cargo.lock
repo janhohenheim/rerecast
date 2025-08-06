@@ -1358,6 +1358,7 @@ dependencies = [
  "bevy_math",
  "bevy_rerecast_core",
  "bevy_rerecast_editor_integration",
+ "bincode",
  "test_utils",
 ]
 
