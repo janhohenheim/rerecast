@@ -154,11 +154,10 @@ impl TestApp for App {
                 .world_mut()
                 .get_resource::<NavmeshReadyResource>()
                 .cloned()
+                && navmesh_ready_resource.0 == handle.id()
             {
-                if navmesh_ready_resource.0 == handle.id() {
-                    self.world_mut().remove_resource::<NavmeshReadyResource>();
-                    break;
-                }
+                self.world_mut().remove_resource::<NavmeshReadyResource>();
+                break;
             }
             self.update();
         }
