@@ -143,7 +143,7 @@ impl TestApp for App {
         app.finish();
         app.cleanup();
         app.add_observer(|trigger: Trigger<NavmeshReady>, mut commands: Commands| {
-            commands.insert_resource(NavmeshReadyResource(trigger.event().0));
+            commands.insert_resource(NavmeshReadyResource(trigger.event().id()));
         });
         app
     }
@@ -168,13 +168,13 @@ impl TestApp for App {
         let handle = handle.clone();
         self.world_mut()
             .run_system_once(move |mut generator: NavmeshGenerator| {
-                generator.regenerate(handle.id(), settings.clone())
+                generator.regenerate(&handle, settings.clone())
             })
             .unwrap()
     }
 }
 
-#[derive(Debug, Resource, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Resource, Clone, PartialEq, Eq, Hash, Deref, DerefMut)]
 struct NavmeshReadyResource(AssetId<Navmesh>);
 
 #[allow(dead_code)]
