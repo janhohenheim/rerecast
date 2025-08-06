@@ -12,12 +12,12 @@ use std::sync::{Arc, Weak};
 ///
 /// So, we build this bad boi ourselves :bavy:
 #[derive(Debug, Clone)]
-pub(crate) struct WeHaveWeakHandleAtHome<T: Asset> {
+pub(crate) struct UpgradableAssetId<T: Asset> {
     id: AssetId<T>,
     handle: Weak<StrongHandle>,
 }
 
-impl<T: Asset> WeHaveWeakHandleAtHome<T> {
+impl<T: Asset> UpgradableAssetId<T> {
     pub(crate) fn new(handle: &Handle<T>) -> Self {
         let id = handle.id();
         let handle = match handle {
@@ -33,15 +33,15 @@ impl<T: Asset> WeHaveWeakHandleAtHome<T> {
     }
 }
 
-impl<T: Asset> PartialEq for WeHaveWeakHandleAtHome<T> {
+impl<T: Asset> PartialEq for UpgradableAssetId<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<T: Asset> Eq for WeHaveWeakHandleAtHome<T> {}
+impl<T: Asset> Eq for UpgradableAssetId<T> {}
 
-impl<T: Asset> Hash for WeHaveWeakHandleAtHome<T> {
+impl<T: Asset> Hash for UpgradableAssetId<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }

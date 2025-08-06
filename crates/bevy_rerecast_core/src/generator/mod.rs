@@ -11,8 +11,8 @@ use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::{U16Vec3, Vec3, Vec3A};
 use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
-mod mom_can_we_have_weak_handle;
-use mom_can_we_have_weak_handle::WeHaveWeakHandleAtHome;
+mod upgradable_asset_id;
+use upgradable_asset_id::UpgradableAssetId;
 
 use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
 
@@ -45,7 +45,7 @@ impl<'w> NavmeshGenerator<'w> {
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        let weak_handle = WeHaveWeakHandleAtHome::new(&handle);
+        let weak_handle = UpgradableAssetId::new(&handle);
         self.queue.insert(weak_handle, settings);
         handle
     }
@@ -57,7 +57,7 @@ impl<'w> NavmeshGenerator<'w> {
     ///
     /// Returns `true` if the regeneration was successfully queued now, `false` if it was already previously queued.
     pub fn regenerate(&mut self, id: &Handle<Navmesh>, settings: NavmeshSettings) -> bool {
-        let id = WeHaveWeakHandleAtHome::new(id);
+        let id = UpgradableAssetId::new(id);
         if self
             .queue
             .iter()
@@ -73,10 +73,10 @@ impl<'w> NavmeshGenerator<'w> {
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(HashMap<WeHaveWeakHandleAtHome<Navmesh>, NavmeshSettings>);
+struct NavmeshQueue(HashMap<UpgradableAssetId<Navmesh>, NavmeshSettings>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-struct NavmeshTaskQueue(HashMap<WeHaveWeakHandleAtHome<Navmesh>, Task<Result<Navmesh>>>);
+struct NavmeshTaskQueue(HashMap<UpgradableAssetId<Navmesh>, Task<Result<Navmesh>>>);
 
 fn drain_queue_into_tasks(world: &mut World) {
     let queue = {
