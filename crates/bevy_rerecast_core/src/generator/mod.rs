@@ -11,6 +11,9 @@ use bevy_transform::{TransformSystem, components::GlobalTransform};
 use glam::{U16Vec3, Vec3, Vec3A};
 use rerecast::{Aabb3d, DetailNavmesh, HeightfieldBuilder, TriMesh};
 
+mod upgradable_asset_id;
+use upgradable_asset_id::UpgradableAssetId;
+
 use crate::{Navmesh, NavmeshAffectorBackend, NavmeshSettings};
 
 pub(super) fn plugin(app: &mut App) {
@@ -42,7 +45,8 @@ impl<'w> NavmeshGenerator<'w> {
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     pub fn generate(&mut self, settings: NavmeshSettings) -> Handle<Navmesh> {
         let handle = self.navmeshes.reserve_handle();
-        self.queue.insert(handle.id(), settings);
+        let weak_handle = UpgradableAssetId::new(&handle);
+        self.queue.insert(weak_handle, settings);
         handle
     }
 
@@ -52,16 +56,13 @@ impl<'w> NavmeshGenerator<'w> {
     /// Affectors existing this frame at [`PostUpdate`] will be used to generate the navmesh.
     ///
     /// Returns `true` if the regeneration was successfully queued now, `false` if it was already previously queued.
-    pub fn regenerate(
-        &mut self,
-        id: impl Into<AssetId<Navmesh>>,
-        settings: NavmeshSettings,
-    ) -> bool {
-        let id = id.into();
+    pub fn regenerate(&mut self, id: &Handle<Navmesh>, settings: NavmeshSettings) -> bool {
+        let id = UpgradableAssetId::new(id);
         if self
             .queue
-            .keys()
-            .chain(self.task_queue.keys())
+            .iter()
+            .map(|(a, _b)| a)
+            .chain(self.task_queue.iter().map(|(a, _b)| a))
             .any(|queued_id| queued_id == &id)
         {
             return false;
@@ -72,10 +73,10 @@ impl<'w> NavmeshGenerator<'w> {
 }
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-struct NavmeshQueue(HashMap<AssetId<Navmesh>, NavmeshSettings>);
+struct NavmeshQueue(HashMap<UpgradableAssetId<Navmesh>, NavmeshSettings>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
-struct NavmeshTaskQueue(HashMap<AssetId<Navmesh>, Task<Result<Navmesh>>>);
+struct NavmeshTaskQueue(HashMap<UpgradableAssetId<Navmesh>, Task<Result<Navmesh>>>);
 
 fn drain_queue_into_tasks(world: &mut World) {
     let queue = {
@@ -88,6 +89,10 @@ fn drain_queue_into_tasks(world: &mut World) {
         std::mem::take(&mut queue.0)
     };
     for (handle, input) in queue {
+        let Some(_strong) = handle.upgrade() else {
+            // User dropped the handle in the meantime, no need to process it
+            continue;
+        };
         let Some(backend) = world.get_resource::<NavmeshAffectorBackend>() else {
             tracing::error!("Cannot generate navmesh: No backend available");
             return;
@@ -96,7 +101,8 @@ fn drain_queue_into_tasks(world: &mut World) {
             Ok(affectors) => affectors,
             Err(err) => {
                 tracing::error!("Cannot generate navmesh: Backend error: {err}");
-                return;
+                // Continue with the next queued item
+                continue;
             }
         };
         let Some(mut tasks_queue) = world.get_resource_mut::<NavmeshTaskQueue>() else {
@@ -117,11 +123,15 @@ fn poll_tasks(
     mut navmeshes: ResMut<Assets<Navmesh>>,
 ) {
     let mut removed_ids = Vec::new();
-    for (&id, task) in tasks.iter_mut() {
+    for (id, task) in tasks.iter_mut() {
+        let Some(strong) = id.upgrade() else {
+            removed_ids.push(id.clone());
+            continue;
+        };
         let Some(navmesh) = future::block_on(future::poll_once(task)) else {
             continue;
         };
-        removed_ids.push(id);
+        removed_ids.push(id.clone());
         let navmesh = match navmesh {
             Ok(navmesh) => navmesh,
             Err(err) => {
@@ -130,11 +140,14 @@ fn poll_tasks(
             }
         };
         // Process the generated navmesh
-        navmeshes.insert(id, navmesh);
+        navmeshes.insert(strong.id(), navmesh);
     }
     for id in removed_ids {
+        let Some(strong) = id.upgrade() else {
+            continue;
+        };
         if let Some(_task) = tasks.remove(&id) {
-            commands.trigger(NavmeshReady(id));
+            commands.trigger(NavmeshReady(strong.id()));
         }
     }
 }

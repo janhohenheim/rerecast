@@ -198,6 +198,7 @@ fn update_dirty_polygon_gizmos(
         let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
             continue;
         };
+        gizmo.clear();
 
         let mesh = &navmesh.polygon;
         let nvp = mesh.max_vertices_per_polygon as usize;
@@ -298,6 +299,7 @@ fn update_dirty_detail_gizmos(
         let Some(navmesh) = navmeshes.get(navmesh_handle.0) else {
             continue;
         };
+        gizmo.clear();
 
         let mesh = &navmesh.detail;
 
