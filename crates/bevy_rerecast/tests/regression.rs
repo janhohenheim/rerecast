@@ -37,8 +37,13 @@ fn gltf_generation() {
     let expected_navmesh = app.read_navmesh("test/dungeon/navmesh.nav");
 
     assert_eq!(
-        expected_navmesh, navmesh,
-        "Generated navmesh does not match reference"
+        expected_navmesh.polygon, navmesh.polygon,
+        "Generated polygon navmesh does not match reference"
+    );
+
+    assert_eq!(
+        expected_navmesh.detail, navmesh.detail,
+        "Generated detail navmesh does not match reference"
     );
 }
 
@@ -63,16 +68,31 @@ fn primitive_2d_regeneration() {
     let navmesh_handle = app.generate_navmesh(settings.clone());
     let navmesh = app.get_navmesh(&navmesh_handle);
     let expected_navmesh = app.read_navmesh("test/primitives/navmesh_1.nav");
-    assert_eq!(expected_navmesh, navmesh, "Initial navmeshes don't match");
+
+    assert_eq!(
+        expected_navmesh.polygon, navmesh.polygon,
+        "Initial generated polygon navmesh does not match reference"
+    );
+
+    assert_eq!(
+        expected_navmesh.detail, navmesh.detail,
+        "Initial generated detail navmesh does not match reference"
+    );
 
     app.world_mut().despawn(cube_entity);
     app.regenerate_navmesh(&navmesh_handle, settings);
     app.wait_for_navmesh_ready(&navmesh_handle);
     let navmesh = app.get_navmesh(&navmesh_handle);
     let expected_navmesh = app.read_navmesh("test/primitives/navmesh_2.nav");
+
     assert_eq!(
-        expected_navmesh, navmesh,
-        "Regenerated navmeshes don't match"
+        expected_navmesh.polygon, navmesh.polygon,
+        "Regenerated polygon navmesh does not match reference"
+    );
+
+    assert_eq!(
+        expected_navmesh.detail, navmesh.detail,
+        "Regenerated detail navmesh does not match reference"
     );
 }
 
