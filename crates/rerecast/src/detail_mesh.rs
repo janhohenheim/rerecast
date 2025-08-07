@@ -458,6 +458,7 @@ fn build_poly_detail(
 
     if tris.is_empty() {
         // Could not triangulate the poly, make sure there is some valid data there.
+        #[cfg(feature = "tracing")]
         tracing::warn!("Could not triangulate polygon ({nverts} verts)");
         // Jan: how is this not an Err?
         return Ok(());
@@ -552,6 +553,7 @@ fn build_poly_detail(
         // Jan: why do we need this?
         tris.truncate(DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH);
         flags.truncate(DetailNavmesh::MAX_TRIANGLES_PER_SUBMESH);
+        #[cfg(feature = "tracing")]
         tracing::error!(
             "Too many triangles! Shringking triangle count from {} to {}",
             tris.len(),
@@ -654,6 +656,7 @@ fn delaunay_hull(
     while i < tris.len() {
         let t = tris[i];
         if t[0].is_undefined() || t[1].is_undefined() || t[2].is_undefined() {
+            #[cfg(feature = "tracing")]
             tracing::warn!(
                 "Removing dangling face {i} [{:?}, {:?}, {:?}]",
                 t[0],
@@ -860,6 +863,7 @@ fn add_edge(
     let l = l.into();
     let r = r.into();
     if *nedges >= max_edges {
+        #[cfg(feature = "tracing")]
         tracing::error!("Too many edges ({nedges}/{max_edges})");
         return Edge::Undefined;
     }
@@ -1424,6 +1428,7 @@ impl HeightPatch {
         let mut ci = None;
         loop {
             if array.is_empty() {
+                #[cfg(feature = "tracing")]
                 tracing::warn!("Walk towards polygon center failed to reach center");
                 break;
             }

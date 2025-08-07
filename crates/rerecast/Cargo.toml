@@ -16,7 +16,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 glam = { workspace = true }
 bitflags = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 libm = { workspace = true, optional = true }
 
 bevy_reflect = { workspace = true, optional = true }
@@ -28,7 +28,7 @@ serde_json = { workspace = true }
 test_utils = { workspace = true }
 
 [features]
-default = ["std"]
+default = ["std", "tracing"]
 # Use std if available, but fall back to libm if not
 nostd-libm = ["dep:libm", "glam/nostd-libm"]
 # use libm
@@ -39,10 +39,12 @@ std = [
     "bevy_reflect?/std",
     "slotmap/std",
     "bitflags/std",
-    "tracing/std",
+    "tracing?/std",
     "anyhow/std",
     "thiserror/std",
 ]
+# Note: tracing works on all no_std platforms that support atomics
+tracing = ["dep:tracing"]
 serialize = ["dep:serde", "glam/serde", "slotmap/serde", "bitflags/serde"]
 bevy_reflect = ["dep:bevy_reflect"]
 

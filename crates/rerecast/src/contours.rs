@@ -118,10 +118,12 @@ impl CompactHeightfield {
                         if contour_count >= max_contours as usize {
                             // Allocate more contours.
                             // This happens when a region has holes.
+                            #[cfg(feature = "tracing")]
                             let old_max = max_contours;
                             max_contours *= 2;
                             cset.contours.truncate(max_contours as usize);
 
+                            #[cfg(feature = "tracing")]
                             tracing::warn!(
                                 "Region has holes. Expanding contour set from max {old_max} to max {max_contours}"
                             );

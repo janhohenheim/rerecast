@@ -158,6 +158,7 @@ impl CompactHeightfield {
         // If overlapping regions were found during merging, split those regions.
         if !overlaps.is_empty() {
             // Jan: Contrary to the comment above, we don't actually split anything here. This probably happens during the next iteration? idk
+            #[cfg(feature = "tracing")]
             tracing::error!(
                 "{len} overlapping regions found during merging.",
                 len = overlaps.len()

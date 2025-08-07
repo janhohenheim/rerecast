@@ -187,6 +187,7 @@ pub(crate) fn distance_squared_between_point_and_line_vec2(pt: Vec2, (p, q): (Ve
     if d > 0.0 {
         t /= d;
     } else {
+        #[cfg(feature = "tracing")]
         tracing::error!(
             "distance_squared_between_point_and_line_vec2 was called with identical points as a line segment. The result might be unexpected."
         );
@@ -207,6 +208,7 @@ pub(crate) fn distance_squared_between_point_and_line_vec3(
     if d > 0.0 {
         t /= d;
     } else {
+        #[cfg(feature = "tracing")]
         tracing::error!(
             "distance_squared_between_point_and_line_vec3 was called with identical points as a line segment. The result might be unexpected."
         );
