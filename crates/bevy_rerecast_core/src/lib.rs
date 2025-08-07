@@ -21,6 +21,14 @@ pub use rerecast;
 use rerecast::{DetailNavmesh, PolygonNavmesh};
 use serde::{Deserialize, Serialize};
 
+/// Everything you need to use the crate.
+pub mod prelude {
+    pub use crate::{
+        Navmesh, NavmeshApp as _, NavmeshSettings,
+        generator::{NavmeshGenerator, NavmeshReady},
+    };
+}
+
 /// The main plugin of the crate. Adds functionality for creating and managing navmeshes.
 #[non_exhaustive]
 #[derive(Default)]

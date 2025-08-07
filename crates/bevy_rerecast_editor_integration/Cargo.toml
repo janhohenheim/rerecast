@@ -11,8 +11,9 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [features]
-default = []
+default = ["debug_plugin"]
 
+libm = ["bevy_math/libm", "bevy_rerecast_core/libm"]
 debug_plugin = ["bevy_rerecast_core/debug_plugin"]
 pbr_transmission_textures = ["bevy_pbr/pbr_transmission_textures"]
 pbr_specular_textures = ["bevy_pbr/pbr_specular_textures"]

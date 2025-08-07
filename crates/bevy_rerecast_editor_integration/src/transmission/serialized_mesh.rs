@@ -307,10 +307,10 @@ impl From<SerializedPrimitiveTopology> for PrimitiveTopology {
 
 #[cfg(test)]
 mod tests {
-    use std::f32::consts::PI;
-
+    use bevy_math::ops::*;
     use bevy_render::{mesh::Indices, render_asset::RenderAssetUsages};
     use bevy_rerecast_core::TriMeshFromBevyMesh as _;
+    use core::f32::consts::PI;
     use rerecast::TriMesh;
 
     use super::*;
@@ -355,7 +355,7 @@ mod tests {
         for i in 0..10 {
             let a = i as f32 * PI / 5.0;
             let r = (1 - i % 2) as f32 * 100.0 + 100.0;
-            v_pos.push([r * a.sin(), r * a.cos(), 0.0]);
+            v_pos.push([r * sin(a), r * cos(a), 0.0]);
         }
         star.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
 
