@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 use glam::{IVec3, Vec2};

@@ -87,3 +87,19 @@ jobs:
         run: cargo test --all-features --features bevy/x11
       - name: Run doc tests
         run: LD_LIBRARY_PATH="$(rustc --print target-libdir)" cargo test --doc --features bevy/x11
+  check-compiles-no-std:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - "x86_64-unknown-none"
+          - "wasm32v1-none"
+          - "thumbv6m-none-eabi"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Check Compile
+        run: cargo check --no-default-features --features libm,critical-section --target ${{ matrix.target }}

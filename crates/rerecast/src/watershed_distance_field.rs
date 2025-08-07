@@ -8,6 +8,8 @@
 //!      - overlaps may occur if you have narrow spiral corridors (i.e stairs), this make triangulation to fail
 //!   * generally the best choice if you precompute the navmesh, use this if you have large open areas
 
+use alloc::vec::Vec;
+
 use crate::{
     CompactHeightfield,
     math::{dir_offset_x, dir_offset_z},

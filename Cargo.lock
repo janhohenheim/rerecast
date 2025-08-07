@@ -4925,6 +4925,7 @@ dependencies = [
  "bevy_reflect",
  "bitflags 2.9.1",
  "glam",
+ "libm",
  "serde",
  "serde_json",
  "slotmap",

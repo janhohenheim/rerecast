@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 use glam::{U16Vec3, Vec3Swizzles};
@@ -384,8 +386,8 @@ fn simplify_contour(
             cinc = points.len() - 1;
             ci = (bi as usize + cinc) % points.len();
             endi = ai as usize;
-            std::mem::swap(&mut a.x, &mut b.x);
-            std::mem::swap(&mut a.z, &mut b.z);
+            core::mem::swap(&mut a.x, &mut b.x);
+            core::mem::swap(&mut a.z, &mut b.z);
         }
         // Tessellate only outer edges or edges between areas.
         let region = points[ci].1;

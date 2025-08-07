@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{
     AreaType, CompactHeightfield, RegionId,
     math::{dir_offset_x, dir_offset_z},

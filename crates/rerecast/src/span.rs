@@ -6,8 +6,8 @@
 //! The spans are stored in a [`Spans`](crate::span::Spans) collection.
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
+use core::ops::{Deref, DerefMut};
 use slotmap::SlotMap;
-use std::ops::{Deref, DerefMut};
 
 slotmap::new_key_type! {
     /// A key for a span in [`Spans`](crate::span::Spans).

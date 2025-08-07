@@ -180,6 +180,8 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Watershed
   - [ ] Monotone
   - [ ] Layer
+- [x] `no_std` support
+- [x] cross-platform determinism (use `libm` feature)
 
 ### Bevy Integration
 
@@ -195,6 +197,7 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Generate navmeshes on demand
   - [x] Fully regenerate navmeshes
   - [ ] Partially regenerate navmeshes
+  - [ ] `no_std` support
 
 ## Compatibility
 

@@ -17,6 +17,7 @@ anyhow = { workspace = true }
 glam = { workspace = true }
 bitflags = { workspace = true }
 tracing = { workspace = true }
+libm = { workspace = true, optional = true }
 
 bevy_reflect = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
@@ -27,7 +28,21 @@ serde_json = { workspace = true }
 test_utils = { workspace = true }
 
 [features]
-default = []
+default = ["std"]
+# Use std if available, but fall back to libm if not
+nostd-libm = ["dep:libm", "glam/nostd-libm"]
+# use libm
+libm = ["dep:libm", "glam/libm"]
+# use std
+std = [
+    "glam/std",
+    "bevy_reflect?/std",
+    "slotmap/std",
+    "bitflags/std",
+    "tracing/std",
+    "anyhow/std",
+    "thiserror/std",
+]
 serialize = ["dep:serde", "glam/serde", "slotmap/serde", "bitflags/serde"]
 bevy_reflect = ["dep:bevy_reflect"]
 
@@ -35,4 +50,5 @@ bevy_reflect = ["dep:bevy_reflect"]
 workspace = true
 
 [package.metadata.docs.rs]
+rustdoc-args = ["-Zunstable-options", "--generate-link-to-definition"]
 all-features = true

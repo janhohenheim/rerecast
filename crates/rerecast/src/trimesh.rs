@@ -1,11 +1,12 @@
 //! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
 
-use glam::{UVec3, Vec3A};
-
+use crate::ops::*;
 use crate::{
     math::{Aabb3d, TriangleIndices as _},
     span::AreaType,
 };
+use alloc::vec::Vec;
+use glam::{UVec3, Vec3A};
 
 /// A mesh used as input for [`Heightfield`](crate::Heightfield) rasterization.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -52,7 +53,7 @@ impl TriMesh {
     /// * `threshold_rad` - The threshold angle in radians.
     ///
     pub fn mark_walkable_triangles(&mut self, threshold_rad: f32) {
-        let threshold_cos = threshold_rad.cos();
+        let threshold_cos = cos(threshold_rad);
         for (i, indices) in self.indices.iter().enumerate() {
             let normal = indices.normal(&self.vertices);
 

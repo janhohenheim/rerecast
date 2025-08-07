@@ -3,6 +3,7 @@ use crate::{
     contours::{ContourSet, RegionVertexId},
     math::{next, prev},
 };
+use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 use glam::{U16Vec2, U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};

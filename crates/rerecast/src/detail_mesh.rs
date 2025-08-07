@@ -1,10 +1,13 @@
+use crate::ops::*;
+use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
-use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
-use std::{
+
+use core::{
     f32,
     ops::{Deref, DerefMut},
 };
+use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
 use crate::{
@@ -157,7 +160,7 @@ impl DetailNavmesh {
         let ch = mesh.cell_height;
         let orig = Vec3A::from(mesh.aabb.min);
         let border_size = mesh.border_size;
-        let height_search_radius = 1.max(mesh.max_edge_error.ceil() as u32);
+        let height_search_radius = 1.max(ceil(mesh.max_edge_error) as u32);
 
         let mut edges = Vec::with_capacity(64 / 4);
         let mut tris = Vec::with_capacity((512 / 4) * 3);
@@ -358,17 +361,17 @@ fn build_poly_detail(
             // using lexological sort or else there will be seams.
             if (vj.x - vi.x).abs() < 1.0e-6 {
                 if vj.z > vi.z {
-                    std::mem::swap(&mut vj, &mut vi);
+                    core::mem::swap(&mut vj, &mut vi);
                     swapped = true;
                 }
             } else if vj.x > vi.x {
-                std::mem::swap(&mut vj, &mut vi);
+                core::mem::swap(&mut vj, &mut vi);
                 swapped = true;
             }
             // Create samples along the edge.
             let dij = vi - vj;
             let d = dij.xz().length();
-            let mut nn = 1 + (d / sample_dist).floor() as usize;
+            let mut nn = 1 + floor(d / sample_dist) as usize;
             if nn >= DetailNavmesh::MAX_VERTS_PER_EDGE {
                 nn = DetailNavmesh::MAX_VERTS_PER_EDGE - 1;
             }
@@ -470,10 +473,10 @@ fn build_poly_detail(
             aabb.min = aabb.min.min(in_.into());
             aabb.max = aabb.max.max(in_.into());
         }
-        let x0 = (aabb.min.x / sample_dist).floor() as i32;
-        let x1 = (aabb.max.x / sample_dist).ceil() as i32;
-        let z0 = (aabb.min.z / sample_dist).floor() as i32;
-        let z1 = (aabb.max.z / sample_dist).ceil() as i32;
+        let x0 = floor(aabb.min.x / sample_dist) as i32;
+        let x1 = ceil(aabb.max.x / sample_dist) as i32;
+        let z0 = floor(aabb.min.z / sample_dist) as i32;
+        let z1 = ceil(aabb.max.z / sample_dist) as i32;
         samples.clear();
         for z in z0..z1 {
             for x in x0..x1 {
@@ -1128,8 +1131,8 @@ fn triangulate_hull(
 }
 
 fn get_height(f: Vec3A, ics: f32, ch: f32, radius: u32, hp: &HeightPatch) -> u16 {
-    let mut ix = (f.x * ics + 0.01).floor() as i32;
-    let mut iz = (f.z * ics + 0.01).floor() as i32;
+    let mut ix = floor(f.x * ics + 0.01) as i32;
+    let mut iz = floor(f.z * ics + 0.01) as i32;
     ix = (ix - hp.xmin as i32).clamp(0, hp.width as i32 - 1);
     iz = (iz - hp.zmin as i32).clamp(0, hp.height as i32 - 1);
     let mut h = hp.data[(ix + iz * hp.width as i32) as usize];

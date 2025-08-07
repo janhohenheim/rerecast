@@ -57,4 +57,5 @@ wgpu-types = { workspace = true, features = ["serde"] }
 workspace = true
 
 [package.metadata.docs.rs]
+rustdoc-args = ["-Zunstable-options", "--generate-link-to-definition"]
 all-features = true

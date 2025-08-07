@@ -1,4 +1,6 @@
+use crate::ops::*;
 use crate::{Aabb3d, BuildContoursFlags, ConvexVolume};
+use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 
@@ -377,7 +379,7 @@ impl ConfigBuilder {
     pub fn build(self) -> Config {
         let cell_size = self.agent_radius / self.cell_size_fraction;
         let cell_height = self.agent_radius / self.cell_height_fraction;
-        let walkable_radius = (self.agent_radius / cell_size).ceil() as u16;
+        let walkable_radius = ceil(self.agent_radius / cell_size) as u16;
         // Reserve enough padding.
         let border_size = walkable_radius + 3;
         Config {
@@ -397,8 +399,8 @@ impl ConfigBuilder {
             cell_height,
             aabb: self.aabb,
             walkable_slope_angle: self.walkable_slope_angle,
-            walkable_height: (self.agent_height / cell_height).ceil() as u16,
-            walkable_climb: (self.walkable_climb / cell_height).floor() as u16,
+            walkable_height: ceil(self.agent_height / cell_height) as u16,
+            walkable_climb: floor(self.walkable_climb / cell_height) as u16,
             walkable_radius,
             max_edge_len: walkable_radius * self.edge_max_len_factor,
             max_simplification_error: self.max_simplification_error,

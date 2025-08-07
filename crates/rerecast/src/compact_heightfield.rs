@@ -7,6 +7,7 @@ use crate::{
     region::RegionId,
     span::AreaType,
 };
+use alloc::vec::Vec;
 
 /// A compact, static heightfield representing unobstructed space.
 ///

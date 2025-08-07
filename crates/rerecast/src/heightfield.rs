@@ -2,6 +2,7 @@
 //!
 //! A heightfield is a 3D grid of [`Span`]s, where each column contains 0, 1, or more spans.
 
+use alloc::vec::Vec;
 use thiserror::Error;
 
 use crate::{

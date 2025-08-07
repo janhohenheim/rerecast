@@ -1,7 +1,8 @@
 //! Contains methods for rasterizing triangles of a [`TrimeshedCollider`] into a [`Heightfield`].
 
+use crate::ops::*;
+use core::fmt::Display;
 use glam::Vec3A;
-use std::fmt::Display;
 use thiserror::Error;
 
 use crate::{
@@ -93,7 +94,7 @@ impl Heightfield {
                 cell_z + self.cell_size,
                 DivisionAxis::Z,
             )?;
-            std::mem::swap(&mut in_tri, &mut p1);
+            core::mem::swap(&mut in_tri, &mut p1);
 
             if nv_row < 3 || z < 0 {
                 continue;
@@ -129,7 +130,7 @@ impl Heightfield {
                     cx + self.cell_size,
                     DivisionAxis::X,
                 )?;
-                std::mem::swap(&mut in_row, &mut p2);
+                core::mem::swap(&mut in_row, &mut p2);
 
                 if nv < 3 || x < 0 {
                     continue;
@@ -155,10 +156,10 @@ impl Heightfield {
                 span_max = span_max.min(by);
 
                 // Snap the span to the heightfield height grid.
-                let span_min_cell_index = ((span_min * inverse_cell_height).floor() as i32)
+                let span_min_cell_index = (ceil(span_min * inverse_cell_height) as i32)
                     .clamp(0, Span::MAX_HEIGHT as i32)
                     as u16;
-                let span_max_cell_index = ((span_max * inverse_cell_height).ceil() as i32)
+                let span_max_cell_index = (ceil(span_max * inverse_cell_height) as i32)
                     .clamp(span_min_cell_index as i32 + 1, Span::MAX_HEIGHT as i32)
                     as u16;
 
@@ -285,7 +286,7 @@ enum DivisionAxis {
 }
 
 impl Display for DivisionAxis {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{self:?}")
     }
 }

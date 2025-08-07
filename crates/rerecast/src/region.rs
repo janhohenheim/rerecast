@@ -1,6 +1,6 @@
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
-use std::ops::{Add, AddAssign};
+use core::ops::{Add, AddAssign};
 
 /// A region in a [`CompactHeightfield`](crate::compact_heightfield::CompactHeightfield).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
