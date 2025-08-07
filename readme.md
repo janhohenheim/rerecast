@@ -198,6 +198,8 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Fully regenerate navmeshes
   - [ ] Partially regenerate navmeshes
   - [ ] `no_std` support
+    - Blocked by `bevy_asset` supporting `no_std`
+  - [x] cross-platform determinism (use `libm` feature)
 
 ## Compatibility
 
