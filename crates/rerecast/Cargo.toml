@@ -29,6 +29,8 @@ test_utils = { workspace = true }
 
 [features]
 default = ["std", "tracing"]
+# Recommended defaults for no_std applications
+default_no_std = ["libm"]
 # Use std if available, but fall back to libm if not
 nostd-libm = ["dep:libm", "glam/nostd-libm"]
 # use libm for no_std support and cross-platform determinism

@@ -28,6 +28,7 @@ bevy_pbr = { workspace = true, optional = true }
 # Serde is already brought in by bevy_asset, so no need to make it optional
 serde = { workspace = true }
 
+critical-section = { workspace = true, optional = true }
 bevy_asset = { workspace = true, optional = true }
 anyhow = { workspace = true }
 tracing = { workspace = true, optional = true }
@@ -43,6 +44,8 @@ bevy_render = { workspace = true, optional = true }
 
 [features]
 default = ["bevy_mesh", "debug_plugin", "std", "bevy_asset"]
+# Recommended defaults for no_std applications
+default_no_std = ["libm", "critical-section"]
 std = [
     "bevy_ecs/std",
     "bevy_transform/std",
@@ -60,6 +63,7 @@ std = [
     "glam/std",
     "rerecast/std",
 ]
+critical-section = ["dep:critical-section", "bevy_platform/critical-section"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
 bevy_asset = ["dep:bevy_asset", "std"]
 # use libm for no_std support and cross-platform determinism

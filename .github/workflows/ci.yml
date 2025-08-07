@@ -102,6 +102,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - name: Check rerecast
-        run: cargo check --no-default-features --features libm -p rerecast --target ${{ matrix.target }}
+        run: cargo check --no-default-features --features default_no_std -p rerecast --target ${{ matrix.target }}
       - name: Check bevy_rerecast_core
-        run: cargo check --no-default-features --features libm -p bevy_rerecast_core --target ${{ matrix.target }}
+        run: cargo check --no-default-features --features default_no_std -p bevy_rerecast_core --target ${{ matrix.target }}
