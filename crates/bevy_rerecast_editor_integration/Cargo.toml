@@ -44,8 +44,8 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 flate2 = { workspace = true }
 
-rerecast = { workspace = true, features = ["serialize"] }
-bevy_rerecast_core = { workspace = true }
+rerecast = { workspace = true, features = ["serialize", "std"] }
+bevy_rerecast_core = { workspace = true, features = ["std"] }
 
 # Editor integration
 serde = { workspace = true }

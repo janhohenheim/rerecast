@@ -11,12 +11,14 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_app = { workspace = true }
-bevy_math = { workspace = true }
-bevy_rerecast_core = { workspace = true }
+bevy_app = { workspace = true, features = ["std"] }
+bevy_math = { workspace = true, features = ["std"] }
+bevy_rerecast_core = { workspace = true, features = [
+    "std",
+    "bevy_asset",
+    "tracing",
+] }
 bevy_rerecast_editor_integration = { workspace = true, optional = true }
-# Only here so you can specify the zlib backend when building
-flate2 = { workspace = true }
 
 [dev-dependencies]
 bevy = { workspace = true }

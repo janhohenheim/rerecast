@@ -87,6 +87,23 @@ jobs:
         run: cargo test --all-features --features bevy/x11
       - name: Run doc tests
         run: LD_LIBRARY_PATH="$(rustc --print target-libdir)" cargo test --doc --features bevy/x11
+  install-editor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Populate target directory from cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install deps
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+      - name: Install editor
+        run: cargo install bevy_rerecast_editor --locked --path crates/bevy_rerecast_editor
   check-compiles-no-std:
     runs-on: ubuntu-latest
     strategy:
