@@ -196,6 +196,12 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Fully regenerate navmeshes
   - [ ] Partially regenerate navmeshes
 
+## Compatibility
+
+| bevy  | bevy_rerecast |
+|-------|---------------|
+| 0.16  | 0.1           |
+
 
 [`AvianBackendPlugin`]: https://docs.rs/avian_rerecast/latest/avian_rerecast/struct.AvianBackendPlugin.html
 [`RemotePlugin`]: https://docs.rs/bevy/latest/bevy/remote/struct.RemotePlugin.html
