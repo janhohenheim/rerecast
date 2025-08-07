@@ -70,7 +70,7 @@ pub enum SaveError {
 struct WriteTasks(Vec<Task<Result<(), SaveError>>>);
 
 fn poll_write_tasks(mut write_tasks: ResMut<WriteTasks>) {
-    let mut tasks = std::mem::take(&mut *write_tasks);
+    let mut tasks = core::mem::take(&mut *write_tasks);
     tasks.retain_mut(|task| {
         let Some(result) = future::block_on(future::poll_once(task)) else {
             return true;

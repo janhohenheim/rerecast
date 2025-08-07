@@ -7,6 +7,8 @@ use bevy::{
 use bevy_rerecast::prelude::*;
 use bevy_ui_text_input::TextInputPlugin;
 
+extern crate alloc;
+
 mod backend;
 mod camera;
 mod get_navmesh_input;

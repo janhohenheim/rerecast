@@ -359,7 +359,7 @@ fn build_poly_detail(
             let mut swapped = false;
             // Make sure the segments are always handled in same order
             // using lexological sort or else there will be seams.
-            if (vj.x - vi.x).abs() < 1.0e-6 {
+            if abs(vj.x - vi.x) < 1.0e-6 {
                 if vj.z > vi.z {
                     core::mem::swap(&mut vj, &mut vi);
                     swapped = true;
@@ -823,7 +823,7 @@ fn circum_circle_squared(p1: Vec3A, p2: Vec3A, p3: Vec3A, c: &mut Vec3A) -> f32 
     let v3 = (p3 - p1).xz();
 
     let cp = cross2(Vec2::ZERO, v2, v3);
-    if cp.abs() > EPS {
+    if abs(cp) > EPS {
         let v2_sq = v2.length_squared();
         let v3_sq = v3.length_squared();
         c.x = (v2_sq * (v3.y) + v3_sq * (-v2.y)) / (2.0 * cp);
@@ -990,7 +990,7 @@ fn dist_pt_tri(p: Vec3A, a: Vec3A, b: Vec3A, c: Vec3A) -> Option<f32> {
     const EPS: f32 = 1.0e-4;
     if u >= -EPS && v >= -EPS && (u + v) <= 1.0 + EPS {
         let y = a.y + v0.y * u + v1.y * v;
-        Some((y - p.y).abs())
+        Some(abs(y - p.y))
     } else {
         None
     }
@@ -1157,7 +1157,7 @@ fn get_height(f: Vec3A, ics: f32, ch: f32, radius: u32, hp: &HeightPatch) -> u16
             if nx >= 0 && nz >= 0 && nx < hp.width as i32 && nz < hp.height as i32 {
                 let nh = hp.data[(nx + nz * hp.width as i32) as usize];
                 if nh != RC_UNSET_HEIGHT {
-                    let d = (nh as f32 * ch - f.y).abs();
+                    let d = abs(nh as f32 * ch - f.y);
                     if d < dmin {
                         h = nh;
                         dmin = d;

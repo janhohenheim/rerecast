@@ -86,7 +86,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             );
             return;
         };
-        std::mem::take(&mut queue.0)
+        core::mem::take(&mut queue.0)
     };
     for (handle, input) in queue {
         let Some(_strong) = handle.upgrade() else {

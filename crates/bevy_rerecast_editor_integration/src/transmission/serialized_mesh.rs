@@ -58,7 +58,7 @@ impl SerializedMesh {
         ];
         for (attribute, values) in self.attributes {
             // Safety: this is just a newtype wrapper around a u64, so we can safely transmute it
-            let attribute_id: MeshVertexAttributeId = unsafe { std::mem::transmute(attribute) };
+            let attribute_id: MeshVertexAttributeId = unsafe { core::mem::transmute(attribute) };
             let Some(attribute) = attributes
                 .iter()
                 .find(|attribute| attribute.id == attribute_id)

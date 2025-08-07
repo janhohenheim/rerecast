@@ -6,12 +6,13 @@
 //!
 //! Unlike other examples, which demonstrate an application, this demonstrates a plugin library.
 
+use alloc::fmt;
 use bevy::{
     input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll, MouseScrollUnit},
     prelude::*,
     window::CursorGrabMode,
 };
-use std::{f32::consts::*, fmt};
+use core::f32::consts::*;
 
 /// A freecam-style camera controller plugin.
 pub struct CameraControllerPlugin;

@@ -14,6 +14,8 @@ pub mod debug;
 pub mod generator;
 pub use backend::*;
 pub mod asset_loader;
+#[macro_use]
+extern crate alloc;
 
 pub use rerecast;
 use rerecast::{DetailNavmesh, PolygonNavmesh};

@@ -1,6 +1,6 @@
 //! Helper functions for creating common widgets.
 
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use bevy::{
     ecs::{spawn::SpawnWith, system::IntoObserverSystem},

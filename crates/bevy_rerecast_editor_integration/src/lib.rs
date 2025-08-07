@@ -7,6 +7,9 @@ use bevy_reflect::prelude::*;
 use bevy_rerecast_core::debug::{DetailNavmeshGizmo, PolygonNavmeshGizmo};
 use serde::{Deserialize, Serialize};
 
+#[macro_use]
+extern crate alloc;
+
 pub mod brp;
 pub mod transmission;
 

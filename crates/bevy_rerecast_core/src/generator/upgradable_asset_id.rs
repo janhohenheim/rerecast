@@ -1,6 +1,6 @@
+use alloc::sync::{Arc, Weak};
 use bevy_asset::{StrongHandle, prelude::*};
-use std::hash::{Hash, Hasher};
-use std::sync::{Arc, Weak};
+use core::hash::{Hash, Hasher};
 
 /// We need this lovely construct because
 /// - We want to store `Weak<StrongHandle>` as our index, since we can upgrade it to a strong handle when needed.

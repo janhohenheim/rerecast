@@ -1,6 +1,6 @@
 //! The optional editor integration for authoring the navmesh.
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use bevy_app::prelude::*;
 use bevy_asset::{prelude::*, uuid::Uuid};
