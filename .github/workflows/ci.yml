@@ -102,4 +102,4 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - name: Check Compile
-        run: cargo check --no-default-features --features libm,critical-section --target ${{ matrix.target }}
+        run: cargo check --no-default-features --features libm -p rerecast --target ${{ matrix.target }}
