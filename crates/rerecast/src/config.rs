@@ -292,7 +292,7 @@ pub struct ConfigBuilder {
     /// be merged with larger regions. `[Limit: >=0] [Units: vx]`
     ///
     /// The triangulation process works best with small, localized voxel regions.
-    /// The parameter [`Self::region_merge_size`] controls the maximum voxel area of a region that is allowed to be merged with another region.
+    /// The parameter [`Self::merge_region_size`] controls the maximum voxel area of a region that is allowed to be merged with another region.
     /// If you see small patches missing here and there, you could lower the [`Self::min_region_size`] value.
     pub merge_region_size: u16,
     /// The maximum allowed length for contour edges along the border of the mesh in terms of [`Self::agent_radius`]. `[Limit: >=0]`
