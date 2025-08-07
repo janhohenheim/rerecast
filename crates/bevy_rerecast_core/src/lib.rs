@@ -18,6 +18,11 @@ pub mod generator;
 pub use backend::*;
 #[cfg(feature = "bevy_asset")]
 pub mod asset_loader;
+#[allow(
+    unused_imports,
+    reason = "Some features use vec!, some don't. Let's keep it simple."
+)]
+#[macro_use]
 extern crate alloc;
 
 pub use rerecast;
