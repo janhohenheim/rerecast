@@ -105,6 +105,7 @@ fn drain_queue_into_tasks(world: &mut World) {
             Err(err) => {
                 #[cfg(feature = "tracing")]
                 tracing::error!("Cannot generate navmesh: Backend error: {err}");
+                let _ = err;
                 // Continue with the next queued item
                 continue;
             }
@@ -142,6 +143,7 @@ fn poll_tasks(
             Err(err) => {
                 #[cfg(feature = "tracing")]
                 tracing::error!("Failed to generate navmesh: {err}");
+                let _ = err;
                 continue;
             }
         };

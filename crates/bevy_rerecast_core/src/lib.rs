@@ -24,6 +24,8 @@ pub mod asset_loader;
 )]
 #[macro_use]
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
 
 pub use rerecast;
 use rerecast::{DetailNavmesh, PolygonNavmesh};
