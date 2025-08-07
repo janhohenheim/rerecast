@@ -1359,6 +1359,7 @@ dependencies = [
  "bevy_rerecast_core",
  "bevy_rerecast_editor_integration",
  "bincode",
+ "flate2",
  "test_utils",
 ]
 

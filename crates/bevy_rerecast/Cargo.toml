@@ -15,6 +15,8 @@ bevy_app = { workspace = true }
 bevy_math = { workspace = true }
 bevy_rerecast_core = { workspace = true }
 bevy_rerecast_editor_integration = { workspace = true, optional = true }
+# Only here so you can specify the zlib backend when building
+flate2 = { workspace = true }
 
 [dev-dependencies]
 bevy = { workspace = true }
@@ -23,6 +25,7 @@ bincode = { workspace = true }
 
 [features]
 default = ["bevy_mesh", "editor_integration", "debug_plugin"]
+libm = ["bevy_rerecast_core/libm"]
 bevy_mesh = ["bevy_rerecast_core/bevy_mesh"]
 debug_plugin = [
     "bevy_rerecast_core/debug_plugin",

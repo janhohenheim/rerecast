@@ -44,6 +44,7 @@ bevy_render = { workspace = true, optional = true }
 [features]
 default = ["bevy_mesh", "debug_plugin"]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
+libm = ["rerecast/libm"]
 debug_plugin = [
     "dep:bevy_gizmos",
     "dep:bevy_color",
