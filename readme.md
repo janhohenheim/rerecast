@@ -36,7 +36,7 @@ cargo add bevy_rerecast
 ```
 
 Then add the plugin to your app:
-```rust
+```rust,no_run
 use bevy::prelude::*;
 use bevy_rerecast::prelude::*;
 
@@ -49,7 +49,7 @@ The next step is to provide a *backend*. Backends decide how the current Bevy sc
 
 To add a backend, add its plugin after the [`NavmeshPlugins`]:
 
-```rust
+```rust,no_run
 use bevy::prelude::*;
 use bevy_rerecast::prelude::*;
 use bevy_rerecast::Mesh3dBackendPlugin;
@@ -102,7 +102,7 @@ Tweaking navmesh settings by hand and restarting the game to see the changes is 
 Instead, navmeshes are often authored in advanced. To do this, the Bevy integration comes with an editor to help you out.
 To use it, you must enable Bevy's BRP functionality, which is a way for Bevy processes to communicate over HTTP. To do this, enable Bevy's `remote` feature and add the [`RemotePlugin`] and [`RemoteHttpPlugin`] to your app:
 
-```rust
+```rust,no_run
 use bevy::prelude::*;
 use bevy::remote::{RemotePlugin, http::RemoteHttpPlugin};
 use bevy_rerecast::prelude::*;
