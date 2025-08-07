@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use bevy_app::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_ecs::{prelude::*, system::SystemId};
@@ -226,6 +227,7 @@ impl NavmeshSettings {
         }
     }
 
+    #[cfg(feature = "bevy_asset")]
     pub(crate) fn into_rerecast_config(self) -> rerecast::ConfigBuilder {
         rerecast::ConfigBuilder {
             agent_height: self.agent_height,

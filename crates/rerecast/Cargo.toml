@@ -31,7 +31,7 @@ test_utils = { workspace = true }
 default = ["std", "tracing"]
 # Use std if available, but fall back to libm if not
 nostd-libm = ["dep:libm", "glam/nostd-libm"]
-# use libm
+# use libm for no_std support and cross-platform determinism
 libm = ["dep:libm", "glam/libm"]
 # use std
 std = [

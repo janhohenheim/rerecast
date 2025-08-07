@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_ecs::prelude::*;

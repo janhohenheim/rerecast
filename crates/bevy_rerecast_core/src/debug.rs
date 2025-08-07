@@ -1,5 +1,5 @@
 //! Types for visualizing navmeshes for debugging purposes.
-
+use alloc::vec::Vec;
 use bevy_app::prelude::*;
 use bevy_asset::{RenderAssetUsages, prelude::*};
 use bevy_color::{Alpha as _, palettes::tailwind};

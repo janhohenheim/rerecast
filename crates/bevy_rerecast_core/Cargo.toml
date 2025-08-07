@@ -11,14 +11,13 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy_ecs = { workspace = true }
-bevy_asset = { workspace = true }
+bevy_ecs = { workspace = true, features = ["bevy_reflect", "serialize"] }
 bevy_transform = { workspace = true, features = ["bevy-support"] }
 bevy_tasks = { workspace = true }
 bevy_derive = { workspace = true }
 bevy_reflect = { workspace = true }
 bevy_app = { workspace = true }
-bevy_math = { workspace = true }
+bevy_math = { workspace = true, features = ["bevy_reflect", "serialize"] }
 bevy_platform = { workspace = true }
 
 # debug-plugin
@@ -29,8 +28,9 @@ bevy_pbr = { workspace = true, optional = true }
 # Serde is already brought in by bevy_asset, so no need to make it optional
 serde = { workspace = true }
 
+bevy_asset = { workspace = true, optional = true }
 anyhow = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 thiserror = { workspace = true }
 bincode = { workspace = true }
 glam = { workspace = true }
@@ -42,9 +42,30 @@ bevy_render = { workspace = true, optional = true }
 
 
 [features]
-default = ["bevy_mesh", "debug_plugin"]
+default = ["bevy_mesh", "debug_plugin", "std", "bevy_asset"]
+std = [
+    "bevy_ecs/std",
+    "bevy_transform/std",
+    "bevy_tasks/std",
+    "bevy_reflect/std",
+    "bevy_app/std",
+    "bevy_math/std",
+    "bevy_platform/std",
+    "bevy_color?/std",
+    "serde/std",
+    "anyhow/std",
+    "tracing?/std",
+    "thiserror/std",
+    "bincode/std",
+    "glam/std",
+    "rerecast/std",
+]
 bevy_mesh = ["dep:bevy_mesh", "dep:bevy_render"]
-libm = ["rerecast/libm"]
+bevy_asset = ["dep:bevy_asset", "std"]
+# use libm for no_std support and cross-platform determinism
+libm = ["rerecast/libm", "bevy_math/libm", "glam/libm"]
+# Use std if available, but fall back to libm if not
+nostd-libm = ["rerecast/nostd-libm", "bevy_math/nostd-libm", "glam/nostd-libm"]
 debug_plugin = [
     "dep:bevy_gizmos",
     "dep:bevy_color",
@@ -52,7 +73,8 @@ debug_plugin = [
     "dep:bevy_mesh",
     "dep:bevy_pbr",
 ]
-
+# Note: tracing works on all no_std platforms that support atomics
+tracing = ["dep:tracing"]
 
 [lints]
 workspace = true

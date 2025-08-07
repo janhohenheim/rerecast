@@ -1,5 +1,6 @@
 //! Types for loading [`Navmesh`]es using the [`AssetServer`](bevy_asset::AssetServer).
 
+use alloc::vec::Vec;
 use bevy_app::prelude::*;
 use bevy_asset::{AssetApp as _, AssetLoader, LoadContext, io::Reader};
 use serde::{Deserialize, Serialize};

@@ -1,5 +1,6 @@
 //! Utilities for generating navmeshes at runtime.
 
+use alloc::vec::Vec;
 use anyhow::{Context as _, anyhow};
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
@@ -81,6 +82,7 @@ struct NavmeshTaskQueue(HashMap<UpgradableAssetId<Navmesh>, Task<Result<Navmesh>
 fn drain_queue_into_tasks(world: &mut World) {
     let queue = {
         let Some(mut queue) = world.get_resource_mut::<NavmeshQueue>() else {
+            #[cfg(feature = "tracing")]
             tracing::error!(
                 "Cannot generate navmesh: No queue available. Please submit a bug report"
             );
@@ -94,18 +96,21 @@ fn drain_queue_into_tasks(world: &mut World) {
             continue;
         };
         let Some(backend) = world.get_resource::<NavmeshAffectorBackend>() else {
+            #[cfg(feature = "tracing")]
             tracing::error!("Cannot generate navmesh: No backend available");
             return;
         };
         let affectors = match world.run_system_with(backend.0, input.clone()) {
             Ok(affectors) => affectors,
             Err(err) => {
+                #[cfg(feature = "tracing")]
                 tracing::error!("Cannot generate navmesh: Backend error: {err}");
                 // Continue with the next queued item
                 continue;
             }
         };
         let Some(mut tasks_queue) = world.get_resource_mut::<NavmeshTaskQueue>() else {
+            #[cfg(feature = "tracing")]
             tracing::error!(
                 "Cannot generate navmesh: No task queue available. Please submit a bug report"
             );
@@ -135,6 +140,7 @@ fn poll_tasks(
         let navmesh = match navmesh {
             Ok(navmesh) => navmesh,
             Err(err) => {
+                #[cfg(feature = "tracing")]
                 tracing::error!("Failed to generate navmesh: {err}");
                 continue;
             }
