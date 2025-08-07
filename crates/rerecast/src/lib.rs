@@ -1,4 +1,5 @@
-#![doc = include_str!("../../../readme.md")]
+//! Rust port of [Recast](https://github.com/recastnavigation/recastnavigation), the industry-standard navigation mesh generator used
+//! by Unreal, Unity, Godot, and other game engines.
 
 mod compact_cell;
 mod compact_heightfield;

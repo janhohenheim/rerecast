@@ -4,7 +4,7 @@ resolver = "3"
 exclude = ["./assets/"]
 
 [workspace.package]
-version = "0.0.2"
+version = "0.1.0"
 authors = ["Jan Hohenheim <jan@hohenheim.ch>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -50,12 +50,12 @@ bevy_platform = { version = "0.16.0", default-features = false }
 bevy_tasks = { version = "0.16.0", default-features = false }
 bevy_gizmos = { version = "0.16.0", default-features = false }
 
-rerecast = { version = "0.0.2", path = "crates/rerecast", default-features = false }
-bevy_rerecast = { version = "0.0.2", path = "crates/bevy_rerecast", default-features = false }
-bevy_rerecast_core = { version = "0.0.2", path = "crates/bevy_rerecast_core", default-features = false }
-bevy_rerecast_editor_integration = { version = "0.0.2", path = "crates/bevy_rerecast_editor_integration", default-features = false }
-avian_rerecast = { version = "0.0.2", path = "crates/avian_rerecast", default-features = false }
-test_utils = { version = "0.0.2", path = "crates/test_utils", default-features = false }
+rerecast = { version = "0.1.0", path = "crates/rerecast", default-features = false }
+bevy_rerecast = { version = "0.1.0", path = "crates/bevy_rerecast", default-features = false }
+bevy_rerecast_core = { version = "0.1.0", path = "crates/bevy_rerecast_core", default-features = false }
+bevy_rerecast_editor_integration = { version = "0.1.0", path = "crates/bevy_rerecast_editor_integration", default-features = false }
+avian_rerecast = { version = "0.1.0", path = "crates/avian_rerecast", default-features = false }
+test_utils = { version = "0.1.0", path = "crates/test_utils", default-features = false }
 
 bevy_ui_text_input = { version = "0.5.0" }
 flate2 = { version = "1" }

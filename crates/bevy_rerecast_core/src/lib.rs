@@ -1,4 +1,5 @@
-#![doc = include_str!("../../../readme.md")]
+//! Core code for [`bevy_rerecast`](https://docs.rs/bevy_rerecast),
+//! which excludes the [`bevy_rerecast_editor_integration`](https://docs.rs/bevy_rerecast_editor_integration)
 
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
