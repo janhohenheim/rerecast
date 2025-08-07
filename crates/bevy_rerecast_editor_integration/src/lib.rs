@@ -1,4 +1,6 @@
-#![doc = include_str!("../../../readme.md")]
+//! Code for [`bevy_rerecast`](https://docs.rs/bevy_rerecast)'s optional editor feature.
+//! This crate contains low-level API.
+//! See the [`rerecast` repo](https://github.com/janhohenheim/rerecast) for instructions for high-level engine integrations
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;

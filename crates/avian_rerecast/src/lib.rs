@@ -1,4 +1,4 @@
-#![doc = include_str!("../../../readme.md")]
+//! Backend for using [`avian3d`](https://docs.rs/avian3d) with [`bevy_rerecast`](https://docs.rs/bevy_rerecast).
 
 use avian3d::prelude::*;
 use bevy_app::prelude::*;

@@ -26,7 +26,7 @@ As you can see, it does not perfectly follow terrain, but is a very good approxi
 ### Raw Rerecast
 
 Rerecast's API is fairly low level. As such, it's best if your game engine of choice provides an idiomatic interface to it.
-If you want to build such an interface on your own, or want to use Rerecast directly in general, check out the [cpp comparison automated test](./crates/rerecast/tests/cpp_comparison.rs).
+If you want to build such an interface on your own, or want to use Rerecast directly in general, check out the [cpp comparison automated test](https://github.com/janhohenheim/rerecast/blob/main/crates/rerecast/tests/cpp_comparison.rs).
 
 ### Bevy Rerecast
 
@@ -45,7 +45,7 @@ App::new()
     .add_plugins(NavmeshPlugins::default());
 ```
 
-The next step is to provide a *backend*. Backends decide how the current Bevy scene should be translated into a list of trimeshes that rerecast can use. There's a builtin backend called the [`Mesh3dBackendPlugin`], which will use your entities holding a [`Mesh3d`] as obstacles. We will use it in this example, but your own code should usually use a physics engine's backend instead. See the section *Backends* for more.
+The next step is to provide a *backend*. Backends decide how the current Bevy scene should be translated into a list of trimeshes that rerecast can use. There's a builtin backend called the [`Mesh3dBackendPlugin`], which will use your entities holding a [`Mesh3d`] as obstacles. We will use it in this example, but your own code should usually use a physics engine's backend instead. See the section [Backends](#backends) for more.
 
 To add a backend, add its plugin after the [`NavmeshPlugins`]:
 
@@ -87,7 +87,7 @@ fn on_navmesh_ready(trigger: Trigger<NavmeshReady>, navmeshes: Res<Assets<Navmes
 
 If you need to regenerate a navmesh because the environment has changed, use [`NavmeshGenerator::regenerate`]. Once the navmesh was regenerated, you can observe a [`NavmeshReady`] trigger.
 
-Take a look at the [`examples`](./crates/examples/examples) directory to see all of this in action!
+Take a look at the [`examples`](https://github.com/janhohenheim/rerecast/tree/main/examples/examples) directory to see all of this in action!
 
 ### Editor
 
@@ -148,7 +148,7 @@ App::new()
 
 The avian backend will consider colliders that are part of a static rigid body as obstacles.
 
-Creating your own backend is *very* easy. Take a look at the implementation of the [`AvianBackend`] as an example.
+Creating your own backend is *very* easy. Take a look at the implementation of the [`AvianBackendPlugin`] as an example.
 
 ### Pathfinding
 
@@ -186,3 +186,12 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Generate navmeshes on demand
   - [x] Fully regenerate navmeshes
   - [ ] Partially regenerate navmeshes
+
+
+[`AvianBackendPlugin`]: https://docs.rs/avian_rerecast/latest/avian_rerecast/struct.AvianBackendPlugin.html
+[`RemotePlugin`]: https://docs.rs/bevy/latest/bevy/remote/struct.RemotePlugin.html
+[`RemoteHttpPlugin`]: https://docs.rs/bevy/latest/bevy/remote/http/struct.RemoteHttpPlugin.html
+[`NavmeshReady`]: https://docs.rs/bevy_rerecast/latest/bevy_rerecast/generator/struct.NavmeshReady.html
+[`NavmeshGenerator`]: https://docs.rs/bevy_rerecast/latest/bevy_rerecast/generator/struct.NavmeshGenerator.html
+[`NavmeshGenerator::regenerate`]: https://docs.rs/bevy_rerecast/latest/bevy_rerecast/generator/struct.NavmeshGenerator.html#tymethod.regenerate
+[`Mesh3d`]: https://docs.rs/bevy/latest/bevy/prelude/struct.Mesh3d.html
