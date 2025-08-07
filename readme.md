@@ -197,7 +197,7 @@ Take a look at their repos for documentation on how to use them with rerecast.
   - [x] Generate navmeshes on demand
   - [x] Fully regenerate navmeshes
   - [ ] Partially regenerate navmeshes
-  - [ ] `no_std` support
+  - [ ] `no_std` support for `bevy_rerecast_core`
     - Blocked by `bevy_asset` supporting `no_std`
   - [x] cross-platform determinism (use `libm` feature)
 
