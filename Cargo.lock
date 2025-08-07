@@ -516,7 +516,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -1351,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_app",
@@ -1364,7 +1364,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_core"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy_app",
@@ -1391,7 +1391,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor_integration"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4919,7 +4919,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rerecast"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy_reflect",
@@ -4935,7 +4935,7 @@ dependencies = [
 
 [[package]]
 name = "rerecast_examples"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "avian3d",
  "avian_rerecast",
@@ -5628,7 +5628,7 @@ dependencies = [
 
 [[package]]
 name = "test_utils"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "approxim",
  "glam",
