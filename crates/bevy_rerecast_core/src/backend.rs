@@ -87,7 +87,7 @@ pub struct NavmeshSettings {
     ///
     /// Allows the mesh to flow over low lying obstructions such as curbs and up/down stairways.
     /// The value is usually set to how far up/down an agent can step.
-    pub agent_max_climb: f32,
+    pub walkable_climb: f32,
     /// The maximum slope that is considered walkable. `[Limits: 0 <= value < 0.5*π] [Units: Radians]`
     ///
     /// The parameter walkable_slope_angle is to filter out areas of the world where the ground slope
@@ -96,24 +96,24 @@ pub struct NavmeshSettings {
     /// This value must be within the range `[0, 90.0.to_radians()]`.
     ///
     /// The practical upper limit for this parameter is usually around `85.0.to_radians()`.
-    pub agent_max_slope: f32,
+    pub walkable_slope_angle: f32,
     /// The minimum number of cells allowed to form isolated island areas along one horizontal axis. `[Limit: >=0] [Units: vx]`
     ///
     /// Watershed partitioning is really prone to noise in the input distance field.
     /// In order to get nicer areas, the areas are merged and small disconnected areas are removed after the water shed partitioning.
-    /// The parameter [`Self::region_min_size`] describes the minimum isolated region size that is still kept.
-    /// A region is removed if the number of voxels in the region is less than the square of [`Self::region_min_size`].
+    /// The parameter [`Self::min_region_size`] describes the minimum isolated region size that is still kept.
+    /// A region is removed if the number of voxels in the region is less than the square of [`Self::min_region_size`].
     ///
     /// Any regions that are smaller than this area will be marked as unwalkable.
     /// This is useful in removing useless regions that can sometimes form on geometry such as table tops, box tops, etc.
-    pub region_min_size: u16,
+    pub min_region_size: u16,
     /// Any regions with a span count smaller than the square of this value will, if possible,
     /// be merged with larger regions. `[Limit: >=0] [Units: vx]`
     ///
     /// The triangulation process works best with small, localized voxel regions.
-    /// The parameter [`Self::region_merge_size`] controls the maximum voxel area of a region that is allowed to be merged with another region.
-    /// If you see small patches missing here and there, you could lower the [`Self::region_min_size`] value.
-    pub region_merge_size: u16,
+    /// The parameter [`Self::merge_region_size`] controls the maximum voxel area of a region that is allowed to be merged with another region.
+    /// If you see small patches missing here and there, you could lower the [`Self::min_region_size`] value.
+    pub merge_region_size: u16,
     /// The maximum allowed length for contour edges along the border of the mesh in terms of [`Self::agent_radius`]. `[Limit: >=0]`
     ///
     /// In certain cases, long outer edges may decrease the quality of the resulting triangulation, creating very long thin triangles.
@@ -140,10 +140,10 @@ pub struct NavmeshSettings {
     /// If the value is more than 1.5, the mesh simplification starts to cut some corners it shouldn't.
     ///
     /// The effect of this parameter only applies to the horizontal plane.
-    pub edge_max_error: f32,
+    pub max_simplification_error: f32,
     /// The maximum number of vertices allowed for polygons generated during the
     /// contour to polygon conversion process. `[Limit: >= 3]`
-    pub verts_per_poly: u16,
+    pub max_vertices_per_polygon: u16,
     /// Sets the sampling distance to use when generating the detail mesh.
     /// (For height detail only.) `[Limits: 0 or >= 0.9] [Units: wu]`
     ///
@@ -183,12 +183,12 @@ impl Default for NavmeshSettings {
         Self {
             agent_height: cfg.agent_height,
             agent_radius: cfg.agent_radius,
-            agent_max_climb: cfg.agent_max_climb,
-            agent_max_slope: cfg.agent_max_slope,
-            region_min_size: cfg.region_min_size,
-            region_merge_size: cfg.region_merge_size,
-            edge_max_error: cfg.edge_max_error,
-            verts_per_poly: cfg.verts_per_poly,
+            walkable_climb: cfg.walkable_climb,
+            walkable_slope_angle: cfg.walkable_slope_angle,
+            min_region_size: cfg.min_region_size,
+            merge_region_size: cfg.merge_region_size,
+            max_simplification_error: cfg.max_simplification_error,
+            max_vertices_per_polygon: cfg.max_vertices_per_polygon,
             detail_sample_dist: cfg.detail_sample_dist,
             detail_sample_max_error: cfg.detail_sample_max_error,
             tile_size: cfg.tile_size,
@@ -230,12 +230,12 @@ impl NavmeshSettings {
         rerecast::ConfigBuilder {
             agent_height: self.agent_height,
             agent_radius: self.agent_radius,
-            agent_max_climb: self.agent_max_climb,
-            agent_max_slope: self.agent_max_slope,
-            region_min_size: self.region_min_size,
-            region_merge_size: self.region_merge_size,
-            edge_max_error: self.edge_max_error,
-            verts_per_poly: self.verts_per_poly,
+            walkable_climb: self.walkable_climb,
+            walkable_slope_angle: self.walkable_slope_angle,
+            min_region_size: self.min_region_size,
+            merge_region_size: self.merge_region_size,
+            max_simplification_error: self.max_simplification_error,
+            max_vertices_per_polygon: self.max_vertices_per_polygon,
             detail_sample_dist: self.detail_sample_dist,
             detail_sample_max_error: self.detail_sample_max_error,
             tile_size: self.tile_size,

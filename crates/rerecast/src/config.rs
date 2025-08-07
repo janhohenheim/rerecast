@@ -268,7 +268,7 @@ pub struct ConfigBuilder {
     ///
     /// Allows the mesh to flow over low lying obstructions such as curbs and up/down stairways.
     /// The value is usually set to how far up/down an agent can step.
-    pub agent_max_climb: f32,
+    pub walkable_climb: f32,
     /// The maximum slope that is considered walkable. `[Limits: 0 <= value < 0.5*π] [Units: Radians]`
     ///
     /// The parameter walkable_slope_angle is to filter out areas of the world where the ground slope
@@ -277,24 +277,24 @@ pub struct ConfigBuilder {
     /// This value must be within the range `[0, 90.0.to_radians()]`.
     ///
     /// The practical upper limit for this parameter is usually around `85.0.to_radians()`.
-    pub agent_max_slope: f32,
+    pub walkable_slope_angle: f32,
     /// The minimum number of cells allowed to form isolated island areas along one horizontal axis. `[Limit: >=0] [Units: vx]`
     ///
     /// Watershed partitioning is really prone to noise in the input distance field.
     /// In order to get nicer areas, the areas are merged and small disconnected areas are removed after the water shed partitioning.
-    /// The parameter [`Self::region_min_size`] describes the minimum isolated region size that is still kept.
-    /// A region is removed if the number of voxels in the region is less than the square of [`Self::region_min_size`].
+    /// The parameter [`Self::min_region_size`] describes the minimum isolated region size that is still kept.
+    /// A region is removed if the number of voxels in the region is less than the square of [`Self::min_region_size`].
     ///
     /// Any regions that are smaller than this area will be marked as unwalkable.
     /// This is useful in removing useless regions that can sometimes form on geometry such as table tops, box tops, etc.
-    pub region_min_size: u16,
+    pub min_region_size: u16,
     /// Any regions with a span count smaller than the square of this value will, if possible,
     /// be merged with larger regions. `[Limit: >=0] [Units: vx]`
     ///
     /// The triangulation process works best with small, localized voxel regions.
     /// The parameter [`Self::region_merge_size`] controls the maximum voxel area of a region that is allowed to be merged with another region.
-    /// If you see small patches missing here and there, you could lower the [`Self::region_min_size`] value.
-    pub region_merge_size: u16,
+    /// If you see small patches missing here and there, you could lower the [`Self::min_region_size`] value.
+    pub merge_region_size: u16,
     /// The maximum allowed length for contour edges along the border of the mesh in terms of [`Self::agent_radius`]. `[Limit: >=0]`
     ///
     /// In certain cases, long outer edges may decrease the quality of the resulting triangulation, creating very long thin triangles.
@@ -321,10 +321,10 @@ pub struct ConfigBuilder {
     /// If the value is more than 1.5, the mesh simplification starts to cut some corners it shouldn't.
     ///
     /// The effect of this parameter only applies to the xz-plane.
-    pub edge_max_error: f32,
+    pub max_simplification_error: f32,
     /// The maximum number of vertices allowed for polygons generated during the
     /// contour to polygon conversion process. `[Limit: >= 3]`
-    pub verts_per_poly: u16,
+    pub max_vertices_per_polygon: u16,
     /// Sets the sampling distance to use when generating the detail mesh.
     /// (For height detail only.) `[Limits: 0 or >= 0.9] [Units: wu]`
     ///
@@ -354,13 +354,13 @@ impl Default for ConfigBuilder {
             cell_height_fraction: 4.0,
             agent_height: 2.0,
             agent_radius: 0.6,
-            agent_max_climb: 0.9,
-            agent_max_slope: 45.0_f32.to_radians(),
-            region_min_size: 8,
-            region_merge_size: 20,
+            walkable_climb: 0.9,
+            walkable_slope_angle: 45.0_f32.to_radians(),
+            min_region_size: 8,
+            merge_region_size: 20,
             edge_max_len_factor: 8,
-            edge_max_error: 1.3,
-            verts_per_poly: 6,
+            max_simplification_error: 1.3,
+            max_vertices_per_polygon: 6,
             detail_sample_dist: 6.0,
             detail_sample_max_error: 1.0,
             tile_size: 32,
@@ -396,15 +396,15 @@ impl ConfigBuilder {
             cell_size,
             cell_height,
             aabb: self.aabb,
-            walkable_slope_angle: self.agent_max_slope,
+            walkable_slope_angle: self.walkable_slope_angle,
             walkable_height: (self.agent_height / cell_height).ceil() as u16,
-            walkable_climb: (self.agent_max_climb / cell_height).floor() as u16,
+            walkable_climb: (self.walkable_climb / cell_height).floor() as u16,
             walkable_radius,
             max_edge_len: walkable_radius * self.edge_max_len_factor,
-            max_simplification_error: self.edge_max_error,
-            min_region_area: (self.region_min_size * self.region_min_size),
-            merge_region_area: (self.region_merge_size * self.region_merge_size),
-            max_vertices_per_polygon: self.verts_per_poly,
+            max_simplification_error: self.max_simplification_error,
+            min_region_area: (self.min_region_size * self.min_region_size),
+            merge_region_area: (self.merge_region_size * self.merge_region_size),
+            max_vertices_per_polygon: self.max_vertices_per_polygon,
             detail_sample_dist: if self.detail_sample_dist < 0.9 {
                 0.0
             } else {
