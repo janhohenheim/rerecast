@@ -101,5 +101,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - name: Check Compile
+      - name: Check rerecast
         run: cargo check --no-default-features --features libm -p rerecast --target ${{ matrix.target }}
+      - name: Check bevy_rerecast_core
+        run: cargo check --no-default-features --features libm -p bevy_rerecast_core --target ${{ matrix.target }}
