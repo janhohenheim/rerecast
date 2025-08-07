@@ -52,6 +52,7 @@ To add a backend, add its plugin after the [`NavmeshPlugins`]:
 ```rust
 use bevy::prelude::*;
 use bevy_rerecast::prelude::*;
+use bevy_rerecast::Mesh3dBackendPlugin;
 
 App::new()
     .add_plugins(DefaultPlugins)
@@ -62,7 +63,10 @@ App::new()
 Now that you've added the backend, you're ready to create a navmesh. To do this, use the [`NavmeshGenerator`] query parameter:
 
 ```rust
-fn some_system_that_generates_your_navmesh(generator: NavmeshGenerator) {
+use bevy::prelude::*;
+use bevy_rerecast::prelude::*;
+
+fn some_system_that_generates_your_navmesh(mut generator: NavmeshGenerator) {
     let agent_radius = 0.6;
     let agent_height = 1.8;
     let settings = NavmeshSettings::from_agent_3d(agent_radius, agent_height);
@@ -77,11 +81,14 @@ The navmesh will be generated in the background, so the `Handle<Navmesh>` you re
 If you want to know exactly when the navmesh is ready, you can set up a [`NavmeshReady`] observer:
 
 ```rust
+use bevy::prelude::*;
+use bevy_rerecast::prelude::*;
+
 fn on_navmesh_ready(trigger: Trigger<NavmeshReady>, navmeshes: Res<Assets<Navmesh>>) {
-    let handle = &trigger.event.0;
+    let asset_id = trigger.event().0;
 
     // We can now safely fetch the navmesh from our assets:
-    let navmesh = navmeshes.get(handle).unwrap();
+    let navmesh = navmeshes.get(asset_id).unwrap();
 }
 ```
 
@@ -97,12 +104,14 @@ To use it, you must enable Bevy's BRP functionality, which is a way for Bevy pro
 
 ```rust
 use bevy::prelude::*;
+use bevy::remote::{RemotePlugin, http::RemoteHttpPlugin};
 use bevy_rerecast::prelude::*;
+use bevy_rerecast::Mesh3dBackendPlugin;
 
 App::new()
     .add_plugins(DefaultPlugins)
     // Enable BRP
-    .add_plugins((RemotePlugins::default(), RemoteHttpPlugin::default()))
+    .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
     // Enable Rerecast
     .add_plugins(NavmeshPlugins::default())
     // Also add some backend, for example the `Mesh3dBackendPlugin`
@@ -135,7 +144,7 @@ cargo add avian_rerecast
 
 and then register its backend:
 
-```rust
+```rust,ignore
 use bevy::prelude::*;
 use bevy_rerecast::prelude::*;
 use avian_rerecast::prelude::*;
