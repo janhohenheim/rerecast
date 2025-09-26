@@ -1,6 +1,7 @@
 use bevy::{
     color::palettes::tailwind,
     ecs::{prelude::*, relationship::RelatedSpawner, spawn::SpawnWith, system::ObserverSystem},
+    input_focus::InputFocus,
     prelude::*,
     tasks::prelude::*,
     ui::Val::*,
@@ -27,6 +28,7 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, spawn_ui);
     app.add_systems(Update, read_config_inputs);
     app.add_observer(close_modal);
+    app.add_observer(clear_focus);
 }
 
 fn spawn_ui(mut commands: Commands) {
@@ -375,4 +377,10 @@ fn toggle_gizmo(gizmo: AvailableGizmos) -> impl ObserverSystem<Pointer<Click>, (
             gizmos.toggle(gizmo);
         },
     )
+}
+
+fn clear_focus(press: Trigger<Pointer<Pressed>>, mut focus: ResMut<InputFocus>) {
+    if Some(press.target) != focus.0 {
+        focus.0 = None;
+    }
 }
