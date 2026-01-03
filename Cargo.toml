@@ -69,6 +69,7 @@ test_utils = { version = "0.1.0", path = "crates/test_utils", default-features =
 
 # Other stuffs
 bitflags = { version = "2.9.1", default-features = false }
+# TODO: update to 0.6 non-RC
 bevy_ui_text_input = { version = "=0.6.0-rc.1" }
 flate2 = { version = "1.1.2", default-features = false, features = [
     "rust_backend",
