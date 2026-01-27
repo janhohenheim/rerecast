@@ -12,7 +12,6 @@ readme = { workspace = true }
 
 [dependencies]
 bevy_app = { workspace = true, features = ["std"] }
-bevy_math = { workspace = true, features = ["std"] }
 bevy_rerecast_core = { workspace = true, features = [
     "std",
     "bevy_asset",

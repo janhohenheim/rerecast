@@ -19,12 +19,11 @@ bevy_light = { workspace = true }
 bevy_derive = { workspace = true }
 bevy_reflect = { workspace = true }
 bevy_app = { workspace = true }
-bevy_utils = { workspace = true }
 bevy_math = { workspace = true, features = ["bevy_reflect", "serialize"] }
 bevy_platform = { workspace = true }
 
 # debug-plugin
-bevy_gizmos = { workspace = true, optional = true, features = ["bevy_render"] }
+bevy_gizmos = { workspace = true, optional = true, features = ["bevy_light"] }
 bevy_color = { workspace = true, optional = true }
 bevy_pbr = { workspace = true, optional = true }
 
@@ -57,7 +56,6 @@ std = [
     "bevy_math/std",
     "bevy_platform/std",
     "bevy_color?/std",
-    "bevy_utils/std",
     "serde/std",
     "anyhow/std",
     "tracing?/std",

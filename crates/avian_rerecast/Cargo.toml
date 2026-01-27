@@ -13,7 +13,6 @@ readme = { workspace = true }
 [dependencies]
 bevy_app = { workspace = true }
 bevy_ecs = { workspace = true }
-bevy_transform = { workspace = true }
 bevy_math = { workspace = true }
 avian3d = { workspace = true, features = ["3d"] }
 bevy_rerecast_core = { workspace = true, features = ["std"] }
