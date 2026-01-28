@@ -26,7 +26,7 @@ rfd = "0.15"
 thiserror = { version = "2", default-features = false }
 wgpu-types = { version = "27", default-features = false }
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
-glam = { version = "0.31", default-features = false }
+glam = { version = "0.30", default-features = false }
 libm = { version = "0.2", default-features = false }
 cosmic-text = { version = "0.14", default-features = false }
 tracing = { version = "0.1", default-features = false }
