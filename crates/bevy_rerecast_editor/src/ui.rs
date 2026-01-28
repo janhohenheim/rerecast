@@ -489,10 +489,10 @@ fn decimal_option_input(marker: impl Bundle, initial_value: f32) -> impl Bundle 
         },
         TextInputNode {
             mode: TextInputMode::SingleLine,
-            filter: Some(TextInputFilter::Decimal),
             clear_on_submit: false,
             ..Default::default()
         },
+        TextInputFilter::Decimal,
         TextFont {
             font_size: 14.0,
             ..default()
