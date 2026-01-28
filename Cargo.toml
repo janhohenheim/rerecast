@@ -14,62 +14,62 @@ readme = "readme.md"
 
 [workspace.dependencies]
 avian3d = { version = "0.5", default-features = false }
-serde = { version = "1.0.219", default-features = false, features = ["alloc"] }
-serde_json = { version = "1.0.140", default-features = false, features = [
+serde = { version = "1", default-features = false, features = ["alloc"] }
+serde_json = { version = "1", default-features = false, features = [
     "alloc",
 ] }
-slotmap = { version = "1.0.7", default-features = false }
+slotmap = { version = "1", default-features = false }
 ehttp = { version = "0.5", default-features = false }
 rfd = "0.15"
 
 # In sync with Bevy
-thiserror = { version = "2.0.12", default-features = false }
-wgpu-types = { version = "26", default-features = false }
-base64 = { version = "0.22.0", default-features = false, features = ["alloc"] }
-glam = { version = "0.30.5", default-features = false }
-libm = { version = "0.2.0", default-features = false }
-cosmic-text = { version = "0.14.2", default-features = false }
-tracing = { version = "0.1.41", default-features = false }
-critical-section = { version = "1.2.0", default-features = false }
-anyhow = { version = "1.0.98", default-features = false }
+thiserror = { version = "2", default-features = false }
+wgpu-types = { version = "27", default-features = false }
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+glam = { version = "0.31", default-features = false }
+libm = { version = "0.2", default-features = false }
+cosmic-text = { version = "0.14", default-features = false }
+tracing = { version = "0.1", default-features = false }
+critical-section = { version = "1", default-features = false }
+anyhow = { version = "1", default-features = false }
 
 # Bevy
 ## Bevy itself is only used in tests and examples, so we can use the default features.
-bevy = { version = "0.18.0", default-features = true }
+bevy = { version = "0.18", default-features = true }
 ## Actual crate code should only depend on bevy_ crates with default features disabled.
-bevy_reflect = { version = "0.18.0", default-features = false, features = [
+bevy_reflect = { version = "0.18", default-features = false, features = [
     "glam",
 ] }
-bevy_app = { version = "0.18.0", default-features = false }
-bevy_camera = { version = "0.18.0", default-features = false }
-bevy_light = { version = "0.18.0", default-features = false }
-bevy_remote = { version = "0.18.0", default-features = false }
-bevy_mesh = { version = "0.18.0", default-features = false }
-bevy_ecs = { version = "0.18.0", default-features = false }
-bevy_render = { version = "0.18.0", default-features = false }
-bevy_transform = { version = "0.18.0", default-features = false }
-bevy_asset = { version = "0.18.0", default-features = false }
-bevy_image = { version = "0.18.0", default-features = false }
-bevy_pbr = { version = "0.18.0", default-features = false }
-bevy_math = { version = "0.18.0", default-features = false }
-bevy_color = { version = "0.18.0", default-features = false }
-bevy_derive = { version = "0.18.0", default-features = false }
-bevy_platform = { version = "0.18.0", default-features = false }
-bevy_tasks = { version = "0.18.0", default-features = false }
-bevy_gizmos = { version = "0.18.0", default-features = false }
+bevy_app = { version = "0.18", default-features = false }
+bevy_camera = { version = "0.18", default-features = false }
+bevy_light = { version = "0.18", default-features = false }
+bevy_remote = { version = "0.18", default-features = false }
+bevy_mesh = { version = "0.18", default-features = false }
+bevy_ecs = { version = "0.18", default-features = false }
+bevy_render = { version = "0.18", default-features = false }
+bevy_transform = { version = "0.18", default-features = false }
+bevy_asset = { version = "0.18", default-features = false }
+bevy_image = { version = "0.18", default-features = false }
+bevy_pbr = { version = "0.18", default-features = false }
+bevy_math = { version = "0.18", default-features = false }
+bevy_color = { version = "0.18", default-features = false }
+bevy_derive = { version = "0.18", default-features = false }
+bevy_platform = { version = "0.18", default-features = false }
+bevy_tasks = { version = "0.18", default-features = false }
+bevy_gizmos = { version = "0.18", default-features = false }
 
 # Workspace crates
-rerecast = { version = "0.2.0", path = "crates/rerecast", default-features = false }
-bevy_rerecast = { version = "0.3.0", path = "crates/bevy_rerecast", default-features = false }
-bevy_rerecast_core = { version = "0.3.0", path = "crates/bevy_rerecast_core", default-features = false }
-bevy_rerecast_editor_integration = { version = "0.3.0", path = "crates/bevy_rerecast_editor_integration", default-features = false }
-avian_rerecast = { version = "0.3.0", path = "crates/avian_rerecast", default-features = false }
-test_utils = { version = "0.1.0", path = "crates/test_utils", default-features = false }
+rerecast = { version = "0.3", path = "crates/rerecast", default-features = false }
+bevy_rerecast = { version = "0.4", path = "crates/bevy_rerecast", default-features = false }
+bevy_rerecast_core = { version = "0.4", path = "crates/bevy_rerecast_core", default-features = false }
+bevy_rerecast_editor_integration = { version = "0.4", path = "crates/bevy_rerecast_editor_integration", default-features = false }
+avian_rerecast = { version = "0.4", path = "crates/avian_rerecast", default-features = false }
+test_utils = { version = "0.1", path = "crates/test_utils", default-features = false }
 
 # Other stuffs
-bitflags = { version = "2.9.1", default-features = false }
+bitflags = { version = "2", default-features = false }
 bevy_ui_text_input = { version = "0.7", git = "https://github.com/ickshonpe/bevy_ui_text_input" }
-flate2 = { version = "1.1.2", default-features = false, features = [
+flate2 = { version = "1", default-features = false, features = [
     "rust_backend",
 ] }
 bincode = { version = "2", features = ["serde"], default-features = false }
