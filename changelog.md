@@ -1,4 +1,6 @@
-# Unreleased
+# 0.3.0
+
+- Bump deps
 
 # 0.2.0
 
