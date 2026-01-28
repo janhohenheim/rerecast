@@ -9,6 +9,7 @@ use bevy::{
 };
 use bevy_rerecast::{debug::DetailNavmeshGizmo, prelude::*};
 use bevy_trenchbroom::prelude::*;
+use bevy_trenchbroom_avian::AvianPhysicsBackend;
 
 fn main() -> AppExit {
     App::new()
@@ -21,13 +22,13 @@ fn main() -> AppExit {
             TrenchBroomPlugins(
                 TrenchBroomConfig::new("bevy_rerecast")
                     .assets_path("scenes/trenchbroom/assets")
-                    .default_solid_spawn_hooks(|| {
-                        SpawnHooks::new()
+                    .default_solid_scene_hooks(|| {
+                        SceneHooks::new()
                             .convex_collider()
                             .smooth_by_default_angle()
                     }),
             ),
-            TrenchBroomAvianPlugin::new(),
+            TrenchBroomPhysicsPlugin::new(AvianPhysicsBackend),
         ))
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
         .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()))
