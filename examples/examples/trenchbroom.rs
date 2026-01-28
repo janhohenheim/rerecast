@@ -17,14 +17,17 @@ fn main() -> AppExit {
             ..default()
         }))
         .add_plugins(PhysicsPlugins::default())
-        .add_plugins(TrenchBroomPlugins(
-            TrenchBroomConfig::new("bevy_rerecast")
-                .assets_path("scenes/trenchbroom/assets")
-                .default_solid_spawn_hooks(|| {
-                    SpawnHooks::new()
-                        .convex_collider()
-                        .smooth_by_default_angle()
-                }),
+        .add_plugins((
+            TrenchBroomPlugins(
+                TrenchBroomConfig::new("bevy_rerecast")
+                    .assets_path("scenes/trenchbroom/assets")
+                    .default_solid_spawn_hooks(|| {
+                        SpawnHooks::new()
+                            .convex_collider()
+                            .smooth_by_default_angle()
+                    }),
+            ),
+            TrenchBroomAvianPlugin::new(),
         ))
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
         .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()))

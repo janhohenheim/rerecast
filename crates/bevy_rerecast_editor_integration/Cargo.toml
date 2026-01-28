@@ -40,6 +40,7 @@ bevy_camera = { workspace = true }
 bevy_tasks = { workspace = true }
 bevy_mesh = { workspace = true, features = ["serialize"] }
 bevy_image = { workspace = true, features = ["serialize"] }
+cosmic-text = { workspace = true, features = ["std"] }
 
 tracing = { workspace = true }
 thiserror = { workspace = true }
