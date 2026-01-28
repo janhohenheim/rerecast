@@ -3,6 +3,7 @@
 use alloc::vec::Vec;
 use bevy_app::prelude::*;
 use bevy_asset::{AssetApp as _, AssetLoader, LoadContext, io::Reader};
+use bevy_reflect::prelude::*;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -14,7 +15,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 /// The [`AssetLoader`] for [`Navmesh`] assets. Loads files ending in `.nav`.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Reflect)]
 #[non_exhaustive]
 pub struct NavmeshLoader;
 

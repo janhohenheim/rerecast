@@ -17,6 +17,7 @@ avian_rerecast = { workspace = true }
 bevy = { workspace = true, features = ["bevy_remote"] }
 bevy_trenchbroom = { workspace = true }
 avian3d = { workspace = true, features = ["parry-f32"] }
+bevy_trenchbroom_avian = { workspace = true }
 
 [lints]
 workspace = true
