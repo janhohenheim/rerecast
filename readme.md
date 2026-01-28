@@ -127,7 +127,7 @@ App::new()
 Next, download the editor by entering the following command in your terminal:
 
 ```bash
-cargo install bevy_rerecast_editor
+cargo install bevy_rerecast_editor --git https://github.com/janhohenheim/rerecast
 ```
 
 And then run it:
