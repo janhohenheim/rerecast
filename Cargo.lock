@@ -474,9 +474,8 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "avian3d"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b82608b43397affac139547dfa9beb3208034c53e1a3cfe5d4079db1af362104"
+version = "0.6.0-dev"
+source = "git+https://github.com/avianphysics/avian#cbc9a2144ba75da3169fbc8a48e5283fe7f805a2"
 dependencies = [
  "approx",
  "avian_derive",
@@ -499,8 +498,7 @@ dependencies = [
 [[package]]
 name = "avian_derive"
 version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12b257f601a1535e0d4a7a7796f535e3a13de62fd422b16dff7c14d27f0d4048"
+source = "git+https://github.com/avianphysics/avian#cbc9a2144ba75da3169fbc8a48e5283fe7f805a2"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -510,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.4.0"
+version = "0.5.0-dev"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -1837,8 +1835,7 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e33fa8430c0d006f22d9ef9b03f3cb4658faa4f71d1a6d7593d9c62308b3871b"
+source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#dd52cf42f8b02800605f6c08ab0ea635b46103c8"
 dependencies = [
  "anyhow",
  "atomicow",
@@ -1867,9 +1864,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom_avian"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2afaa2bc3410229675759485df5c2edf44e38b491b19696ea404702fdb9e59f9"
+version = "0.13.0-dev"
+source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#dd52cf42f8b02800605f6c08ab0ea635b46103c8"
 dependencies = [
  "avian3d",
  "bevy",
@@ -1879,8 +1875,7 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom_macros"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ca5ac0e5786d35123f928408e11a8824355b9585310c24bb5abed18a4fc3358"
+source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#dd52cf42f8b02800605f6c08ab0ea635b46103c8"
 dependencies = [
  "deluxe",
  "heck 0.5.0",
