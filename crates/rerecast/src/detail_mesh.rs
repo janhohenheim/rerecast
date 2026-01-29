@@ -291,7 +291,7 @@ impl DetailNavmesh {
                 while dmesh.vertices.len() + nverts > vcap {
                     vcap += 256;
                 }
-                dmesh.vertices.reserve(vcap - dmesh.vertices.capacity());
+                dmesh.vertices.reserve(vcap - dmesh.vertices.len());
             }
             for vert in &verts[..nverts] {
                 dmesh.vertices.push(Vec3::from(*vert));
@@ -302,7 +302,7 @@ impl DetailNavmesh {
                 while dmesh.triangles.len() + tris.len() > tcap {
                     tcap += 256;
                 }
-                dmesh.triangles.reserve(tcap - dmesh.triangles.capacity());
+                dmesh.triangles.reserve(tcap - dmesh.triangles.len());
             }
             for tri in &tris {
                 dmesh.triangles.push([tri[0], tri[1], tri[2]]);

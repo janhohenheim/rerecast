@@ -121,7 +121,8 @@ impl CompactHeightfield {
                             #[cfg(feature = "tracing")]
                             let old_max = max_contours;
                             max_contours *= 2;
-                            cset.contours.truncate(max_contours as usize);
+                            cset.contours
+                                .resize(max_contours as usize, Contour::default());
 
                             #[cfg(feature = "tracing")]
                             tracing::warn!(
