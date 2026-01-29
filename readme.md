@@ -127,7 +127,7 @@ App::new()
 Next, download the editor by entering the following command in your terminal:
 
 ```bash
-cargo install bevy_rerecast_editor --git https://github.com/janhohenheim/rerecast --locked
+cargo install bevy_rerecast_editor --locked
 ```
 
 And then run it:
@@ -142,7 +142,7 @@ Now, when you start your game, you can load the current level into the editor, t
 
 ### Backends
 
-The recommended way to use the navmesh generator is with a physics engine backend. That way, the generated navmesh will match the physics engine's collision geometry. Currently, the only supported physics engine is [Avian](https://github.com/Jondolf/avian). To use its backend, add the `avian_rerecast` crate to your project:
+The recommended way to use the navmesh generator is with a physics engine backend. That way, the generated navmesh will match the physics engine's collision geometry. Currently, the only supported physics engine is [Avian](https://github.com/avianphysics/avian). To use its backend, add the `avian_rerecast` crate to your project:
 
 ```bash
 cargo add avian_rerecast
