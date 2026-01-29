@@ -68,7 +68,7 @@ test_utils = { version = "0.1", path = "crates/test_utils", default-features = f
 
 # Other stuffs
 bitflags = { version = "2", default-features = false }
-bevy_ui_text_input = { version = "0.7", git = "https://github.com/ickshonpe/bevy_ui_text_input" }
+bevy_ui_text_input = "0.7"
 flate2 = { version = "1", default-features = false, features = [
     "rust_backend",
 ] }
