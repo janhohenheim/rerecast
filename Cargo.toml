@@ -63,7 +63,7 @@ rerecast = { version = "0.3", path = "crates/rerecast", default-features = false
 bevy_rerecast = { version = "0.4", path = "crates/bevy_rerecast", default-features = false }
 bevy_rerecast_core = { version = "0.4", path = "crates/bevy_rerecast_core", default-features = false }
 bevy_rerecast_editor_integration = { version = "0.4", path = "crates/bevy_rerecast_editor_integration", default-features = false }
-avian_rerecast = { version = "0.5.0-dev", path = "crates/avian_rerecast", default-features = false }
+avian_rerecast = { version = "0.5.0-rc.1", path = "crates/avian_rerecast", default-features = false }
 test_utils = { version = "0.1", path = "crates/test_utils", default-features = false }
 
 # Other stuffs
