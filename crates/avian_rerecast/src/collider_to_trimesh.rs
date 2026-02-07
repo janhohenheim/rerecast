@@ -108,7 +108,7 @@ fn shape_to_trimesh(
     Some(TriMesh {
         vertices: vertices
             .into_iter()
-            .map(|v| pos + Vec3A::from((rot * Vec3::from(v)).f32()))
+            .map(|v| pos + Vec3A::from((rot * v).f32()))
             .collect(),
         indices: indices.into_iter().map(|i| i.into()).collect(),
         area_types: vec![AreaType::NOT_WALKABLE; indices_len],
@@ -124,8 +124,8 @@ fn compound_trimesh(
     compound.shapes().iter().fold(
         TriMesh::default(),
         |mut compound_trimesh, (sub_pos, shape)| {
-            let pos = Position(pos.0 + rot * Vec3::from(sub_pos.translation));
-            let rot = Rotation((rot.mul_quat(sub_pos.rotation.into())).normalize());
+            let pos = Position(pos.0 + rot * sub_pos.translation);
+            let rot = Rotation((rot.mul_quat(sub_pos.rotation)).normalize());
             let Some(trimesh) =
                 // No need to track recursive compounds because parry panics on nested compounds anyways lol
                 shape_to_trimesh(&shape.as_typed_shape(), pos, rot,  subdivisions)

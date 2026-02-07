@@ -13,7 +13,7 @@ categories = ["game-development"]
 readme = "readme.md"
 
 [workspace.dependencies]
-avian3d = { version = "0.6.0-dev", default-features = false, git = "https://github.com/avianphysics/avian" }
+avian3d = { version = "0.6.0-rc.1", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc"] }
 serde_json = { version = "1", default-features = false, features = [
     "alloc",
@@ -74,7 +74,7 @@ flate2 = { version = "1", default-features = false, features = [
 ] }
 bincode = { version = "2", features = ["serde"], default-features = false }
 bevy_trenchbroom = { version = "0.12", git = "https://github.com/janhohenheim/bevy_trenchbroom", branch = "avian-0.6" }
-bevy_trenchbroom_avian = { version = "0.13.0-dev", git = "https://github.com/janhohenheim/bevy_trenchbroom", branch = "avian-0.6" }
+bevy_trenchbroom_avian = { version = "0.13.0-rc.1", git = "https://github.com/janhohenheim/bevy_trenchbroom", branch = "avian-0.6" }
 approxim = "0.6"
 
 [workspace.lints.rust]
