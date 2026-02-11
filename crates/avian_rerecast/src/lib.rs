@@ -25,7 +25,7 @@ impl Plugin for AvianBackendPlugin {
     }
 }
 
-/// Component to opt-out a [`Mesh3d`] from navmesh generation when using [`Mesh3dBackendPlugin`].
+/// Component to opt-out a [`Collider`] or [`RigidBody`] from navmesh generation when using [`AvianBackendPlugin`].
 /// If that backend is not used, this component has no effect.
 #[derive(Debug, Default, Component, Reflect)]
 #[reflect(Component)]
@@ -37,7 +37,7 @@ fn collider_backend(
         (Entity, &Collider, &Position, &Rotation, &ColliderOf),
         Without<ExcludeColliderFromNavmesh>,
     >,
-    bodies: Query<&RigidBody>,
+    bodies: Query<&RigidBody, Without<ExcludeColliderFromNavmesh>>,
 ) -> TriMesh {
     colliders
         .iter()
