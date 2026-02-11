@@ -3,6 +3,7 @@
 use avian3d::prelude::*;
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
+use bevy_reflect::prelude::*;
 use bevy_rerecast_core::{NavmeshApp as _, NavmeshSettings, rerecast::TriMesh};
 
 mod collider_to_trimesh;
@@ -10,7 +11,7 @@ pub use crate::collider_to_trimesh::ColliderToTriMesh;
 
 /// Everything you need to get started with the Navmesh plugin.
 pub mod prelude {
-    pub use crate::AvianBackendPlugin;
+    pub use crate::{AvianBackendPlugin, ExcludeColliderFromNavmesh};
 }
 
 /// The plugin of the crate. Will make all entities with [`Collider`] a collider belonging to a static [`RigidBody`] available for navmesh generation.
@@ -24,9 +25,18 @@ impl Plugin for AvianBackendPlugin {
     }
 }
 
+/// Component to opt-out a [`Mesh3d`] from navmesh generation when using [`Mesh3dBackendPlugin`].
+/// If that backend is not used, this component has no effect.
+#[derive(Debug, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct ExcludeColliderFromNavmesh;
+
 fn collider_backend(
     input: In<NavmeshSettings>,
-    colliders: Query<(Entity, &Collider, &Position, &Rotation, &ColliderOf)>,
+    colliders: Query<
+        (Entity, &Collider, &Position, &Rotation, &ColliderOf),
+        Without<ExcludeColliderFromNavmesh>,
+    >,
     bodies: Query<&RigidBody>,
 ) -> TriMesh {
     colliders

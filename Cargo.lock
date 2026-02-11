@@ -529,12 +529,13 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.5.0-rc.1"
+version = "0.5.0-rc.2"
 dependencies = [
  "avian3d",
  "bevy_app",
  "bevy_ecs",
  "bevy_math",
+ "bevy_reflect",
  "bevy_rerecast_core",
 ]
 
