@@ -106,7 +106,9 @@ Take a look at the [`examples`](https://github.com/janhohenheim/rerecast/tree/ma
 
 Tweaking navmesh settings by hand and restarting the game to see the changes is a very inefficient way to iterate on your game.
 Instead, navmeshes are often authored in advanced. To do this, the Bevy integration comes with an editor to help you out.
-To use it, you must enable Bevy's BRP functionality, which is a way for Bevy processes to communicate over HTTP. To do this, enable Bevy's `remote` feature and add the [`RemotePlugin`] and [`RemoteHttpPlugin`] to your app:
+To use it, you must enable Bevy's BRP functionality, which is a way for Bevy processes to communicate over HTTP. To do this, enable Bevy's `bevy_remote` feature and add the [`RemotePlugin`] and [`RemoteHttpPlugin`] to your app:
+
+Note that as of `bevy` 0.18, enabling the `bevy_remote` feature will automatically add the [`RemotePlugin`] and [`RemoteHttpPlugin`] plugins.
 
 ```rust,no_run
 use bevy::prelude::*;
@@ -137,6 +139,8 @@ bevy_rerecast_editor
 ```
 
 Now, when you start your game, you can load the current level into the editor, tweak the navmesh, and save it into a `.nav` file that you can load into your game.
+
+If you've disabled the default features of `bevy_rerecast`, make sure to enable the `editor_integration` feature. Otherwise, the editor won't work.
 
 ## Third-Party Integration
 
