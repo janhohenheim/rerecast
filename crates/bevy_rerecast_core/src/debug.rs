@@ -404,7 +404,7 @@ impl FromWorld for GizmoHandles {
         Self {
             polygon_material: world.resource_mut::<Assets<StandardMaterial>>().add(
                 StandardMaterial {
-                    base_color: tailwind::BLUE_600.with_alpha(0.2).into(),
+                    base_color: tailwind::BLUE_600.with_alpha(0.8).into(),
                     unlit: true,
                     double_sided: true,
                     alpha_mode: AlphaMode::Blend,
@@ -414,7 +414,7 @@ impl FromWorld for GizmoHandles {
             ),
             detail_material: world.resource_mut::<Assets<StandardMaterial>>().add(
                 StandardMaterial {
-                    base_color: tailwind::EMERALD_200.with_alpha(0.2).into(),
+                    base_color: tailwind::EMERALD_200.with_alpha(0.8).into(),
                     unlit: true,
                     double_sided: true,
                     alpha_mode: AlphaMode::Blend,
@@ -442,8 +442,9 @@ impl Default for NavmeshGizmoConfig {
             polygon_navmesh: GizmoConfig {
                 enabled: false,
                 line: GizmoLineConfig {
-                    perspective: true,
-                    width: 6.0,
+                    // should be `true`, but looks to be broken in current Bevy
+                    perspective: false,
+                    width: 1.0,
                     ..Default::default()
                 },
                 depth_bias: -0.001,
@@ -452,8 +453,9 @@ impl Default for NavmeshGizmoConfig {
             detail_navmesh: GizmoConfig {
                 enabled: true,
                 line: GizmoLineConfig {
-                    perspective: true,
-                    width: 6.0,
+                    // should be `true`, but looks to be broken in current Bevy
+                    perspective: false,
+                    width: 1.0,
                     ..Default::default()
                 },
                 depth_bias: -0.002,

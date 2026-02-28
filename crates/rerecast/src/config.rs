@@ -354,8 +354,8 @@ impl Default for ConfigBuilder {
         Self {
             cell_size_fraction: 2.0,
             cell_height_fraction: 4.0,
-            agent_height: 2.0,
-            agent_radius: 0.6,
+            agent_height: 1.75,
+            agent_radius: 0.3,
             walkable_climb: 0.9,
             walkable_slope_angle: 45.0_f32.to_radians(),
             min_region_size: 8,
