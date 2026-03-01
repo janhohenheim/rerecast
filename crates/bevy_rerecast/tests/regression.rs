@@ -33,7 +33,10 @@ fn gltf_generation() {
             panic!("Timeout waiting for glTF to load");
         }
     }
-    let navmesh_handle = app.generate_navmesh(NavmeshSettings::default());
+    let navmesh_handle = app.generate_navmesh(NavmeshSettings {
+        cell_size_fraction: 2.0,
+        ..NavmeshSettings::from_agent_3d(0.6, 2.0)
+    });
     let navmesh = app.get_navmesh(&navmesh_handle);
     let expected_navmesh = app.read_navmesh("test/dungeon/navmesh.nav");
 
@@ -63,6 +66,7 @@ fn primitive_2d_regeneration() {
     let cube_entity = app.world_mut().spawn(Mesh3d(cube_handle)).id();
 
     let settings = NavmeshSettings {
+        cell_size_fraction: 2.0,
         aabb: Some(Aabb3d::new(Vec3::ZERO, Vec3::new(100.0, 100.0, 5.0))),
         ..NavmeshSettings::from_agent_2d(5.0, 2.0)
     };

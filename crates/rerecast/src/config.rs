@@ -352,7 +352,7 @@ pub struct ConfigBuilder {
 impl Default for ConfigBuilder {
     fn default() -> Self {
         Self {
-            cell_size_fraction: 2.0,
+            cell_size_fraction: 3.0,
             cell_height_fraction: 4.0,
             agent_height: 1.75,
             agent_radius: 0.3,
