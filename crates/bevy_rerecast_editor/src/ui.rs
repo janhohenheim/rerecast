@@ -1,3 +1,4 @@
+use bevy::tasks::Task;
 use bevy::{
     ecs::{
         prelude::*,
@@ -19,6 +20,7 @@ use bevy::{
     ui_widgets::{Activate, ValueChange, observe},
     window::{PrimaryWindow, RawHandleWrapper},
 };
+use bevy_malek_async::WorldIdRes;
 use bevy_rerecast::prelude::*;
 use bevy_ui_text_input::{
     TextInputContents, TextInputFilter, TextInputMode, TextInputNode, TextInputQueue,
@@ -31,7 +33,7 @@ use crate::{
     backend::{BuildNavmesh, GlobalNavmeshSettings},
     get_navmesh_input::GetNavmeshInput,
     load::LoadTask,
-    save::SaveTask,
+    save,
     visualization::{AvailableGizmos, GizmosToDraw, ObstacleGizmo},
 };
 
@@ -320,19 +322,22 @@ fn read_config_inputs(
 
 fn save_navmesh(
     _: On<Activate>,
-    mut commands: Commands,
-    maybe_task: Option<Res<SaveTask>>,
+    world_id: Res<WorldIdRes>,
+    mut task: Local<Option<Task<()>>>,
     window_handle: Single<&RawHandleWrapper, With<PrimaryWindow>>,
 ) {
-    if maybe_task.is_some() {
+    let world_id = world_id.0.clone();
+    if task.as_ref().is_some_and(|task| task.is_finished()) {
         // Already saving, do nothing
+        task.take();
+    }
+    if let Some(_) = task.as_ref() {
+        info!("a navmesh save task is already running");
         return;
     }
-
     // Safety: we're on the main thread, so this is fine??? I think??
     let window_handle = unsafe { window_handle.get_handle() };
-    let thread_pool = AsyncComputeTaskPool::get();
-    let future = AsyncFileDialog::new()
+    let save_file_dialog = AsyncFileDialog::new()
         .add_filter("Navmesh", &["nav"])
         .add_filter("All files", &["*"])
         .set_title("Save Navmesh")
@@ -340,8 +345,11 @@ fn save_navmesh(
         .set_parent(&window_handle)
         .set_can_create_directories(true)
         .save_file();
-    let task = thread_pool.spawn(future);
-    commands.insert_resource(SaveTask(task));
+    task.replace(AsyncComputeTaskPool::get().spawn(async move {
+        if let Err(e) = save::save_navmesh(world_id, save_file_dialog).await {
+            error!("navmesh save failed: {e:?}");
+        }
+    }));
 }
 
 fn load_navmesh(

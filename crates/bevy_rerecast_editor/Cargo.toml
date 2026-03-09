@@ -25,6 +25,7 @@ thiserror = { workspace = true }
 bevy_ui_text_input = { workspace = true }
 rfd = { workspace = true }
 cosmic-text = { workspace = true }
+bevy_malek_async = { workspace = true }
 
 [lints]
 workspace = true

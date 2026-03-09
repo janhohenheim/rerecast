@@ -6,6 +6,7 @@ use bevy::{
     input_focus::{InputDispatchPlugin, tab_navigation::TabNavigationPlugin},
     prelude::*,
 };
+use bevy_malek_async::AsyncPlugin;
 use bevy_rerecast::prelude::*;
 use bevy_ui_text_input::TextInputPlugin;
 
@@ -39,7 +40,7 @@ fn main() -> AppExit {
                 .disable::<TabNavigationPlugin>(),
         ))
         .insert_resource(UiTheme(create_dark_theme()))
-        .add_plugins((NavmeshPlugins::default(), TextInputPlugin))
+        .add_plugins((NavmeshPlugins::default(), TextInputPlugin, AsyncPlugin))
         .add_plugins((
             camera::plugin,
             get_navmesh_input::plugin,
@@ -47,7 +48,6 @@ fn main() -> AppExit {
             theme::plugin,
             visualization::plugin,
             backend::plugin,
-            save::plugin,
             load::plugin,
         ))
         .run()

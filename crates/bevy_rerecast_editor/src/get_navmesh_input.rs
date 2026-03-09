@@ -1,11 +1,12 @@
-use anyhow::anyhow;
+use anyhow::{Result, anyhow};
 use bevy::{
     asset::RenderAssetUsages,
+    ecs::world::WorldId,
     mesh::{Indices, PrimitiveTopology},
     platform::collections::HashMap,
     prelude::*,
     remote::BrpRequest,
-    tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
+    tasks::{IoTaskPool, Task},
 };
 use bevy_rerecast::editor_integration::{
     brp::{
@@ -21,241 +22,221 @@ use crate::{
     ui::ConnectionInput,
     visualization::{ObstacleGizmo, VisualMesh},
 };
+use bevy_malek_async::{WorldIdRes, async_access};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_observer(generate_navmesh_input);
-    app.add_systems(
-        Update,
-        // the `run_if` needs to be on both systems because the resource is allowed to stop existing in-between them.
-        (
-            poll_remote_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
-            poll_navmesh_input.run_if(resource_exists::<GetNavmeshInputRequestTask>),
-        )
-            .chain(),
-    );
+    app.add_observer(on_get_navmesh_input);
 }
 
 #[derive(Event)]
 pub(crate) struct GetNavmeshInput;
 
-#[derive(Resource)]
-enum GetNavmeshInputRequestTask {
-    Generate(Task<Result<GenerateEditorInputResponse, anyhow::Error>>),
-    Poll(Task<Result<PollEditorInputResponse, anyhow::Error>>),
-}
-
-fn generate_navmesh_input(
+fn on_get_navmesh_input(
     _: On<GetNavmeshInput>,
-    mut commands: Commands,
-    settings: Res<GlobalNavmeshSettings>,
-    connection_input: Single<&TextInputContents, With<ConnectionInput>>,
-    maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
+    mut task: Local<Option<Task<()>>>,
+    world_id: Res<WorldIdRes>,
 ) {
-    if maybe_task.is_some() {
-        // There's already an ongoing task, so we'll wait for it to complete.
-        return;
+    let world_id = world_id.0.clone();
+    if task.as_ref().is_some_and(|task| task.is_finished()) {
+        task.take();
     }
-    let settings = settings.0.clone();
-    let url = connection_input.get().to_string();
-    let future = async move {
-        let params = GenerateEditorInputParams {
-            backend_input: settings,
-        };
-        let json = serde_json::to_value(params)?;
+    match task.as_ref() {
+        None => {
+            task.replace(IoTaskPool::get().spawn(async move {
+                if let Err(e) = navmesh_pipeline(world_id).await {
+                    error!("navmesh pipeline failed: {e:?}");
+                }
+            }));
+        }
+        Some(_) => {
+            error!("a navmesh task is already running");
+        }
+    }
+}
+
+async fn navmesh_pipeline(world_id: WorldId) -> Result<()> {
+    let (settings, url): (serde_json::Value, String) =
+        async_access::<
+            (
+                Res<GlobalNavmeshSettings>,
+                Single<&TextInputContents, With<ConnectionInput>>,
+            ),
+            _,
+            _,
+        >(world_id, |(settings, connection_input)| {
+            Ok::<_, anyhow::Error>((
+                serde_json::to_value(GenerateEditorInputParams {
+                    backend_input: settings.0.clone(),
+                })?,
+                connection_input.get().to_string(),
+            ))
+        })
+        .await?;
+
+    let generate_id = {
         let req = BrpRequest {
-            jsonrpc: String::from("2.0"),
-            method: String::from(BRP_GENERATE_EDITOR_INPUT),
+            jsonrpc: "2.0".into(),
+            method: BRP_GENERATE_EDITOR_INPUT.into(),
             id: None,
-            params: Some(json),
+            params: Some(settings),
         };
-        let request = ehttp::Request::json(url, &req)?;
-        let resp = ehttp::fetch_async(request)
+        let resp = ehttp::fetch_async(ehttp::Request::json(url, &req)?)
             .await
             .map_err(|s| anyhow!("{s}"))?;
 
         let mut v: serde_json::Value = resp.json()?;
-
-        let Some(val) = v.get_mut("result") else {
-            let Some(error) = v.get("error") else {
-                return Err(anyhow!(
-                    "BRP error: Response returned neither 'result' nor 'error' field"
-                ));
-            };
-            return Err(anyhow!("BRP error: {error}"));
-        };
-        let val = val.take();
-
-        // Decode manually
-        let response: GenerateEditorInputResponse = serde_json::from_value(val)?;
-        Ok(response)
+        let val = v.get_mut("result").map(|r| r.take()).ok_or_else(|| {
+            anyhow!(
+                "BRP error: {}",
+                v.get("error").unwrap_or(&serde_json::Value::Null)
+            )
+        })?;
+        let GenerateEditorInputResponse { id, .. } = serde_json::from_value(val)?;
+        id
     };
 
-    let task = IoTaskPool::get().spawn(future);
-    commands.insert_resource(GetNavmeshInputRequestTask::Generate(task));
-}
-
-fn poll_remote_navmesh_input(
-    mut commands: Commands,
-    mut task: ResMut<GetNavmeshInputRequestTask>,
-) -> Result {
-    let GetNavmeshInputRequestTask::Generate(task) = task.as_mut() else {
-        return Ok(());
-    };
-    let Some(result) = future::block_on(future::poll_once(task)) else {
-        return Ok(());
-    };
-    let response = result.inspect_err(|_e| {
-        commands.remove_resource::<GetNavmeshInputRequestTask>();
-    })?;
-    let future = async {
-        // Create the URL. We're going to need it to issue the HTTP request.
-        let host_part = format!("{}:{}", "127.0.0.1", 15702);
-        let url = format!("http://{host_part}/");
-        let params = PollEditorInputParams { id: response.id };
-        let json = serde_json::to_value(params)?;
+    let response: PollEditorInputResponse = {
+        let params = serde_json::to_value(PollEditorInputParams { id: generate_id })?;
         let req = BrpRequest {
-            jsonrpc: String::from("2.0"),
-            method: String::from(BRP_POLL_EDITOR_INPUT),
+            jsonrpc: "2.0".into(),
+            method: BRP_POLL_EDITOR_INPUT.into(),
             id: None,
-            params: Some(json),
+            params: Some(params),
         };
-        let request = ehttp::Request::json(url, &req)?;
-        let resp = ehttp::fetch_async(request)
+        let resp = ehttp::fetch_async(ehttp::Request::json("http://127.0.0.1:15702/", &req)?)
             .await
             .map_err(|s| anyhow!("{s}"))?;
 
         let mut v: serde_json::Value = resp.json()?;
-
-        let Some(val) = v.get_mut("result") else {
-            let Some(error) = v.get("error") else {
-                return Err(anyhow!(
-                    "BRP error: Response returned neither 'result' nor 'error' field"
-                ));
-            };
-            return Err(anyhow!("BRP error: {error}"));
-        };
-        let val = val.take();
-
-        // Decode manually
-        let response: PollEditorInputResponse = deserialize(&val)?;
-        Ok(response)
+        let val = v.get_mut("result").map(|r| r.take()).ok_or_else(|| {
+            anyhow!(
+                "BRP error: {}",
+                v.get("error").unwrap_or(&serde_json::Value::Null)
+            )
+        })?;
+        deserialize(&val)?
     };
 
-    let task = AsyncComputeTaskPool::get().spawn(future);
-    commands.insert_resource(GetNavmeshInputRequestTask::Poll(task));
-    Ok(())
-}
-
-fn poll_navmesh_input(
-    mut task: ResMut<GetNavmeshInputRequestTask>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
-    mesh_handles: Query<Entity, (With<Mesh3d>, With<VisualMesh>)>,
-    gizmo_handles: Query<&Gizmo>,
-    mut gizmos: ResMut<Assets<GizmoAsset>>,
-    mut navmesh_handle: ResMut<NavmeshHandle>,
-) -> Result {
-    let GetNavmeshInputRequestTask::Poll(task) = task.as_mut() else {
-        return Ok(());
-    };
-    let Some(result) = future::block_on(future::poll_once(task)) else {
-        return Ok(());
-    };
-    commands.remove_resource::<GetNavmeshInputRequestTask>();
-    let response = result?;
-
-    for entity in mesh_handles.iter() {
-        commands.entity(entity).despawn();
-    }
-    for gizmo in gizmo_handles.iter() {
-        let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
-            continue;
-        };
-        gizmo.clear();
-    }
-
-    let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
-        .with_inserted_attribute(
-            Mesh::ATTRIBUTE_POSITION,
-            response.obstacles.vertices.clone(),
-        )
-        .with_inserted_indices(Indices::U32(
-            response
-                .obstacles
-                .indices
-                .iter()
-                .flat_map(|indices| indices.to_array())
-                .collect(),
-        ))
-        .with_computed_normals();
-
-    commands.spawn((
-        Transform::default(),
-        Mesh3d(meshes.add(mesh)),
-        Visibility::Hidden,
-        ObstacleGizmo,
-        Gizmo {
-            handle: gizmos.add(GizmoAsset::new()),
-            line_config: GizmoLineConfig {
-                perspective: true,
-                width: 15.0,
-                joints: GizmoLineJoint::Bevel,
-                ..default()
-            },
-            depth_bias: -0.005,
-        },
-    ));
-    commands.insert_resource(NavmeshObstacles(response.obstacles));
-
-    let mut image_indices: HashMap<u32, Handle<Image>> = HashMap::new();
-    let mut material_indices: HashMap<u32, Handle<StandardMaterial>> = HashMap::new();
-    let mut mesh_indices: HashMap<u32, Handle<Mesh>> = HashMap::new();
-    let fallback_material = materials.add(Color::WHITE);
-
-    for visual in response.visual_meshes {
-        let mesh = if let Some(mesh_handle) = mesh_indices.get(&visual.mesh) {
-            mesh_handle.clone()
-        } else {
-            let serialized_mesh = response.meshes[visual.mesh as usize].clone();
-            let mut mesh = serialized_mesh.into_mesh();
-            // Need to exclude these as we don't replicate `SkinnedMesh`, but having joint attributes without a `SkinnedMesh` crashes Bevy.
-            // See https://github.com/bevyengine/bevy/issues/16929
-            mesh.remove_attribute(Mesh::ATTRIBUTE_JOINT_INDEX);
-            mesh.remove_attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT);
-            let handle = meshes.add(mesh);
-            mesh_indices.insert(visual.mesh, handle.clone());
-            handle
-        };
-
-        let material = if let Some(index) = visual.material {
-            if let Some(material_handle) = material_indices.get(&index) {
-                material_handle.clone()
-            } else {
-                let serialized_material = response.materials[index as usize].clone();
-                let material = serialized_material.into_standard_material(
-                    &mut image_indices,
-                    &mut images,
-                    &response.images,
-                );
-                let handle = materials.add(material.clone());
-                material_indices.insert(index, handle.clone());
-                handle
+    async_access::<
+        (
+            Commands,
+            ResMut<Assets<Mesh>>,
+            ResMut<Assets<StandardMaterial>>,
+            ResMut<Assets<Image>>,
+            Query<Entity, (With<Mesh3d>, With<VisualMesh>)>,
+            Query<&Gizmo>,
+            ResMut<Assets<GizmoAsset>>,
+            ResMut<NavmeshHandle>,
+        ),
+        _,
+        _,
+    >(
+        world_id,
+        move |(
+            mut commands,
+            mut meshes,
+            mut materials,
+            mut images,
+            mesh_handles,
+            gizmo_handles,
+            mut gizmos,
+            mut navmesh_handle,
+        )| {
+            // Clear existing scene bits.
+            for e in mesh_handles.iter() {
+                commands.entity(e).despawn();
             }
-        } else {
-            fallback_material.clone()
-        };
+            for gizmo in gizmo_handles.iter() {
+                if let Some(g) = gizmos.get_mut(&gizmo.handle) {
+                    g.clear();
+                }
+            }
 
-        commands.spawn((
-            visual.transform.compute_transform(),
-            Mesh3d(mesh),
-            MeshMaterial3d(material),
-            VisualMesh,
-        ));
-    }
-    // Clear previous navmesh
-    navmesh_handle.0 = Default::default();
+            // Obstacles preview mesh.
+            let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
+                .with_inserted_attribute(
+                    Mesh::ATTRIBUTE_POSITION,
+                    response.obstacles.vertices.clone(),
+                )
+                .with_inserted_indices(Indices::U32(
+                    response
+                        .obstacles
+                        .indices
+                        .iter()
+                        .flat_map(|tri| tri.to_array())
+                        .collect(),
+                ))
+                .with_computed_normals();
+
+            commands.spawn((
+                Transform::default(),
+                Mesh3d(meshes.add(mesh)),
+                Visibility::Hidden,
+                ObstacleGizmo,
+                Gizmo {
+                    handle: gizmos.add(GizmoAsset::new()),
+                    line_config: GizmoLineConfig {
+                        perspective: true,
+                        width: 15.0,
+                        joints: GizmoLineJoint::Bevel,
+                        ..default()
+                    },
+                    depth_bias: -0.005,
+                },
+            ));
+            commands.insert_resource(NavmeshObstacles(response.obstacles.clone()));
+
+            // Visual meshes + materials (with per-index caches).
+            let mut image_indices: HashMap<u32, Handle<Image>> = HashMap::default();
+            let mut material_indices: HashMap<u32, Handle<StandardMaterial>> = HashMap::default();
+            let mut mesh_indices: HashMap<u32, Handle<Mesh>> = HashMap::default();
+            let fallback_material = materials.add(Color::WHITE);
+
+            for visual in response.visual_meshes {
+                let mesh_handle = mesh_indices
+                    .entry(visual.mesh)
+                    .or_insert_with(|| {
+                        let mut m = response.meshes[visual.mesh as usize].clone().into_mesh();
+                        // Avoid skinned attributes without SkinnedMesh
+                        m.remove_attribute(Mesh::ATTRIBUTE_JOINT_INDEX);
+                        m.remove_attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT);
+                        meshes.add(m)
+                    })
+                    .clone();
+
+                let material_handle = if let Some(idx) = visual.material {
+                    material_indices
+                        .entry(idx)
+                        .or_insert_with(|| {
+                            let mat = response.materials[idx as usize]
+                                .clone()
+                                .into_standard_material(
+                                    &mut image_indices,
+                                    &mut images,
+                                    &response.images,
+                                );
+                            materials.add(mat)
+                        })
+                        .clone()
+                } else {
+                    fallback_material.clone()
+                };
+
+                commands.spawn((
+                    visual.transform.compute_transform(),
+                    Mesh3d(mesh_handle),
+                    MeshMaterial3d(material_handle),
+                    VisualMesh,
+                ));
+            }
+
+            // Clear previous navmesh handle
+            navmesh_handle.0 = Default::default();
+
+            Ok::<_, anyhow::Error>(())
+        },
+    )
+    .await?;
 
     Ok(())
 }

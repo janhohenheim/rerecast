@@ -1240,6 +1240,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_malek_async"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48b3542ea649e1fdf7800a006b8970fc7ce2fbfdc663610aa6f9f91399cd08be"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_platform",
+ "crossbeam",
+]
+
+[[package]]
 name = "bevy_materialize"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1575,6 +1587,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_gizmos",
  "bevy_light",
+ "bevy_malek_async",
  "bevy_math",
  "bevy_mesh",
  "bevy_pbr",
@@ -1598,6 +1611,7 @@ version = "0.4.2"
 dependencies = [
  "anyhow",
  "bevy",
+ "bevy_malek_async",
  "bevy_rerecast",
  "bevy_ui_text_input",
  "bincode",
@@ -2705,6 +2719,19 @@ name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
+
+[[package]]
+name = "crossbeam"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1137cd7e7fc0fb5d3c5a8678be38ec56e819125d8d7907411fe24ccb943faca8"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-epoch",
+ "crossbeam-queue",
+ "crossbeam-utils",
+]
 
 [[package]]
 name = "crossbeam-channel"
