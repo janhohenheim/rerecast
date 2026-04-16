@@ -5836,9 +5836,11 @@ dependencies = [
  "avian3d",
  "avian_rerecast",
  "bevy",
+ "bevy_rapier3d",
  "bevy_rerecast",
  "bevy_trenchbroom",
  "bevy_trenchbroom_avian",
+ "rapier_rerecast",
 ]
 
 [[package]]
