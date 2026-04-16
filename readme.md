@@ -146,7 +146,16 @@ If you've disabled the default features of `bevy_rerecast`, make sure to enable 
 
 ### Backends
 
-The recommended way to use the navmesh generator is with a physics engine backend. That way, the generated navmesh will match the physics engine's collision geometry. Currently, the only supported physics engine is [Avian](https://github.com/avianphysics/avian). To use its backend, add the `avian_rerecast` crate to your project:
+The recommended way to use the navmesh generator is with a physics engine backend. That way, the generated navmesh will match the physics engine's collision geometry.
+Currently, the only supported physics engines are:
+- [Avian](https://github.com/avianphysics/avian)
+- [Bevy Rapier](https://github.com/dimforge/bevy_rapier)
+
+Creating your own backend is *very* easy. Take a look at the implementation of the [`AvianBackendPlugin`] as an example.
+
+#### Avian Backend
+
+To use the backend, add the `avian_rerecast` crate to your project:
 
 ```bash
 cargo add avian_rerecast
@@ -161,13 +170,32 @@ use avian_rerecast::prelude::*;
 
 App::new()
     .add_plugins(DefaultPlugins)
-    .add_plugins(NavmeshPlugins::default())
-    .add_plugins(AvianBackendPlugin::default());
+    .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()));
 ```
 
 The avian backend will consider colliders that are part of a static rigid body as obstacles.
 
-Creating your own backend is *very* easy. Take a look at the implementation of the [`AvianBackendPlugin`] as an example.
+#### Bevy Rapier Backend
+
+To use the backend, add the `rapier_rerecast` crate to your project:
+
+```bash
+cargo add rapier_rerecast
+```
+
+and then register its backend:
+
+```rust,ignore
+use bevy::prelude::*;
+use bevy_rerecast::prelude::*;
+use rapier_rerecast::prelude::*;
+
+App::new()
+    .add_plugins(DefaultPlugins)
+    .add_plugins((NavmeshPlugins::default(), RapierBackendPlugin::default()));
+```
+
+The bevy rapier backend will consider colliders that are part of a static rigid body as obstacles.
 
 ### Pathfinding
 
