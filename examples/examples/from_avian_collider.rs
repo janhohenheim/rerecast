@@ -84,7 +84,7 @@ fn setup(
     ));
 
     commands.spawn((
-        Text::new("Press space to generate navmesh"),
+        Text::new("Press space to generate navmesh from avian colliders"),
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(12.0),

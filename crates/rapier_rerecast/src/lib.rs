@@ -34,14 +34,12 @@ pub struct ExcludeColliderFromNavmesh;
 
 fn collider_backend(
     input: In<NavmeshSettings>,
-    colliders: Query<
-        (Entity, &Collider, &GlobalTransform, &RigidBody),
-        Without<ExcludeColliderFromNavmesh>,
-    >,
+    colliders: Query<(Entity, &Collider, &GlobalTransform), Without<ExcludeColliderFromNavmesh>>,
+    bodies: Query<AnyOf<(&RigidBody, &ChildOf)>, Without<ExcludeColliderFromNavmesh>>,
 ) -> TriMesh {
     colliders
         .iter()
-        .filter_map(|(entity, collider, transform, body)| {
+        .filter_map(|(entity, collider, transform)| {
             if input
                 .filter
                 .as_ref()
@@ -49,12 +47,21 @@ fn collider_backend(
             {
                 return None;
             }
-            if *body != RigidBody::Fixed {
-                return None;
+
+            let mut body_entity = entity;
+            while let Ok((body, child_of)) = bodies.get(body_entity) {
+                if body.is_some_and(|body| *body != RigidBody::Fixed) {
+                    return None;
+                }
+                if let Some(&ChildOf(parent)) = child_of {
+                    body_entity = parent;
+                    continue;
+                }
+                break;
             }
+
             let subdivisions = 10;
-            let pos = transform.translation();
-            let rot = transform.rotation();
+            let (_scale, rot, pos) = transform.to_scale_rotation_translation();
             collider.to_trimesh(pos, rot, subdivisions)
         })
         .fold(TriMesh::default(), |mut acc, t| {

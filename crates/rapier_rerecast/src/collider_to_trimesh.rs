@@ -47,7 +47,10 @@ impl ColliderToTriMesh for Collider {
         subdivisions: u32,
     ) -> Option<TriMesh> {
         shape_to_trimesh(
-            &self.as_typed_shape().as_typed_shape(),
+            &self
+                .as_typed_shape()
+                .raw_scale_by(Vec3::splat(0.5), subdivisions)?
+                .as_typed_shape(),
             pos.into(),
             rot.into(),
             subdivisions,
@@ -107,7 +110,7 @@ fn shape_to_trimesh(
     Some(TriMesh {
         vertices: vertices
             .into_iter()
-            .map(|v| pos + Vec3A::from(rot.mul_vec3(v.into())))
+            .map(|v| pos + rot.mul_vec3a(v.into()))
             .collect(),
         indices: indices.into_iter().map(|i| i.into()).collect(),
         area_types: vec![AreaType::NOT_WALKABLE; indices_len],
