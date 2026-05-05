@@ -1,14 +1,14 @@
 //! A test scene that only uses primitive shapes.
 
-use avian_rerecast::prelude::*;
-use avian3d::prelude::*;
 use bevy::{
     color::palettes::tailwind,
     input::common_conditions::input_just_pressed,
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
 };
+use bevy_rapier3d::prelude::*;
 use bevy_rerecast::{debug::DetailNavmeshGizmo, prelude::*};
+use rapier_rerecast::prelude::*;
 
 fn main() -> AppExit {
     App::new()
@@ -16,9 +16,9 @@ fn main() -> AppExit {
             file_path: "../assets".to_string(),
             ..default()
         }))
-        .add_plugins(PhysicsPlugins::default())
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins((RemotePlugin::default(), RemoteHttpPlugin::default()))
-        .add_plugins((NavmeshPlugins::default(), AvianBackendPlugin::default()))
+        .add_plugins((NavmeshPlugins::default(), RapierBackendPlugin::default()))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -38,8 +38,8 @@ fn setup(
 
     commands.spawn((
         Name::new("Ground"),
-        RigidBody::Static,
-        Collider::cylinder(25.0, 0.2),
+        RigidBody::Fixed,
+        Collider::cylinder(0.1, 25.0),
         Mesh3d(meshes.add(Cylinder::new(25.0, 0.2))),
         MeshMaterial3d(material_gray.clone()),
     ));
@@ -48,8 +48,8 @@ fn setup(
     for (i, &scale) in ball_scales.iter().enumerate() {
         commands.spawn((
             Name::new(format!("Ball {}", i + 1)),
-            RigidBody::Static,
-            Collider::sphere(1.0),
+            RigidBody::Fixed,
+            Collider::ball(1.0),
             Mesh3d(meshes.add(Sphere::new(1.0))),
             Transform::from_xyz(-20.0 + i as f32 * 5.0, 0.0, 5.0 + i as f32)
                 .with_scale(Vec3::splat(scale)),
@@ -59,8 +59,8 @@ fn setup(
 
     commands.spawn((
         Name::new("Cube"),
-        RigidBody::Static,
-        Collider::cuboid(10.0, 1.0, 10.0),
+        RigidBody::Fixed,
+        Collider::cuboid(5.0, 0.5, 5.0),
         Mesh3d(meshes.add(Cuboid::new(10.0, 1.0, 10.0))),
         Transform::from_xyz(-10.0, 3.0, -10.0),
         MeshMaterial3d(material_red.clone()),
@@ -68,8 +68,8 @@ fn setup(
 
     commands.spawn((
         Name::new("RotatedCube"),
-        RigidBody::Static,
-        Collider::cuboid(3.0, 1.0, 3.0),
+        RigidBody::Fixed,
+        Collider::cuboid(1.5, 0.5, 1.5),
         Mesh3d(meshes.add(Cuboid::new(3.0, 1.0, 3.0))),
         Transform::from_xyz(2.0, 0.5, -2.0)
             .with_rotation(Quat::from_rotation_y(45.0_f32.to_radians())),
@@ -89,7 +89,7 @@ fn setup(
     ));
 
     commands.spawn((
-        Text::new("Press space to generate navmesh from avian colliders"),
+        Text::new("Press space to generate navmesh from rapier colliders"),
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(12.0),
