@@ -24,17 +24,17 @@ pub trait ColliderToTriMesh {
     /// A [`TriMesh`] if the collider is supported, otherwise `None`
     ///
     /// The following shapes are not supported:
-    /// - [`Segment`](avian3d::parry::shape::Segment)
-    /// - [`Polyline`](avian3d::parry::shape::Polyline)
-    /// - [`HalfSpace`](avian3d::parry::shape::HalfSpace)
+    /// - [`Segment`](bevy_rapier3d::parry::shape::Segment)
+    /// - [`Polyline`](bevy_rapier3d::parry::shape::Polyline)
+    /// - [`HalfSpace`](bevy_rapier3d::parry::shape::HalfSpace)
     /// - Custom shapes
     ///
     /// The following rounded shapes are supported, but only the inner shape without rounding is used:
-    /// - [`RoundCuboid`](avian3d::parry::shape::RoundCuboid)
-    /// - [`RoundTriangle`](avian3d::parry::shape::RoundTriangle)
-    /// - [`RoundConvexPolyhedron`](avian3d::parry::shape::RoundConvexPolyhedron)
-    /// - [`RoundCylinder`](avian3d::parry::shape::RoundCylinder)
-    /// - [`RoundCone`](avian3d::parry::shape::RoundCone)
+    /// - [`RoundCuboid`](bevy_rapier3d::parry::shape::RoundCuboid)
+    /// - [`RoundTriangle`](bevy_rapier3d::parry::shape::RoundTriangle)
+    /// - [`RoundConvexPolyhedron`](bevy_rapier3d::parry::shape::RoundConvexPolyhedron)
+    /// - [`RoundCylinder`](bevy_rapier3d::parry::shape::RoundCylinder)
+    /// - [`RoundCone`](bevy_rapier3d::parry::shape::RoundCone)
     fn to_trimesh(
         &self,
         pos: impl Into<Vec3>,
