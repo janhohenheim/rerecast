@@ -3,7 +3,11 @@
 use bevy_math::{Quat, Vec3, Vec3A};
 use bevy_rapier3d::{
     geometry::Collider,
-    parry::shape::{Compound, TypedShape},
+    na::Isometry,
+    parry::{
+        shape::{Compound, TypedShape},
+        transformation::utils,
+    },
 };
 use bevy_rerecast_core::rerecast::{AreaType, TriMesh};
 
@@ -47,13 +51,11 @@ impl ColliderToTriMesh for Collider {
         subdivisions: u32,
     ) -> Option<TriMesh> {
         shape_to_trimesh(
-            &self
-                .as_typed_shape()
-                .raw_scale_by(Vec3::splat(0.5), subdivisions)?
-                .as_typed_shape(),
+            &self.as_unscaled_typed_shape().as_typed_shape(),
             pos.into(),
             rot.into(),
             subdivisions,
+            self.scale(),
         )
     }
 }
@@ -63,6 +65,7 @@ fn shape_to_trimesh(
     pos: Vec3,
     rot: Quat,
     subdivisions: u32,
+    scale: Vec3,
 ) -> Option<TriMesh> {
     let (vertices, indices) = match shape {
         // Simple cases
@@ -84,7 +87,7 @@ fn shape_to_trimesh(
         TypedShape::Cone(cone) => cone.to_trimesh(subdivisions),
         // Compounds need to be unpacked
         TypedShape::Compound(compound) => {
-            return Some(compound_trimesh(compound, pos, rot, subdivisions));
+            return Some(compound_trimesh(compound, pos, rot, subdivisions, scale));
         }
         // Rounded shapes ignore the rounding and use the inner shape
         TypedShape::RoundCuboid(round_shape) => round_shape.inner_shape.to_trimesh(),
@@ -105,19 +108,24 @@ fn shape_to_trimesh(
         TypedShape::HalfSpace(_half_space) => return None,
         TypedShape::Custom(_shape) => return None,
     };
+    let mut vertices = utils::scaled(vertices, scale.into());
+    utils::transform(&mut vertices, Isometry::from_parts(pos.into(), rot.into()));
+
     let indices_len = indices.len();
-    let pos = Vec3A::from(pos);
     Some(TriMesh {
-        vertices: vertices
-            .into_iter()
-            .map(|v| pos + rot.mul_vec3a(v.into()))
-            .collect(),
+        vertices: vertices.into_iter().map(Vec3A::from).collect(),
         indices: indices.into_iter().map(|i| i.into()).collect(),
         area_types: vec![AreaType::NOT_WALKABLE; indices_len],
     })
 }
 
-fn compound_trimesh(compound: &Compound, pos: Vec3, rot: Quat, subdivisions: u32) -> TriMesh {
+fn compound_trimesh(
+    compound: &Compound,
+    pos: Vec3,
+    rot: Quat,
+    subdivisions: u32,
+    scale: Vec3,
+) -> TriMesh {
     compound.shapes().iter().fold(
         TriMesh::default(),
         |mut compound_trimesh, (sub_pos, shape)| {
@@ -125,7 +133,7 @@ fn compound_trimesh(compound: &Compound, pos: Vec3, rot: Quat, subdivisions: u32
             let rot = rot.mul_quat(sub_pos.rotation.into()).normalize();
             let Some(trimesh) =
                 // No need to track recursive compounds because parry panics on nested compounds anyways lol
-                shape_to_trimesh(&shape.as_typed_shape(), pos, rot,  subdivisions)
+                shape_to_trimesh(&shape.as_typed_shape(), pos, rot, subdivisions, scale)
             else {
                 return compound_trimesh;
             };
@@ -139,13 +147,184 @@ fn compound_trimesh(compound: &Compound, pos: Vec3, rot: Quat, subdivisions: u32
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bevy_math::{Quat, Vec3};
+    use bevy_rerecast_core::rerecast::Aabb3d;
+
+    const TEST_SCALE: f32 = 2.5;
+
+    #[inline]
+    fn get_typed_shape(collider: &Collider) -> TypedShape<'_> {
+        collider.as_unscaled_typed_shape().as_typed_shape()
+    }
+
+    #[inline]
+    fn create_trimesh_and_get_aabb(collider: &Collider) -> (TriMesh, Aabb3d) {
+        let shape = get_typed_shape(collider);
+        let trimesh = shape_to_trimesh(
+            &shape,
+            Vec3::ZERO,
+            Quat::IDENTITY,
+            16,
+            Vec3::splat(TEST_SCALE),
+        )
+        .unwrap();
+        let aabb = trimesh.compute_aabb().unwrap();
+        (trimesh, aabb)
+    }
+
+    #[inline]
+    fn test_aabb(name: &str, aabb: Aabb3d, expect_x: f32, expect_y: f32, expect_z: f32) {
+        let got_x = aabb.max.x - aabb.min.x;
+        let got_y = aabb.max.y - aabb.min.y;
+        let got_z = aabb.max.z - aabb.min.z;
+
+        assert!(
+            (got_x - expect_x).abs() < f32::EPSILON,
+            "{name} X should be ~{expect_x}, got {got_x}",
+        );
+        assert!(
+            (got_y - expect_y).abs() < f32::EPSILON,
+            "{name} Y should be ~{expect_y}, got {got_y}",
+        );
+        assert!(
+            (got_z - expect_z).abs() < f32::EPSILON,
+            "{name} Z should be ~{expect_z}, got {got_z}",
+        );
+    }
+
+    #[inline]
+    fn test_collider(name: &str, collider: Collider, expect_x: f32, expect_y: f32, expect_z: f32) {
+        let (trimesh, aabb) = create_trimesh_and_get_aabb(&collider);
+        println!("{trimesh:?}");
+        println!("{aabb:?}");
+        test_aabb(name, aabb, expect_x, expect_y, expect_z);
+    }
+
+    #[test]
+    fn cuboid_aabb_size() {
+        test_collider("Cuboid", Collider::cuboid(1.0, 2.0, 3.0), 5.0, 10.0, 15.0);
+    }
+
+    #[test]
+    fn ball_aabb_size() {
+        test_collider("Ball", Collider::ball(2.0), 10.0, 10.0, 10.0);
+    }
+
+    #[test]
+    fn capsule_aabb_size() {
+        test_collider("CapsuleY", Collider::capsule_y(2.0, 0.5), 2.5, 12.5, 2.5);
+    }
+
+    #[test]
+    fn cylinder_aabb_size() {
+        test_collider("Cylinder", Collider::cylinder(1.0, 0.5), 2.5, 5.0, 2.5);
+    }
+
+    #[test]
+    fn cone_aabb_size() {
+        test_collider("Cone", Collider::cone(1.0, 0.5), 2.5, 5.0, 2.5);
+    }
+
+    #[test]
+    fn triangle_aabb_size() {
+        let collider = Collider::triangle(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        );
+        test_collider("Triangle", collider, 2.5, 2.5, 0.0);
+    }
+
+    #[test]
+    fn trimesh_aabb_size() {
+        let vertices = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ];
+        let indices = vec![[0, 1, 2]];
+        let collider = Collider::trimesh(vertices, indices).unwrap();
+        test_collider("Trimesh", collider, 2.5, 2.5, 0.0);
+    }
+
+    #[test]
+    fn heightfield_aabb_size() {
+        let heights = vec![1.0, 2.0, 1.0, 0.0];
+        let collider = Collider::heightfield(heights, 2, 2, Vec3::ONE);
+        test_collider("Heightfield", collider, 2.5, 5.0, 2.5);
+    }
+
+    #[test]
+    fn convex_polyhedron_aabb_size() {
+        let vertices = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+        ];
+        let indices = vec![[0, 1, 2], [0, 2, 3], [0, 3, 1], [1, 3, 2]];
+        let collider = Collider::convex_mesh(vertices, &indices).unwrap();
+        test_collider("ConvexPolyhedron", collider, 2.5, 2.5, 2.5);
+    }
+
+    #[test]
+    fn round_cuboid_aabb_size() {
+        let collider = Collider::round_cuboid(0.5, 1.0, 1.5, 0.2);
+        test_collider("RoundCuboid", collider, 2.5, 5.0, 7.5);
+    }
+
+    #[test]
+    fn round_cylinder_aabb_size() {
+        let collider = Collider::round_cylinder(1.0, 0.5, 0.1);
+        test_collider("RoundCylinder", collider, 2.5, 5.0, 2.5);
+    }
+
+    #[test]
+    fn round_cone_aabb_size() {
+        let collider = Collider::round_cone(1.0, 0.5, 0.1);
+        test_collider("RoundCone", collider, 2.5, 5.0, 2.5);
+    }
+
+    #[test]
+    fn round_triangle_aabb_size() {
+        let collider = Collider::round_triangle(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            0.1,
+        );
+        test_collider("RoundTriangle", collider, 2.5, 2.5, 0.0);
+    }
+
+    #[test]
+    fn round_convex_polyhedron_aabb_size() {
+        let vertices = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+        ];
+        let indices = vec![[0, 1, 2], [0, 2, 3], [0, 3, 1], [1, 3, 2]];
+        let collider = Collider::round_convex_mesh(vertices, &indices, 0.1).unwrap();
+        test_collider("RoundConvexPolyhedron", collider, 2.5, 2.5, 2.5);
+    }
+
+    #[test]
+    fn compound_collider_aabb_size() {
+        let cuboid = Collider::cuboid(1.0, 2.0, 3.0);
+        let ball = Collider::ball(2.0);
+        let collider = Collider::compound(vec![
+            (Vec3::new(-10.0, 0.0, 5.0), Quat::IDENTITY, cuboid),
+            (Vec3::new(0.0, -10.0, -5.0), Quat::IDENTITY, ball),
+        ]);
+        test_collider("Compound", collider, 17.5, 20.0, 22.5);
+    }
 
     #[test]
     fn rasterizes_cuboid() {
         let collider = Collider::cuboid(1.0, 2.0, 3.0);
-        let trimesh = collider
-            .to_trimesh(Vec3::default(), bevy_math::Quat::default(), 1)
-            .unwrap();
+        let shape = get_typed_shape(&collider);
+        let trimesh = shape_to_trimesh(&shape, Vec3::ZERO, Quat::IDENTITY, 1, Vec3::ONE).unwrap();
         assert_eq!(trimesh.vertices.len(), 8);
         assert_eq!(trimesh.indices.len(), 12);
     }

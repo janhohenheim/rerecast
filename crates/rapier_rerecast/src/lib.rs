@@ -63,7 +63,7 @@ fn collider_backend(
                 break;
             }
 
-            let subdivisions = 10;
+            let subdivisions = 16;
             let (_scale, rot, pos) = transform.to_scale_rotation_translation();
             collider.to_trimesh(pos, rot, subdivisions)
         })
@@ -89,7 +89,7 @@ mod tests {
         let _included_body = app
             .world_mut()
             .spawn((
-                Collider::cuboid(1.0, 1.0, 1.0),
+                Collider::cuboid(0.1, 0.1, 0.1),
                 RigidBody::Fixed,
                 Transform::from_xyz(0.0, 0.0, 10.0),
             ))
@@ -98,7 +98,7 @@ mod tests {
         let _excluded_body = app
             .world_mut()
             .spawn((
-                Collider::cuboid(1.0, 1.0, 1.0),
+                Collider::cuboid(0.1, 0.1, 0.1),
                 RigidBody::Fixed,
                 Transform::from_xyz(10.0, 0.0, 0.0),
                 ExcludeColliderFromNavmesh,
@@ -117,7 +117,7 @@ mod tests {
         let _included_child = app
             .world_mut()
             .spawn((
-                Collider::cuboid(1.0, 1.0, 1.0),
+                Collider::cuboid(0.1, 0.1, 0.1),
                 Transform::from_xyz(-10.0, 0.0, 0.0),
                 ChildOf(body_with_child),
             ))

@@ -39,7 +39,7 @@ fn setup(
     commands.spawn((
         Name::new("Ground"),
         RigidBody::Fixed,
-        Collider::cuboid(50.0, 0.1, 50.0),
+        Collider::cuboid(25.0, 0.05, 25.0),
         Mesh3d(meshes.add(Cuboid::new(50.0, 0.1, 50.0))),
         MeshMaterial3d(material_gray.clone()),
     ));
@@ -47,7 +47,7 @@ fn setup(
     commands.spawn((
         Name::new("Cube"),
         RigidBody::Fixed,
-        Collider::cuboid(3.0, 2.0, 1.0),
+        Collider::cuboid(1.5, 1.0, 0.5),
         Mesh3d(meshes.add(Cuboid::new(3.0, 2.0, 1.0))),
         Transform::from_xyz(0.0, 1.0, 0.0),
         MeshMaterial3d(material_gray.clone()),
@@ -56,7 +56,7 @@ fn setup(
     commands.spawn((
         Name::new("Cube"),
         RigidBody::Fixed,
-        Collider::cuboid(1.0, 2.0, 3.0),
+        Collider::cuboid(0.5, 1.0, 1.5),
         Mesh3d(meshes.add(Cuboid::new(1.0, 2.0, 3.0))),
         Transform::from_xyz(-4.0, 1.0, 5.0),
         MeshMaterial3d(material_gray.clone()),
@@ -65,7 +65,7 @@ fn setup(
     commands.spawn((
         Name::new("Cube"),
         RigidBody::Fixed,
-        Collider::cuboid(10.0, 1.0, 10.0),
+        Collider::cuboid(5.0, 0.5, 5.0),
         Mesh3d(meshes.add(Cuboid::new(10.0, 1.0, 10.0))),
         Transform::from_xyz(10.0, 3.0, 3.0),
         MeshMaterial3d(material_red.clone()),
