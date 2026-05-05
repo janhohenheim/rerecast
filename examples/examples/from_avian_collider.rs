@@ -35,42 +35,47 @@ fn setup(
 ) {
     let material_gray = materials.add(Color::from(tailwind::GRAY_300));
     let material_red = materials.add(Color::from(tailwind::RED_500));
-    let shape = Cuboid::new(50.0, 0.1, 50.0);
+
     commands.spawn((
         Name::new("Ground"),
-        Mesh3d(meshes.add(shape)),
         RigidBody::Static,
-        Collider::from(shape),
-        MeshMaterial3d(material_gray.clone()),
-    ));
-    let shape = Cuboid::new(3.0, 2.0, 1.0);
-    commands.spawn((
-        Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
-        RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(0.0, 1.0, 0.0),
-        MeshMaterial3d(material_gray.clone()),
-    ));
-    let shape = Cuboid::new(1.0, 2.0, 3.0);
-    commands.spawn((
-        Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
-        RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(-4.0, 1.0, 5.0),
+        Collider::cylinder(25.0, 0.2),
+        Mesh3d(meshes.add(Cylinder::new(25.0, 0.2))),
         MeshMaterial3d(material_gray.clone()),
     ));
 
-    let shape = Cuboid::new(10.0, 1.0, 10.0);
+    let ball_scales = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+    for (i, &scale) in ball_scales.iter().enumerate() {
+        commands.spawn((
+            Name::new(format!("Ball {}", i + 1)),
+            RigidBody::Static,
+            Collider::sphere(1.0),
+            Mesh3d(meshes.add(Sphere::new(1.0))),
+            Transform::from_xyz(-20.0 + i as f32 * 5.0, 0.0, 5.0 + i as f32)
+                .with_scale(Vec3::splat(scale)),
+            MeshMaterial3d(material_red.clone()),
+        ));
+    }
+
     commands.spawn((
         Name::new("Cube"),
-        Mesh3d(meshes.add(shape)),
         RigidBody::Static,
-        Collider::from(shape),
-        Transform::from_xyz(10.0, 3.0, 3.0),
+        Collider::cuboid(10.0, 1.0, 10.0),
+        Mesh3d(meshes.add(Cuboid::new(10.0, 1.0, 10.0))),
+        Transform::from_xyz(-10.0, 3.0, -10.0),
         MeshMaterial3d(material_red.clone()),
     ));
+
+    commands.spawn((
+        Name::new("RotatedCube"),
+        RigidBody::Static,
+        Collider::cuboid(3.0, 1.0, 3.0),
+        Mesh3d(meshes.add(Cuboid::new(3.0, 1.0, 3.0))),
+        Transform::from_xyz(2.0, 0.5, -2.0)
+            .with_rotation(Quat::from_rotation_y(45.0_f32.to_radians())),
+        MeshMaterial3d(material_red.clone()),
+    ));
+
     commands.spawn((
         DirectionalLight {
             shadows_enabled: true,
@@ -80,7 +85,7 @@ fn setup(
     ));
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(10.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(30.0, 30.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
     commands.spawn((
