@@ -528,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -1593,7 +1593,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1609,7 +1609,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor_integration"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -5438,7 +5438,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rerecast"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "bevy_reflect",
