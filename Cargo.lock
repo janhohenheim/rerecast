@@ -492,9 +492,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "avian3d"
-version = "0.6.0-rc.1"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59554a1f936b55ade114a5f6b68bf718060133296a170c5107ffe73abfa65ea9"
+checksum = "d0751cde05c2be789fad86cd19219daf8a8907e0c6c2175f2c8144706493f010"
 dependencies = [
  "approx",
  "avian_derive",
@@ -505,7 +505,6 @@ dependencies = [
  "bitflags 2.11.0",
  "derive_more",
  "disqualified",
- "glam 0.31.1",
  "glam_matrix_extras",
  "itertools 0.14.0",
  "obvhs",
@@ -529,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.5.0-rc.3"
+version = "0.5.0"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -1241,9 +1240,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_materialize"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32d27421d71dc0dc4b3f7ba89efa07b5416b638e52a4a7552997aea7ec357bfc"
+checksum = "afdaf52ede03198f567041b079be04d1dd58cfef7bf82e3a34502b18c162ca08"
 dependencies = [
  "bevy",
  "serde",
@@ -1601,7 +1600,6 @@ dependencies = [
  "bevy_rerecast",
  "bevy_ui_text_input",
  "bincode",
- "cosmic-text 0.14.2",
  "ehttp",
  "rfd",
  "serde",
@@ -1633,7 +1631,6 @@ dependencies = [
  "bevy_tasks",
  "bevy_transform",
  "bincode",
- "cosmic-text 0.14.2",
  "flate2",
  "rerecast",
  "serde",
@@ -1803,7 +1800,7 @@ dependencies = [
  "bevy_platform",
  "bevy_reflect",
  "bevy_utils",
- "cosmic-text 0.16.0",
+ "cosmic-text",
  "serde",
  "smallvec",
  "sys-locale",
@@ -1856,11 +1853,12 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom"
-version = "0.12.0"
-source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#91136c292d25567a7ab7bed5a12a66f1c1675258"
+version = "0.14.0-dev"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom#3041fdfbdf9584b3476f7427b028d1b732c09d47"
 dependencies = [
  "anyhow",
  "atomicow",
+ "avian3d",
  "bevy",
  "bevy_materialize",
  "bevy_mesh",
@@ -1876,7 +1874,7 @@ dependencies = [
  "jzon",
  "ndshape",
  "nil",
- "quake-util",
+ "quake-map",
  "serde",
  "serde_json",
  "strum",
@@ -1885,19 +1883,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_trenchbroom_avian"
-version = "0.13.0-rc.1"
-source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#91136c292d25567a7ab7bed5a12a66f1c1675258"
-dependencies = [
- "avian3d",
- "bevy",
- "bevy_trenchbroom",
-]
-
-[[package]]
 name = "bevy_trenchbroom_macros"
-version = "0.12.0"
-source = "git+https://github.com/janhohenheim/bevy_trenchbroom?branch=avian-0.6#91136c292d25567a7ab7bed5a12a66f1c1675258"
+version = "0.14.0-dev"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom#3041fdfbdf9584b3476f7427b028d1b732c09d47"
 dependencies = [
  "deluxe",
  "heck 0.5.0",
@@ -1980,7 +1968,7 @@ checksum = "390917ea8e68505bd94f29c4ce8ec337a011b5ccd48a3ac7378961ca6c59de45"
 dependencies = [
  "arboard",
  "bevy",
- "cosmic-text 0.16.0",
+ "cosmic-text",
  "cosmic_undo_2",
  "once_cell",
  "sys-locale",
@@ -2567,35 +2555,12 @@ dependencies = [
 
 [[package]]
 name = "cosmic-text"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da46a9d5a8905cc538a4a5bceb6a4510de7a51049c5588c0114efce102bcbbe8"
-dependencies = [
- "bitflags 2.11.0",
- "fontdb 0.16.2",
- "log",
- "rangemap",
- "rustc-hash 1.1.0",
- "rustybuzz",
- "self_cell",
- "smol_str",
- "swash",
- "sys-locale",
- "ttf-parser 0.21.1",
- "unicode-bidi",
- "unicode-linebreak",
- "unicode-script",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "cosmic-text"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4cadaea21e24c49c0c82116f2b465ae6a49d63c90e428b0f8d9ae1f638ac91f"
 dependencies = [
  "bitflags 2.11.0",
- "fontdb 0.23.0",
+ "fontdb",
  "harfrust",
  "linebender_resource_handle",
  "log",
@@ -3228,19 +3193,6 @@ dependencies = [
 
 [[package]]
 name = "fontdb"
-version = "0.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0299020c3ef3f60f526a4f64ab4a3d4ce116b1acbf24cdd22da0068e5d81dc3"
-dependencies = [
- "log",
- "memmap2",
- "slotmap",
- "tinyvec",
- "ttf-parser 0.20.0",
-]
-
-[[package]]
-name = "fontdb"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "457e789b3d1202543297a350643cf459f836cade38934e7a4cf6a39e7cde2905"
@@ -3250,7 +3202,7 @@ dependencies = [
  "memmap2",
  "slotmap",
  "tinyvec",
- "ttf-parser 0.25.1",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -4935,7 +4887,7 @@ version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36820e9051aca1014ddc75770aab4d68bc1e9e632f0f5627c4086bc216fb583b"
 dependencies = [
- "ttf-parser 0.25.1",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -5269,10 +5221,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "quake-util"
-version = "0.4.0"
+name = "quake-map"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "663a8931940a7bf465a672f54ad19864b91d761695f64c18cbe6cb9782d40023"
+checksum = "25851d44c42e15fe39c468ea63449314850fe48ec0626d7f3f1e7ae1a7b64662"
 
 [[package]]
 name = "quick-xml"
@@ -5510,7 +5462,6 @@ dependencies = [
  "bevy",
  "bevy_rerecast",
  "bevy_trenchbroom",
- "bevy_trenchbroom_avian",
 ]
 
 [[package]]
@@ -5694,23 +5645,6 @@ name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
-
-[[package]]
-name = "rustybuzz"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfb9cf8877777222e4a3bc7eb247e398b56baba500c38c1c46842431adc8b55c"
-dependencies = [
- "bitflags 2.11.0",
- "bytemuck",
- "libm",
- "smallvec",
- "ttf-parser 0.21.1",
- "unicode-bidi-mirroring",
- "unicode-ccc",
- "unicode-properties",
- "unicode-script",
-]
 
 [[package]]
 name = "ruzstd"
@@ -6513,18 +6447,6 @@ dependencies = [
 
 [[package]]
 name = "ttf-parser"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17f77d76d837a7830fe1d4f12b7b4ba4192c1888001c7164257e4bc6d21d96b4"
-
-[[package]]
-name = "ttf-parser"
-version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c591d83f69777866b9126b24c6dd9a18351f177e49d625920d19f989fd31cf8"
-
-[[package]]
-name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
@@ -6568,18 +6490,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5"
 
 [[package]]
-name = "unicode-bidi-mirroring"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23cb788ffebc92c5948d0e997106233eeb1d8b9512f93f41651f52b6c5f5af86"
-
-[[package]]
-name = "unicode-ccc"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1df77b101bcc4ea3d78dafc5ad7e4f58ceffe0b2b16bf446aeb50b6cb4157656"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6590,12 +6500,6 @@ name = "unicode-linebreak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b09c83c3c29d37506a3e260c08c03743a6bb66a9cd432c6934ab501a190571f"
-
-[[package]]
-name = "unicode-properties"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 
 [[package]]
 name = "unicode-script"

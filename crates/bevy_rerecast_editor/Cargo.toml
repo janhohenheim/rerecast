@@ -24,7 +24,6 @@ ehttp = { workspace = true, features = ["native-async", "json"] }
 thiserror = { workspace = true }
 bevy_ui_text_input = { workspace = true }
 rfd = { workspace = true }
-cosmic-text = { workspace = true }
 
 [lints]
 workspace = true
