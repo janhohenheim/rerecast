@@ -13,7 +13,7 @@ categories = ["game-development"]
 readme = "readme.md"
 
 [workspace.dependencies]
-avian3d = { version = "0.6.0-rc.1", default-features = false }
+avian3d = { version = "0.6", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc"] }
 serde_json = { version = "1", default-features = false, features = [
     "alloc",
@@ -28,7 +28,6 @@ wgpu-types = { version = "27", default-features = false }
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 glam = { version = "0.30", default-features = false }
 libm = { version = "0.2", default-features = false }
-cosmic-text = { version = "0.14", default-features = false }
 tracing = { version = "0.1", default-features = false }
 critical-section = { version = "1", default-features = false }
 anyhow = { version = "1", default-features = false }
@@ -63,7 +62,7 @@ rerecast = { version = "0.3", path = "crates/rerecast", default-features = false
 bevy_rerecast = { version = "0.4", path = "crates/bevy_rerecast", default-features = false }
 bevy_rerecast_core = { version = "0.4", path = "crates/bevy_rerecast_core", default-features = false }
 bevy_rerecast_editor_integration = { version = "0.4", path = "crates/bevy_rerecast_editor_integration", default-features = false }
-avian_rerecast = { version = "0.5.0-rc.1", path = "crates/avian_rerecast", default-features = false }
+avian_rerecast = { version = "0.5", path = "crates/avian_rerecast", default-features = false }
 test_utils = { version = "0.1", path = "crates/test_utils", default-features = false }
 
 # Other stuffs
@@ -73,8 +72,7 @@ flate2 = { version = "1", default-features = false, features = [
     "rust_backend",
 ] }
 bincode = { version = "2", features = ["serde"], default-features = false }
-bevy_trenchbroom = { version = "0.12", git = "https://github.com/janhohenheim/bevy_trenchbroom", branch = "avian-0.6" }
-bevy_trenchbroom_avian = { version = "0.13.0-rc.1", git = "https://github.com/janhohenheim/bevy_trenchbroom", branch = "avian-0.6" }
+bevy_trenchbroom = { version = "0.14.0-dev", git = "https://github.com/Noxmore/bevy_trenchbroom", features = ["avian_f32"] }
 approxim = "0.6"
 
 [workspace.lints.rust]
