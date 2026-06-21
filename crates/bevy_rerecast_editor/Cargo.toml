@@ -11,10 +11,7 @@ categories = { workspace = true }
 readme = { workspace = true }
 
 [dependencies]
-bevy = { workspace = true, features = [
-    "bevy_remote",
-    "experimental_bevy_feathers",
-] }
+bevy = { workspace = true, features = ["bevy_remote", "bevy_feathers"] }
 bevy_rerecast = { workspace = true, default-features = true }
 serde_json = { workspace = true }
 bincode = { workspace = true }
@@ -22,7 +19,6 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 ehttp = { workspace = true, features = ["native-async", "json"] }
 thiserror = { workspace = true }
-bevy_ui_text_input = { workspace = true }
 rfd = { workspace = true }
 
 [lints]

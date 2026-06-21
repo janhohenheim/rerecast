@@ -77,7 +77,7 @@ fn draw_obstacles(
     meshes: Res<Assets<Mesh>>,
 ) {
     for (mesh, gizmo) in &obstacles {
-        let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
+        let Some(mut gizmo) = gizmos.get_mut(&gizmo.handle) else {
             error!("Failed to get gizmo asset");
             return;
         };
@@ -113,7 +113,7 @@ fn hide_obstacles(
     mut gizmos: ResMut<Assets<GizmoAsset>>,
 ) {
     for gizmo in &gizmo_handles {
-        let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
+        let Some(mut gizmo) = gizmos.get_mut(&gizmo.handle) else {
             error!("Failed to get gizmo asset");
             return;
         };

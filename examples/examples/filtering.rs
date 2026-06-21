@@ -73,7 +73,7 @@ fn setup(
 
     commands.spawn((
         DirectionalLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::default().looking_to(Vec3::new(0.5, -2.0, -2.0), Vec3::Z),

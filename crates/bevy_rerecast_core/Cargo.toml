@@ -23,9 +23,10 @@ bevy_math = { workspace = true, features = ["bevy_reflect", "serialize"] }
 bevy_platform = { workspace = true }
 
 # debug-plugin
-bevy_gizmos = { workspace = true, optional = true, features = ["bevy_light"] }
+bevy_gizmos = { workspace = true, optional = true }
 bevy_color = { workspace = true, optional = true }
 bevy_pbr = { workspace = true, optional = true }
+bevy_material = { workspace = true, optional = true }
 
 # Serde is already brought in by bevy_asset, so no need to make it optional
 serde = { workspace = true }
@@ -78,6 +79,7 @@ debug_plugin = [
     "dep:bevy_render",
     "dep:bevy_mesh",
     "dep:bevy_pbr",
+    "dep:bevy_material",
 ]
 # Note: tracing works on all no_std platforms that support atomics
 tracing = ["dep:tracing"]

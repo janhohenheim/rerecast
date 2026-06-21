@@ -39,6 +39,7 @@ bevy_platform = { workspace = true }
 bevy_camera = { workspace = true }
 bevy_tasks = { workspace = true }
 bevy_mesh = { workspace = true, features = ["serialize"] }
+bevy_material = { workspace = true }
 bevy_image = { workspace = true, features = ["serialize"] }
 
 tracing = { workspace = true }

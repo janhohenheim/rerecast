@@ -1,10 +1,12 @@
 use bevy_asset::{Assets, Handle};
 use bevy_color::prelude::*;
 use bevy_image::{Image, SerializedImage};
+use bevy_material::{AlphaMode, OpaqueRendererMethod};
 use bevy_math::Affine2;
-use bevy_pbr::{OpaqueRendererMethod, UvChannel, prelude::*};
+use bevy_mesh::UvChannel;
+use bevy_pbr::prelude::*;
 use bevy_platform::collections::HashMap;
-use bevy_render::{alpha::AlphaMode, render_resource::Face};
+use bevy_render::render_resource::Face;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
