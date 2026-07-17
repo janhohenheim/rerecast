@@ -1718,7 +1718,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tracing",
- "wgpu-types 27.0.1",
+ "wgpu-types 30.0.0",
 ]
 
 [[package]]
@@ -4122,6 +4122,19 @@ dependencies = [
  "spirv",
  "thiserror 2.0.18",
  "unicode-ident",
+]
+
+[[package]]
+name = "naga-types"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "658200ddc25c6c7b860747516d132d1b284c0fafb7a380233acee9a72fb30e11"
+dependencies = [
+ "hashbrown 0.17.1",
+ "indexmap",
+ "rustc-hash",
+ "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -6808,18 +6821,6 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "27.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afdcf84c395990db737f2dd91628706cb31e86d72e53482320d368e52b5da5eb"
-dependencies = [
- "bitflags 2.11.0",
- "bytemuck",
- "log",
- "serde",
-]
-
-[[package]]
-name = "wgpu-types"
 version = "29.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9bcc31518a0e9735aefebedb5f7a9ef3ed1c42549c9f4c882fa9060ceaac639"
@@ -6831,6 +6832,21 @@ dependencies = [
  "raw-window-handle",
  "serde",
  "web-sys",
+]
+
+[[package]]
+name = "wgpu-types"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a9c93c2b35edde326df60ffdee4c0f5864eac3011d6768b70d43f028ad93565"
+dependencies = [
+ "bitflags 2.11.0",
+ "bytemuck",
+ "log",
+ "naga-types",
+ "raw-window-handle",
+ "serde",
+ "static_assertions",
 ]
 
 [[package]]

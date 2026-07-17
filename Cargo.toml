@@ -22,7 +22,7 @@ rfd = "0.15"
 
 # In sync with Bevy
 thiserror = { version = "2", default-features = false }
-wgpu-types = { version = "27", default-features = false }
+wgpu-types = { version = "30", default-features = false }
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 glam = { version = "0.32", default-features = false }
 libm = { version = "0.2", default-features = false }
