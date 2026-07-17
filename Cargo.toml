@@ -70,9 +70,7 @@ flate2 = { version = "1", default-features = false, features = [
     "rust_backend",
 ] }
 bincode = { version = "2", features = ["serde"], default-features = false }
-bevy_trenchbroom = { version = "0.14.0-dev", git = "https://github.com/Noxmore/bevy_trenchbroom", features = [
-    "avian_f32",
-] }
+bevy_trenchbroom = { version = "0.14.0-rc.2", features = ["avian_f32"] }
 approxim = "0.6"
 
 [workspace.lints.rust]
