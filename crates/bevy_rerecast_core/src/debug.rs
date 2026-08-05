@@ -7,10 +7,10 @@ use bevy_color::{Alpha as _, palettes::tailwind};
 use bevy_ecs::{lifecycle::HookContext, prelude::*, world::DeferredWorld};
 use bevy_gizmos::prelude::*;
 use bevy_light::{NotShadowCaster, NotShadowReceiver};
+use bevy_material::AlphaMode;
 use bevy_mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
-use bevy_pbr::prelude::*;
+use bevy_pbr::{StandardMaterial, prelude::*};
 use bevy_reflect::prelude::*;
-use bevy_render::prelude::*;
 use glam::vec3;
 use rerecast::PolygonNavmesh;
 
@@ -186,7 +186,7 @@ fn update_dirty_polygon_gizmos(
 ) {
     for (entity, mut gizmo_handle, mut layers, navmesh_handle, mut visibility) in gizmos.iter_mut()
     {
-        let Some(gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
+        let Some(mut gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
             continue;
         };
         let config = config.polygon_navmesh.clone();
@@ -288,7 +288,7 @@ fn update_dirty_detail_gizmos(
 ) {
     for (entity, mut gizmo_handle, mut layers, navmesh_handle, mut visibility) in gizmos.iter_mut()
     {
-        let Some(gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
+        let Some(mut gizmo) = gizmo_assets.get_mut(&gizmo_handle.handle) else {
             continue;
         };
 

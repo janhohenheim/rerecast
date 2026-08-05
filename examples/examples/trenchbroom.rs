@@ -40,7 +40,7 @@ fn main() -> AppExit {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Name::new("Level"),
-        SceneRoot(asset_server.load("maps/scene.map#Scene")),
+        WorldAssetRoot(asset_server.load("maps/scene.map#Scene")),
     ));
     commands.spawn((
         DirectionalLight::default(),

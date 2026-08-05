@@ -6,6 +6,7 @@ use bevy::{
     prelude::*,
     remote::BrpRequest,
     tasks::{AsyncComputeTaskPool, IoTaskPool, Task, futures_lite::future},
+    text::EditableText,
 };
 use bevy_rerecast::editor_integration::{
     brp::{
@@ -14,7 +15,6 @@ use bevy_rerecast::editor_integration::{
     },
     transmission::deserialize,
 };
-use bevy_ui_text_input::TextInputContents;
 
 use crate::{
     backend::{GlobalNavmeshSettings, NavmeshHandle, NavmeshObstacles},
@@ -48,7 +48,7 @@ fn generate_navmesh_input(
     _: On<GetNavmeshInput>,
     mut commands: Commands,
     settings: Res<GlobalNavmeshSettings>,
-    connection_input: Single<&TextInputContents, With<ConnectionInput>>,
+    connection_input: Single<&EditableText, With<ConnectionInput>>,
     maybe_task: Option<Res<GetNavmeshInputRequestTask>>,
 ) {
     if maybe_task.is_some() {
@@ -56,14 +56,13 @@ fn generate_navmesh_input(
         return;
     }
     let settings = settings.0.clone();
-    let url = connection_input.get().to_string();
+    let url = connection_input.value().to_string();
     let future = async move {
         let params = GenerateEditorInputParams {
             backend_input: settings,
         };
         let json = serde_json::to_value(params)?;
         let req = BrpRequest {
-            jsonrpc: String::from("2.0"),
             method: String::from(BRP_GENERATE_EDITOR_INPUT),
             id: None,
             params: Some(json),
@@ -114,7 +113,6 @@ fn poll_remote_navmesh_input(
         let params = PollEditorInputParams { id: response.id };
         let json = serde_json::to_value(params)?;
         let req = BrpRequest {
-            jsonrpc: String::from("2.0"),
             method: String::from(BRP_POLL_EDITOR_INPUT),
             id: None,
             params: Some(json),
@@ -170,7 +168,7 @@ fn poll_navmesh_input(
         commands.entity(entity).despawn();
     }
     for gizmo in gizmo_handles.iter() {
-        let Some(gizmo) = gizmos.get_mut(&gizmo.handle) else {
+        let Some(mut gizmo) = gizmos.get_mut(&gizmo.handle) else {
             continue;
         };
         gizmo.clear();

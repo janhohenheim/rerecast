@@ -1,29 +1,28 @@
+#![expect(
+    deprecated,
+    reason = "bevy_feathers bundle templates; migrate to @FeathersButton BSN when ui uses bsn!"
+)]
+
 use bevy::{
     ecs::{
         prelude::*,
         system::{IntoObserverSystem, ObserverSystem},
     },
     feathers::{
-        self,
-        constants::fonts,
-        controls::{ButtonProps, ButtonVariant},
+        controls::{ButtonBundleProps, ButtonVariant, button_bundle, checkbox_bundle},
         font_styles::InheritableFont,
-        handle_or_path::HandleOrPath,
         theme::{ThemeBackgroundColor, ThemedText},
         tokens,
     },
-    input_focus::InputFocus,
+    input_focus::tab_navigation::{TabGroup, TabIndex},
     prelude::*,
     tasks::prelude::*,
+    text::{EditableText, EditableTextFilter, FontSize, TextCursorStyle},
     ui::{Checked, InteractionDisabled, Val::*},
     ui_widgets::{Activate, ValueChange, observe},
     window::{PrimaryWindow, RawHandleWrapper},
 };
 use bevy_rerecast::prelude::*;
-use bevy_ui_text_input::{
-    TextInputContents, TextInputFilter, TextInputMode, TextInputNode, TextInputQueue,
-    actions::{TextInputAction, TextInputEdit},
-};
 
 use rfd::AsyncFileDialog;
 
@@ -40,7 +39,6 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(Update, read_config_inputs);
     app.add_observer(update_primary_buttons_when_obstacle_added);
     app.add_observer(update_primary_buttons_when_obstacle_removed);
-    app.add_observer(clear_focus);
     app.add_observer(set_ui_size);
     app.add_observer(set_font_size);
 }
@@ -68,6 +66,7 @@ fn ui_bundle() -> impl Bundle {
             ..default()
         },
         Pickable::IGNORE,
+        TabGroup::default(),
         children![
             (
                 Name::new("Menu Bar"),
@@ -78,7 +77,10 @@ fn ui_bundle() -> impl Bundle {
                 },
                 ThemeBackgroundColor(tokens::WINDOW_BG),
                 children![
-                    (
+                    editable_text_field(
+                        "http://127.0.0.1:15702",
+                        0,
+                        16.0,
                         Node {
                             width: Val::Px(250.),
                             height: percent(100),
@@ -87,22 +89,11 @@ fn ui_bundle() -> impl Bundle {
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        TextInputNode {
-                            mode: TextInputMode::SingleLine,
-                            clear_on_submit: false,
-                            ..Default::default()
-                        },
-                        TextFont {
-                            font_size: 16.0,
-                            ..default()
-                        },
-                        text_input_queue("http://127.0.0.1:15702"),
-                        TextInputContents::default(),
                         ConnectionInput,
                     ),
                     menu_button((
-                        feathers::controls::button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             (),
                             Spawn((Text::new("Load Scene"), ThemedText))
                         ),
@@ -113,8 +104,8 @@ fn ui_bundle() -> impl Bundle {
                     )),
                     hspace(px(20)),
                     menu_button((
-                        feathers::controls::button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             InteractionDisabled,
                             Spawn((Text::new("Build"), ThemedText))
                         ),
@@ -124,8 +115,8 @@ fn ui_bundle() -> impl Bundle {
                         BuildNavmeshButton
                     )),
                     menu_button((
-                        feathers::controls::button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             InteractionDisabled,
                             Spawn((Text::new("Save"), ThemedText))
                         ),
@@ -133,8 +124,8 @@ fn ui_bundle() -> impl Bundle {
                         SaveNavmeshButton
                     )),
                     menu_button((
-                        feathers::controls::button(
-                            ButtonProps::default(),
+                        button_bundle(
+                            ButtonBundleProps::default(),
                             InteractionDisabled,
                             Spawn((Text::new("Load"), ThemedText))
                         ),
@@ -168,37 +159,43 @@ fn ui_bundle() -> impl Bundle {
                             ..default()
                         },
                         InheritableFont {
-                            font: HandleOrPath::Path(fonts::REGULAR.to_owned()),
+                            font_size: FontSize::Px(FONT_SIZE),
                             ..default()
                         },
                         children![
                             decimal_option_label("Cell Size Fraction"),
                             decimal_option_input(
+                                1,
                                 CellSizeInput,
                                 GlobalNavmeshSettings::default().cell_size_fraction
                             ),
                             decimal_option_label("Cell Height Fraction"),
                             decimal_option_input(
+                                2,
                                 CellHeightInput,
                                 GlobalNavmeshSettings::default().cell_height_fraction
                             ),
                             decimal_option_label("Agent Radius"),
                             decimal_option_input(
+                                3,
                                 AgentRadiusInput,
                                 GlobalNavmeshSettings::default().agent_radius
                             ),
                             decimal_option_label("Agent Height"),
                             decimal_option_input(
+                                4,
                                 AgentHeightInput,
                                 GlobalNavmeshSettings::default().agent_height
                             ),
                             decimal_option_label("Agent Walkable Climb"),
                             decimal_option_input(
+                                5,
                                 WalkableClimbInput,
                                 GlobalNavmeshSettings::default().walkable_climb
                             ),
                             decimal_option_label("Max Slope (degrees)"),
                             decimal_option_input(
+                                6,
                                 MaxSlopeInput,
                                 GlobalNavmeshSettings::default()
                                     .walkable_slope_angle
@@ -216,28 +213,28 @@ fn ui_bundle() -> impl Bundle {
                         },
                         children![
                             (
-                                feathers::controls::checkbox(
+                                checkbox_bundle(
                                     Checked,
                                     Spawn((Text::new("Show Visual"), ThemedText))
                                 ),
                                 observe(set_gizmo(AvailableGizmos::Visual))
                             ),
                             (
-                                feathers::controls::checkbox(
+                                checkbox_bundle(
                                     (),
                                     Spawn((Text::new("Show Obstacles"), ThemedText))
                                 ),
                                 observe(set_gizmo(AvailableGizmos::Obstacles))
                             ),
                             (
-                                feathers::controls::checkbox(
+                                checkbox_bundle(
                                     Checked,
                                     Spawn((Text::new("Show Detail Mesh"), ThemedText))
                                 ),
                                 observe(set_gizmo(AvailableGizmos::DetailMesh))
                             ),
                             (
-                                feathers::controls::checkbox(
+                                checkbox_bundle(
                                     (),
                                     Spawn((Text::new("Show Polygon Mesh"), ThemedText))
                                 ),
@@ -282,25 +279,46 @@ struct MaxSlopeInput;
 
 fn read_config_inputs(
     mut settings: ResMut<GlobalNavmeshSettings>,
-    cell_size: Single<&TextInputContents, With<CellSizeInput>>,
-    cell_height: Single<&TextInputContents, With<CellHeightInput>>,
-    agent_height: Single<&TextInputContents, With<AgentHeightInput>>,
-    agent_radius: Single<&TextInputContents, With<AgentRadiusInput>>,
-    walkable_climb: Single<&TextInputContents, With<WalkableClimbInput>>,
-    max_slope: Single<&TextInputContents, With<MaxSlopeInput>>,
+    cell_size: Single<&EditableText, With<CellSizeInput>>,
+    cell_height: Single<&EditableText, With<CellHeightInput>>,
+    agent_height: Single<&EditableText, With<AgentHeightInput>>,
+    agent_radius: Single<&EditableText, With<AgentRadiusInput>>,
+    walkable_climb: Single<&EditableText, With<WalkableClimbInput>>,
+    max_slope: Single<&EditableText, With<MaxSlopeInput>>,
 ) {
     let d = NavmeshSettings::default();
     settings.0 = NavmeshSettings {
-        cell_size_fraction: cell_size.get().parse().unwrap_or(d.cell_size_fraction),
-        cell_height_fraction: cell_height.get().parse().unwrap_or(d.cell_height_fraction),
+        cell_size_fraction: cell_size
+            .value()
+            .to_string()
+            .parse()
+            .unwrap_or(d.cell_size_fraction),
+        cell_height_fraction: cell_height
+            .value()
+            .to_string()
+            .parse()
+            .unwrap_or(d.cell_height_fraction),
         walkable_slope_angle: max_slope
-            .get()
+            .value()
+            .to_string()
             .parse()
             .unwrap_or(d.walkable_slope_angle.to_degrees())
             .to_radians(),
-        agent_height: agent_height.get().parse().unwrap_or(d.agent_height),
-        walkable_climb: walkable_climb.get().parse().unwrap_or(d.walkable_climb),
-        agent_radius: agent_radius.get().parse().unwrap_or(d.agent_radius),
+        agent_height: agent_height
+            .value()
+            .to_string()
+            .parse()
+            .unwrap_or(d.agent_height),
+        walkable_climb: walkable_climb
+            .value()
+            .to_string()
+            .parse()
+            .unwrap_or(d.walkable_climb),
+        agent_radius: agent_radius
+            .value()
+            .to_string()
+            .parse()
+            .unwrap_or(d.agent_radius),
         min_region_size: d.min_region_size,
         merge_region_size: d.merge_region_size,
         detail_sample_max_error: d.detail_sample_max_error,
@@ -373,7 +391,7 @@ fn load_navmesh(
 fn menu_button(button: impl Bundle) -> impl Bundle {
     (
         Node {
-            width: Val::Px(120.0),
+            width: Val::Px(130.0),
             ..default()
         },
         children![(button, ThemedText)],
@@ -393,21 +411,6 @@ fn vspace(v: Val) -> impl Bundle {
         ..default()
     }
 }
-
-fn text_input_queue(initial_text: impl Into<String>) -> TextInputQueue {
-    let mut queue = TextInputQueue::default();
-    let overwrite_mode = false;
-    for char in initial_text.into().chars() {
-        queue.add(TextInputAction::Edit(TextInputEdit::Insert(
-            char,
-            overwrite_mode,
-        )));
-    }
-    queue
-}
-
-#[derive(Component)]
-pub(crate) struct ConnectionInput;
 
 #[derive(Component)]
 struct LoadSceneButton;
@@ -463,10 +466,31 @@ fn update_primary_buttons_when_obstacle_removed(
         .insert(InteractionDisabled);
 }
 
-fn clear_focus(press: On<Pointer<Press>>, mut focus: ResMut<InputFocus>) {
-    if Some(press.original_event_target()) != focus.0 {
-        focus.0 = None;
-    }
+fn editable_text_field(
+    initial_text: impl Into<String>,
+    tab_index: i32,
+    font_size: f32,
+    node: Node,
+    marker: impl Bundle,
+) -> impl Bundle {
+    (
+        node,
+        EditableText {
+            allow_newlines: false,
+            ..EditableText::new(initial_text.into())
+        },
+        TextLayout::no_wrap(),
+        TextFont {
+            font_size: FontSize::Px(font_size),
+            ..default()
+        },
+        TextCursorStyle {
+            color: Color::WHITE,
+            ..TextCursorStyle::default()
+        },
+        TabIndex(tab_index),
+        marker,
+    )
 }
 
 fn decimal_option_label(text: impl Into<String>) -> impl Bundle {
@@ -480,27 +504,23 @@ fn decimal_option_label(text: impl Into<String>) -> impl Bundle {
     )
 }
 
-fn decimal_option_input(marker: impl Bundle, initial_value: f32) -> impl Bundle {
+fn decimal_option_input(tab_index: i32, marker: impl Bundle, initial_value: f32) -> impl Bundle {
     (
-        Node {
-            width: Val::Px(50.),
-            height: Val::Px(25.),
-            ..default()
-        },
-        TextInputNode {
-            mode: TextInputMode::SingleLine,
-            clear_on_submit: false,
-            ..Default::default()
-        },
-        TextInputFilter::Decimal,
-        TextFont {
-            font_size: 14.0,
-            ..default()
-        },
-        text_input_queue(initial_value.to_string()),
-        TextInputContents::default(),
+        editable_text_field(
+            initial_value.to_string(),
+            tab_index,
+            14.0,
+            Node {
+                width: Val::Px(50.),
+                height: Val::Px(25.),
+                ..default()
+            },
+            marker,
+        ),
         ThemeBackgroundColor(tokens::SLIDER_BG),
-        marker,
+        EditableTextFilter::new(|character| {
+            character.is_ascii_digit() || character == '.' || character == '-'
+        }),
     )
 }
 
@@ -520,10 +540,10 @@ fn set_gizmo(gizmo: AvailableGizmos) -> impl ObserverSystem<ValueChange<bool>, (
 }
 
 fn set_ui_size(add: On<Add, InheritableFont>, mut font: Query<&mut InheritableFont>) {
-    font.get_mut(add.entity).unwrap().font_size = FONT_SIZE;
+    font.get_mut(add.entity).unwrap().font_size = FontSize::Px(FONT_SIZE);
 }
 fn set_font_size(add: On<Add, TextFont>, mut font: Query<&mut TextFont>) {
-    font.get_mut(add.entity).unwrap().font_size = FONT_SIZE;
+    font.get_mut(add.entity).unwrap().font_size = FontSize::Px(FONT_SIZE);
 }
 
 const FONT_SIZE: f32 = 18.0;
@@ -532,9 +552,11 @@ fn label(text: impl Into<String>) -> impl Bundle {
     (
         Node::default(),
         InheritableFont {
-            font: HandleOrPath::Path(fonts::REGULAR.to_owned()),
+            font_size: FontSize::Px(FONT_SIZE),
             ..default()
         },
         children![(Text(text.into()), ThemedText)],
     )
 }
+#[derive(Component)]
+pub(crate) struct ConnectionInput;
