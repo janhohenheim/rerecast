@@ -214,6 +214,7 @@ Take a look at their repos for documentation on how to use them with rerecast.
 
 | bevy  | bevy_rerecast |
 |-------|---------------|
+| 0.19  | 0.5           |
 | 0.18  | 0.4           |
 | 0.17  | 0.3           |
 | 0.16  | 0.2           |

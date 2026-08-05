@@ -57,11 +57,11 @@ bevy_gizmos = { version = "0.19", default-features = false }
 bevy_material = { version = "0.19", default-features = false }
 
 # Workspace crates
-rerecast = { version = "0.3", path = "crates/rerecast", default-features = false }
-bevy_rerecast = { version = "0.4", path = "crates/bevy_rerecast", default-features = false }
-bevy_rerecast_core = { version = "0.4", path = "crates/bevy_rerecast_core", default-features = false }
-bevy_rerecast_editor_integration = { version = "0.4", path = "crates/bevy_rerecast_editor_integration", default-features = false }
-avian_rerecast = { version = "0.5", path = "crates/avian_rerecast", default-features = false }
+rerecast = { version = "0.4", path = "crates/rerecast", default-features = false }
+bevy_rerecast = { version = "0.5", path = "crates/bevy_rerecast", default-features = false }
+bevy_rerecast_core = { version = "0.5", path = "crates/bevy_rerecast_core", default-features = false }
+bevy_rerecast_editor_integration = { version = "0.5", path = "crates/bevy_rerecast_editor_integration", default-features = false }
+avian_rerecast = { version = "0.6", path = "crates/avian_rerecast", default-features = false }
 test_utils = { version = "0.1", path = "crates/test_utils", default-features = false }
 
 # Other stuffs
