@@ -1,7 +1,7 @@
 //! Utilities for generating navmeshes at runtime.
 
 use alloc::vec::Vec;
-use anyhow::{Context as _, anyhow};
+use anyhow::anyhow;
 use bevy_app::prelude::*;
 use bevy_asset::prelude::*;
 use bevy_derive::{Deref, DerefMut};

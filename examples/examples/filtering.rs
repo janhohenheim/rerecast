@@ -5,10 +5,10 @@ use avian3d::prelude::*;
 use bevy::{
     color::palettes::tailwind,
     input::common_conditions::input_just_pressed,
-    math::bounding::Aabb3d,
     platform::collections::HashSet,
     prelude::*,
     remote::{RemotePlugin, http::RemoteHttpPlugin},
+    shape::Aabb3d,
 };
 use bevy_rerecast::{debug::DetailNavmeshGizmo, prelude::*};
 
@@ -116,7 +116,7 @@ fn generate_navmesh(
 }
 
 fn configure_camera(
-    trigger: On<Add, Camera>,
+    trigger: On<Add<Camera>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
