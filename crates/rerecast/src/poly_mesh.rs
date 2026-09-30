@@ -261,7 +261,9 @@ impl ContourSet {
                 indices[j] = j;
             }
 
-            // Jan: we treat an invalid triangulation as an error instead of a warning.
+            // Like Recast, a contour that can't be fully triangulated is a
+            // warning, not an error: `triangulate` warns and returns the
+            // triangles built so far (#59).
             let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris)?;
             // Add and merge vertices.
             for j in 0..cont.vertices.len() {
@@ -1111,6 +1113,8 @@ fn triangulate(
             // if the contour simplification is too aggressive.
             // Like Recast (`return -ntris`, and the caller warns and goes on):
             // keep the triangles built so far instead of losing the contour.
+            #[cfg(feature = "tracing")]
+            tracing::warn!("Bad triangulation: kept {ntris} triangles of a {n}-vertex contour");
             return Ok(ntris);
         };
 
