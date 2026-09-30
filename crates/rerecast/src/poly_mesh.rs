@@ -261,7 +261,9 @@ impl ContourSet {
                 indices[j] = j;
             }
 
-            // Jan: we treat an invalid triangulation as an error instead of a warning.
+            // Like Recast, a contour that can't be fully triangulated is a
+            // warning, not an error: `triangulate` warns and returns the
+            // triangles built so far (#59).
             let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris)?;
             // Add and merge vertices.
             for j in 0..cont.vertices.len() {
@@ -366,7 +368,10 @@ impl ContourSet {
             }
         }
 
-        mesh.polygons.truncate(mesh.npolys * nvp * 2);
+        // Don't truncate `polygons` to `npolys` here: removing a border vertex
+        // can leave more polygons than before (Recast allocates `maxTris`), and
+        // `remove_vertex` would index past the end. The final conversion
+        // (`From<InternalPolygonNavmesh>`) truncates it.
         // Remove edge vertices.
         let mut i = 0;
         while i < mesh.nvertices as usize {
@@ -380,7 +385,9 @@ impl ContourSet {
                 // Note: nverts is already decremented inside removeVertex()!
                 // Fixup vertex flags
                 vflags.copy_within((i + 1)..=mesh.nvertices as usize, i);
-                i -= 1;
+                // Re-check the same index (Recast's `--i`) without decrementing:
+                // `i -= 1` underflows when `i == 0`.
+                continue;
             }
 
             i += 1;
@@ -562,7 +569,9 @@ impl InternalPolygonNavmesh {
                     continue;
                 }
                 // Collect edges which does not touch the removed vertex.
-                for (j, k) in (0..nv).zip(nv - 1..) {
+                // `k` is the vertex before `j` (Recast's `k = j++`), wrapping
+                // around; `zip(nv - 1..)` yielded `nv - 1, nv, nv + 1, ...`.
+                for (j, k) in (0..nv).map(|j| (j, (j + nv - 1) % nv)) {
                     if p[j] != rem && p[k] != rem {
                         let e = &mut edges[nedges];
                         e.polygon1 = p[k];
@@ -636,20 +645,23 @@ impl InternalPolygonNavmesh {
                     push_front(r, &mut hreg, &mut nhreg);
                     push_front(a, &mut harea, &mut nharea);
                     add = true;
-                    i += 1;
                 } else if hole[nhole - 1] == ea {
                     // The segment matches the end of the hole boundary.
                     push_back(eb, &mut hole, &mut nhole);
                     push_back(r, &mut hreg, &mut nhreg);
                     push_back(a, &mut harea, &mut nharea);
                     add = true;
-                    i += 1;
                 }
                 if add {
-                    // The edge segment was added, remove it.
+                    // The edge segment was added, remove it and re-check the
+                    // same index (Recast's `--i`). Otherwise advance: before,
+                    // a non-matching edge never advanced `i` (infinite loop),
+                    // and a matching one removed the next edge instead.
                     edges[i] = edges[nedges - 1].clone();
                     nedges -= 1;
                     match_ = true;
+                } else {
+                    i += 1;
                 }
             }
             if !match_ {
@@ -825,7 +837,8 @@ impl InternalPolygonNavmesh {
             let nv = count_poly_verts(p, nvp);
 
             // Collect edges which touches the removed vertex.
-            for (j, k) in (0..nv).zip((nv - 1)..) {
+            // `k` is the vertex before `j` (Recast's `k = j++`), wrapping around.
+            for (j, k) in (0..nv).map(|j| (j, (j + nv - 1) % nv)) {
                 if !(p[j] == rem || p[k] == rem) {
                     continue;
                 }
@@ -857,7 +870,8 @@ impl InternalPolygonNavmesh {
         // There should be no more than 2 open edges.
         // This catches the case that two non-adjacent polygons
         // share the removed vertex. In that case, do not remove the vertex.
-        let num_open_edges = edges.iter().filter(|e| e[2] < 2).count();
+        // Only the `nedges` entries that were filled in.
+        let num_open_edges = edges.iter().take(nedges).filter(|e| e[2] < 2).count();
         num_open_edges <= 2
     }
 }
@@ -1061,7 +1075,7 @@ fn triangulate(
                 let p2 = verts[indices[next(i1, n)] & INDEX_MASK].0;
 
                 let d = p2.as_ivec3() - p0.as_ivec3();
-                let len = d.xz().length_squared() as u16;
+                let len = d.xz().length_squared() as u32;
                 if min_len.is_none_or(|min| len < min) {
                     min_len = Some(len);
                     mini = Some(i);
@@ -1085,7 +1099,7 @@ fn triangulate(
                     let p0 = verts[indices[i] & INDEX_MASK].0;
                     let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
                     let d = p2.as_ivec3() - p0.as_ivec3();
-                    let len = d.xz().length_squared() as u16;
+                    let len = d.xz().length_squared() as u32;
                     if min_len.is_none_or(|min| len < min) {
                         min_len = Some(len);
                         mini = Some(i);
@@ -1097,7 +1111,11 @@ fn triangulate(
         let Some(mini) = mini else {
             // The contour is messed up. This sometimes happens
             // if the contour simplification is too aggressive.
-            return Err(PolygonNavmeshError::InvalidContour);
+            // Like Recast (`return -ntris`, and the caller warns and goes on):
+            // keep the triangles built so far instead of losing the contour.
+            #[cfg(feature = "tracing")]
+            tracing::warn!("Bad triangulation: kept {ntris} triangles of a {n}-vertex contour");
+            return Ok(ntris);
         };
 
         let mut i = mini;
