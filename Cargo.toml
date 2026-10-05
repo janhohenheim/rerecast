@@ -13,7 +13,7 @@ categories = ["game-development"]
 readme = "readme.md"
 
 [workspace.dependencies]
-avian3d = { version = "0.7", default-features = false }
+avian3d = { git = "https://github.com/andriyDev/avian.git", rev = "34c9b008d2f40638a953d9218db48d54f661365d", version = "0.8.0-dev", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 slotmap = { version = "1", default-features = false }
@@ -23,8 +23,8 @@ rfd = "0.15"
 # In sync with Bevy
 thiserror = { version = "2", default-features = false }
 wgpu-types = { version = "30", default-features = false }
-base64 = { version = "0.22", default-features = false, features = ["alloc"] }
-glam = { version = "0.32", default-features = false }
+base64 = { version = "0.23", default-features = false, features = ["alloc"] }
+glam = { version = "0.33", default-features = false, features = ["u16", "u32", "i32"] }
 libm = { version = "0.2", default-features = false }
 tracing = { version = "0.1", default-features = false }
 critical-section = { version = "1", default-features = false }
@@ -32,29 +32,30 @@ anyhow = { version = "1", default-features = false }
 
 # Bevy
 ## Bevy itself is only used in tests and examples, so we can use the default features.
-bevy = { version = "0.19", default-features = true }
+bevy = { version = "0.20.0-rc.2", default-features = true }
 ## Actual crate code should only depend on bevy_ crates with default features disabled.
-bevy_reflect = { version = "0.19", default-features = false, features = [
+bevy_reflect = { version = "0.20.0-rc.2", default-features = false, features = [
     "glam",
 ] }
-bevy_app = { version = "0.19", default-features = false }
-bevy_camera = { version = "0.19", default-features = false }
-bevy_light = { version = "0.19", default-features = false }
-bevy_remote = { version = "0.19", default-features = false }
-bevy_mesh = { version = "0.19", default-features = false }
-bevy_ecs = { version = "0.19", default-features = false }
-bevy_render = { version = "0.19", default-features = false }
-bevy_transform = { version = "0.19", default-features = false }
-bevy_asset = { version = "0.19", default-features = false }
-bevy_image = { version = "0.19", default-features = false }
-bevy_pbr = { version = "0.19", default-features = false }
-bevy_math = { version = "0.19", default-features = false }
-bevy_color = { version = "0.19", default-features = false }
-bevy_derive = { version = "0.19", default-features = false }
-bevy_platform = { version = "0.19", default-features = false }
-bevy_tasks = { version = "0.19", default-features = false }
-bevy_gizmos = { version = "0.19", default-features = false }
-bevy_material = { version = "0.19", default-features = false }
+bevy_app = { version = "0.20.0-rc.2", default-features = false }
+bevy_camera = { version = "0.20.0-rc.2", default-features = false }
+bevy_light = { version = "0.20.0-rc.2", default-features = false }
+bevy_remote = { version = "0.20.0-rc.2", default-features = false }
+bevy_mesh = { version = "0.20.0-rc.2", default-features = false }
+bevy_ecs = { version = "0.20.0-rc.2", default-features = false }
+bevy_render = { version = "0.20.0-rc.2", default-features = false }
+bevy_transform = { version = "0.20.0-rc.2", default-features = false }
+bevy_asset = { version = "0.20.0-rc.2", default-features = false }
+bevy_image = { version = "0.20.0-rc.2", default-features = false }
+bevy_pbr = { version = "0.20.0-rc.2", default-features = false }
+bevy_math = { version = "0.20.0-rc.2", default-features = false }
+bevy_shape = { version = "0.20.0-rc.2", default-features = false }
+bevy_color = { version = "0.20.0-rc.2", default-features = false }
+bevy_derive = { version = "0.20.0-rc.2", default-features = false }
+bevy_platform = { version = "0.20.0-rc.2", default-features = false }
+bevy_tasks = { version = "0.20.0-rc.2", default-features = false }
+bevy_gizmos = { version = "0.20.0-rc.2", default-features = false }
+bevy_material = { version = "0.20.0-rc.2", default-features = false }
 
 # Workspace crates
 rerecast = { version = "0.4", path = "crates/rerecast", default-features = false }
@@ -70,7 +71,7 @@ flate2 = { version = "1", default-features = false, features = [
     "rust_backend",
 ] }
 bincode = { version = "2", features = ["serde"], default-features = false }
-bevy_trenchbroom = { version = "0.14.0-rc.2", features = ["avian_f32"] }
+bevy_trenchbroom = { git = "https://github.com/andriyDev/bevy_trenchbroom.git", rev = "5c8e655c79a95c699fd0111e73bcef58ae24f04f", version = "0.14.0", features = ["avian_f32"] }
 approxim = "0.6"
 
 [workspace.lints.rust]

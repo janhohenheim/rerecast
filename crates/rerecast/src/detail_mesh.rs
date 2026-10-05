@@ -3,10 +3,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 
-use core::{
-    f32,
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 

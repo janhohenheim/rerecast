@@ -135,7 +135,8 @@ fn poll_remote_navmesh_input(
         let val = val.take();
 
         // Decode manually
-        let response: PollEditorInputResponse = deserialize(&val)?;
+        let response: PollEditorInputResponse =
+            deserialize(&val).map_err(|err| anyhow::Error::msg(format!("{err}")))?;
         Ok(response)
     };
 

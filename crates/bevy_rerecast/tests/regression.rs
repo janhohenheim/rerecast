@@ -8,9 +8,9 @@ use bevy::{
     ecs::system::RunSystemOnce,
     gltf::GltfPlugin,
     log::LogPlugin,
-    math::bounding::Aabb3d,
     mesh::MeshPlugin,
     prelude::*,
+    shape::Aabb3d,
     world_serialization::{WorldInstanceReady, WorldSerializationPlugin},
 };
 use bevy_rerecast::{Mesh3dBackendPlugin, debug::NavmeshDebugPlugin, prelude::*};

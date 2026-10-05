@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{picking::hover::Hovered, prelude::*, ui::Pressed};
 
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<InteractionPalette>();
@@ -18,22 +18,20 @@ pub struct InteractionPalette {
 }
 
 fn apply_interaction_palette(
-    mut palette_query: Query<
-        (
-            &Interaction,
-            &InteractionPalette,
-            &mut BackgroundColor,
-            Option<&Pickable>,
-        ),
-        Or<(Changed<Interaction>, Changed<Pickable>)>,
-    >,
+    mut palette_query: Query<(
+        Has<Pressed>,
+        Has<Hovered>,
+        &InteractionPalette,
+        &mut BackgroundColor,
+        Option<&Pickable>,
+    )>,
 ) {
-    for (interaction, palette, mut background, pickable) in &mut palette_query {
-        *background = match interaction {
+    for (hovered, pressed, palette, mut background, pickable) in &mut palette_query {
+        *background = match (pressed, hovered) {
             _ if pickable.is_some_and(|p| !p.should_block_lower) => palette.disabled,
-            Interaction::None => palette.none,
-            Interaction::Hovered => palette.hovered,
-            Interaction::Pressed => palette.pressed,
+            (false, false) => palette.none,
+            (false, true) => palette.hovered,
+            (true, _) => palette.pressed,
         }
         .into();
     }
