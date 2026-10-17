@@ -318,7 +318,7 @@ pub(crate) struct SpanInsertion {
 #[cfg(test)]
 mod tests {
 
-    use glam::Vec3A;
+    use glam::{Vec3, Vec3A};
 
     use crate::{
         Aabb3d,
@@ -522,6 +522,36 @@ mod tests {
 
         let empty_span = heightfield.span_at(3, 1);
         assert_eq!(empty_span, None);
+    }
+
+    #[test]
+    fn can_rasterize_triangle_at_the_top_of_the_span_height_range() {
+        // 70 / 0.001 cells is more than the span height limit of u16::MAX.
+        let mut heightfield = HeightfieldBuilder {
+            aabb: Aabb3d {
+                min: Vec3::ZERO,
+                max: Vec3::new(4.0, 70.0, 4.0),
+            },
+            cell_size: 1.0,
+            cell_height: 0.001,
+        }
+        .build()
+        .unwrap();
+        heightfield
+            .rasterize_triangle(
+                [
+                    Vec3A::new(0.5, 70.0, 0.5),
+                    Vec3A::new(0.5, 70.0, 3.5),
+                    Vec3A::new(3.5, 70.0, 0.5),
+                ],
+                AreaType::DEFAULT_WALKABLE,
+                1,
+            )
+            .unwrap();
+
+        let span = heightfield.span_at(1, 1).unwrap();
+        assert_eq!(span.min, Span::MAX_HEIGHT - 1);
+        assert_eq!(span.max, Span::MAX_HEIGHT);
     }
 
     #[track_caller]
