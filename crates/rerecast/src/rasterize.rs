@@ -156,8 +156,9 @@ impl Heightfield {
                 span_max = span_max.min(by);
 
                 // Snap the span to the heightfield height grid.
+                // Leave room for the ceiling so that the span is at least one cell high.
                 let span_min_cell_index = (floor(span_min * inverse_cell_height) as i32)
-                    .clamp(0, Span::MAX_HEIGHT as i32)
+                    .clamp(0, Span::MAX_HEIGHT as i32 - 1)
                     as u16;
                 let span_max_cell_index = (ceil(span_max * inverse_cell_height) as i32)
                     .clamp(span_min_cell_index as i32 + 1, Span::MAX_HEIGHT as i32)
