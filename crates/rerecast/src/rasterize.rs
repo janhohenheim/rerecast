@@ -208,6 +208,9 @@ fn divide_poly(
     if in_vert_count > 12 {
         return Err(PolygonDivisionError::TooManyVertices(in_vert_count));
     } else if in_vert_count == 0 {
+        // Callers reuse the output buffers, so clear the counts to not leave stale polygons behind.
+        *out_vert_count_1 = 0;
+        *out_vert_count_2 = 0;
         return Ok(());
     }
     let in_vert_count = in_vert_count as usize;
@@ -288,5 +291,76 @@ enum DivisionAxis {
 impl Display for DivisionAxis {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{self:?}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::Vec3;
+
+    use crate::{Aabb3d, HeightfieldBuilder};
+
+    use super::*;
+
+    #[test]
+    fn divide_poly_with_no_vertices_outputs_empty_polygons() {
+        for axis in [DivisionAxis::X, DivisionAxis::Z] {
+            let mut out_verts_1 = [Vec3A::X; 7];
+            let mut out_verts_2 = [Vec3A::Z; 7];
+            // Counts left over from a previous division.
+            let mut out_vert_count_1 = 3;
+            let mut out_vert_count_2 = 4;
+            divide_poly(
+                &[],
+                0,
+                &mut out_verts_1,
+                &mut out_vert_count_1,
+                &mut out_verts_2,
+                &mut out_vert_count_2,
+                1.0,
+                axis,
+            )
+            .unwrap();
+            assert_eq!((out_vert_count_1, out_vert_count_2), (0, 0));
+        }
+    }
+
+    #[test]
+    fn rasterized_triangle_stays_within_its_column() {
+        let mut heightfield = HeightfieldBuilder {
+            aabb: Aabb3d {
+                min: Vec3::new(-16.9, -0.325, -16.9),
+                max: Vec3::new(0.9, 5.05, 0.9),
+            },
+            cell_size: 0.15,
+            cell_height: 0.075,
+        }
+        .build()
+        .unwrap();
+        // A vertical wall triangle at x = -9.5, which is inside column 49.
+        // Rounding at a cell edge makes the row loop run once more after the
+        // whole triangle has been clipped away.
+        heightfield
+            .rasterize_triangle(
+                [
+                    Vec3A::new(-9.5, 1.375, -5.475),
+                    Vec3A::new(-9.5, 0.0, -5.2),
+                    Vec3A::new(-9.5, 2.75, -5.2),
+                ],
+                AreaType::NOT_WALKABLE,
+                4,
+            )
+            .unwrap();
+
+        let width = heightfield.width as usize;
+        let mut span_count = 0;
+        for (index, span) in heightfield.spans.iter().enumerate() {
+            if span.is_some() {
+                let (x, z) = (index % width, index / width);
+                assert_eq!(x, 49, "span outside the triangle at x={x}, z={z}");
+                span_count += 1;
+            }
+        }
+        assert!(span_count > 0);
     }
 }
