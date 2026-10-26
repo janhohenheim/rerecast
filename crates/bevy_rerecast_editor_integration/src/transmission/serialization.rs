@@ -1,6 +1,5 @@
 //! Serialization and deserialization of data for the editor integration.
 
-use anyhow::Context as _;
 use base64::prelude::*;
 use bevy_ecs::prelude::*;
 use serde::{Serialize, de::DeserializeOwned};
@@ -22,7 +21,7 @@ pub fn serialize<T: Serialize>(val: &T) -> Result<Value> {
 }
 
 /// Deserializes a JSON value in the format expected by the editor integration to a value.
-pub fn deserialize<T: DeserializeOwned>(value: &Value) -> anyhow::Result<T> {
+pub fn deserialize<T: DeserializeOwned>(value: &Value) -> Result<T> {
     let string = value.as_str().context("Expected a string")?;
 
     let bytes = BASE64_STANDARD.decode(string)?;

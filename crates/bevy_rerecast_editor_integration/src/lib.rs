@@ -31,12 +31,12 @@ impl Plugin for NavmeshEditorIntegrationPlugin {
 }
 
 #[cfg(feature = "debug_plugin")]
-fn exclude_polygon_gizmo(trigger: On<Add, PolygonNavmeshGizmo>, mut commands: Commands) {
+fn exclude_polygon_gizmo(trigger: On<Add<PolygonNavmeshGizmo>>, mut commands: Commands) {
     commands.entity(trigger.entity).insert(EditorExluded);
 }
 
 #[cfg(feature = "debug_plugin")]
-fn exclude_detail_gizmo(trigger: On<Add, DetailNavmeshGizmo>, mut commands: Commands) {
+fn exclude_detail_gizmo(trigger: On<Add<DetailNavmeshGizmo>>, mut commands: Commands) {
     commands.entity(trigger.entity).insert(EditorExluded);
 }
 
