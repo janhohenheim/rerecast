@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "avian_rerecast"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "avian3d",
  "bevy_app",
@@ -1810,7 +1810,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bevy",
  "bevy_app",
@@ -1822,7 +1822,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "bevy_app",
@@ -1854,7 +1854,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1869,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_rerecast_editor_integration"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -2150,8 +2150,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom"
-version = "0.14.0"
-source = "git+https://github.com/andriyDev/bevy_trenchbroom.git?rev=5c30aea75c9ee498bad30eebd2f63a150f5622d6#5c30aea75c9ee498bad30eebd2f63a150f5622d6"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dadbc2fd99f617b674219688d17aa7d267c12d591c557c0799fe3ad567ebc83e"
 dependencies = [
  "anyhow",
  "atomicow",
@@ -2182,8 +2183,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom_macros"
-version = "0.14.0"
-source = "git+https://github.com/andriyDev/bevy_trenchbroom.git?rev=5c30aea75c9ee498bad30eebd2f63a150f5622d6#5c30aea75c9ee498bad30eebd2f63a150f5622d6"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84e99485bb7d90c87aa125d4e6083357635de920ead8cbabf6b80f9a1e8b8edd"
 dependencies = [
  "deluxe",
  "heck 0.5.0",
@@ -5854,7 +5856,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rerecast"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "bevy_reflect",
