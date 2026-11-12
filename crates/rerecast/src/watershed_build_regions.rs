@@ -166,7 +166,6 @@ impl CompactHeightfield {
         }
 
         // Write the result out
-        #[expect(clippy::needless_range_loop)]
         for i in 0..self.spans.len() {
             self.spans[i].region = src_reg[i];
         }
@@ -637,7 +636,6 @@ impl CompactHeightfield {
             for x in min_x..max_x {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-                #[expect(clippy::needless_range_loop)]
                 for i in cell.index() as usize..max_index {
                     if self.areas[i].is_walkable() {
                         src_reg[i] = region;
@@ -665,7 +663,6 @@ impl CompactHeightfield {
             for x in 0..self.width {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-                #[expect(clippy::needless_range_loop)]
                 for i in cell.index() as usize..max_index {
                     if !self.areas[i].is_walkable() || src_reg[i] != RegionId::NONE {
                         continue;
@@ -702,7 +699,6 @@ impl CompactHeightfield {
                 for x in 0..self.width {
                     let cell = self.cell_at(x, z);
                     let max_index = cell.index() as usize + cell.count() as usize;
-                    #[expect(clippy::needless_range_loop)]
                     for i in cell.index() as usize..max_index {
                         if self.dist[i] >= level
                             && src_reg[i] == RegionId::NONE
