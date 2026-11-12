@@ -1,7 +1,7 @@
 [package]
 name = "avian_rerecast"
 description = "Avian backend for bevy_rerecast"
-version = "0.6.0"
+version = "0.7.0"
 authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
@@ -21,7 +21,7 @@ bevy_rerecast_core = { workspace = true, features = ["std"] }
 [features]
 default = ["f32"]
 # Just here so that the default features compile lol
-f32 = ["avian3d/f32", "avian3d/parry-f32"]
+f32 = ["avian3d/parry-f32"]
 # No f64 because it's really the user's job to enable it and because we want to keep --all-features working
 
 [lints]

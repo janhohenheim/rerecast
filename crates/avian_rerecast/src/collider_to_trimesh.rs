@@ -1,7 +1,7 @@
 //! Contains traits and methods for converting [`Collider`]s into trimeshes, expressed as [`TrimeshedCollider`]s.
 
 use avian3d::{
-    math::AsF32,
+    math::ToF32Precision,
     parry::shape::{Compound, TypedShape},
     prelude::*,
 };

@@ -222,6 +222,11 @@ impl ContourSet {
             if contour.vertices.len() < 3 {
                 continue;
             }
+            // An unmerged hole must not be triangulated as walkable space.
+            // In particular, a triangle bypasses the ear-clipping checks.
+            if crate::contours::signed_area_xz(&contour.vertices) >= 0 {
+                return Err(PolygonNavmeshError::InvalidContour);
+            }
             max_vertices += contour.vertices.len();
             max_tris += contour.vertices.len() - 2;
             max_verts_per_cont = max_verts_per_cont.max(contour.vertices.len());

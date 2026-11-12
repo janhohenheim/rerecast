@@ -3,10 +3,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 
-use core::{
-    f32,
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
 use thiserror::Error;
 
@@ -1001,11 +998,16 @@ fn dist_pt_tri(p: Vec3A, a: Vec3A, b: Vec3A, c: Vec3A) -> Option<f32> {
 }
 
 fn get_jitter_x(i: usize) -> f32 {
-    (((i * 0x8da6b343) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
+    // Compute in 32-bit with wrapping to match C/Recast, where the product is
+    // an unsigned 32-bit multiply. A usize multiply overflows (panicking in
+    // debug builds) on 32-bit targets such as wasm32, and on 64-bit targets
+    // for large indices. The masked low 16 bits are identical either way.
+    ((((i as u32).wrapping_mul(0x8da6b343)) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
 }
 
 fn get_jitter_y(i: usize) -> f32 {
-    (((i * 0xd8163841) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
+    // See `get_jitter_x`; the multiplier differs only.
+    ((((i as u32).wrapping_mul(0xd8163841)) & 0xffff) as f32 / 65535.0 * 2.0) - 1.0
 }
 
 fn dist_to_poly(nvert: usize, verts: &[Vec3A], p: Vec3A) -> f32 {
@@ -1531,5 +1533,63 @@ impl Bounds {
     #[inline]
     fn height(&self) -> u16 {
         self.zmax - self.zmin
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{get_jitter_x, get_jitter_y};
+
+    // Golden values from the Recast C implementation:
+    //     getJitterX/Y(i) = ((uint32)(i * mult) & 0xffff) / 65535.0f * 2.0f - 1.0f
+    // Each entry is the exact f32 bit pattern produced by that reference for
+    // the index. These constants are taken from the reference definition, not
+    // from the Rust expression under test.
+    #[test]
+    fn jitter_matches_recast_reference_values() {
+        let expected_x: [(usize, u32); 10] = [
+            (0, 0xbf80_0000),
+            (1, 0x3ecd_0ecc),
+            (2, 0xbe4b_cccc),
+            (3, 0xbf4c_6dcc),
+            (10, 0xbf7e_c3ff),
+            (1000, 0xbf04_8f84),
+            (65535, 0xbecd_0ace),
+            (65536, 0xbf80_0000),
+            (0x1234_5678, 0x3d96_8890),
+            (0xffff_ffff, 0xbecd_0ace),
+        ];
+        for (i, bits) in expected_x {
+            assert_eq!(get_jitter_x(i).to_bits(), bits, "get_jitter_x({i})");
+        }
+
+        let expected_y: [(usize, u32); 10] = [
+            (0, 0xbf80_0000),
+            (1, 0xbf0f_7d90),
+            (2, 0xbdf7_d8f8),
+            (3, 0x3ea3_0ea4),
+            (10, 0xbf1a_eb9b),
+            (1000, 0x3ef7_a2f8),
+            (65535, 0x3f0f_7f90),
+            (65536, 0xbf80_0000),
+            (0x1234_5678, 0xbf17_0f97),
+            (0xffff_ffff, 0x3f0f_7f90),
+        ];
+        for (i, bits) in expected_y {
+            assert_eq!(get_jitter_y(i).to_bits(), bits, "get_jitter_y({i})");
+        }
+    }
+
+    // The old `usize` multiply overflowed for `usize::MAX` in debug builds on
+    // 64-bit and for `i >= 2` on 32-bit targets such as wasm32. The wrapping
+    // form must yield the low-32-bits result instead of panicking.
+    #[test]
+    fn jitter_does_not_overflow_at_large_indices() {
+        assert_eq!(get_jitter_x(usize::MAX).to_bits(), 0xbecd_0ace);
+        assert_eq!(get_jitter_y(usize::MAX).to_bits(), 0x3f0f_7f90);
+        for i in [1usize << 20, 1 << 31, 1 << 32, usize::MAX - 1, usize::MAX] {
+            let _ = get_jitter_x(i);
+            let _ = get_jitter_y(i);
+        }
     }
 }
