@@ -1,5 +1,9 @@
 use alloc::vec::Vec;
 
+mod holes;
+#[cfg(test)]
+mod tests;
+
 #[cfg(feature = "bevy_reflect")]
 use bevy_reflect::prelude::*;
 use glam::{U16Vec3, Vec3Swizzles};
@@ -155,6 +159,7 @@ impl CompactHeightfield {
             }
         }
         cset.contours.resize_with(contour_count, Contour::default);
+        holes::merge_holes(&mut cset.contours);
         cset
     }
 
@@ -515,6 +520,16 @@ fn remove_degenerate_segments(simplified: &mut Vec<(U16Vec3, u32)>) {
         }
         i += 1;
     }
+}
+
+// Twice the signed XZ area: outlines are negative, holes positive. Widen before
+// multiplying: both a cross product and a squared distance can exceed i32.
+pub(crate) fn signed_area_xz(vertices: &[(U16Vec3, u32)]) -> i64 {
+    vertices
+        .iter()
+        .zip(vertices.iter().cycle().skip(1))
+        .map(|((a, _), (b, _))| i64::from(a.x) * i64::from(b.z) - i64::from(b.x) * i64::from(a.z))
+        .sum()
 }
 
 /// Represents a group of related contours.
