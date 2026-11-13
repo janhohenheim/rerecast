@@ -70,8 +70,10 @@ impl TriMeshFromBevyMesh for TriMesh {
         let position = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
         let float = position.as_float3()?;
         trimesh.vertices = float.iter().map(|v| Vec3A::from(*v)).collect();
-
-        let indices: Vec<_> = mesh.indices()?.iter().collect();
+        let indices: Vec<usize> = match mesh.indices() {
+            Some(indices) => indices.iter().collect(),
+            None => (0..trimesh.vertices.len()).collect(),
+        };
         if !indices.len().is_multiple_of(3) {
             return None;
         }
