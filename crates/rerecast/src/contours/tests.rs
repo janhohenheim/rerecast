@@ -138,11 +138,7 @@ fn square_hole_preserves_obstacle_area_in_triangles_and_polygons() {
     }
     for nvp in [3, 6] {
         let mesh = assert_mesh(cset.clone(), nvp, 128, &[obstacle]);
-        assert!(
-            mesh.regions[..mesh.polygon_count()]
-                .iter()
-                .all(|r| *r == RegionId::from(1))
-        );
+        assert!(mesh.regions.iter().all(|r| *r == RegionId::from(1)));
         assert!(mesh.areas.iter().all(|a| *a == AreaType(7)));
     }
 }

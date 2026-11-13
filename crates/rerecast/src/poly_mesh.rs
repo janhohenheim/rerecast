@@ -179,6 +179,7 @@ impl From<InternalPolygonNavmesh> for PolygonNavmesh {
             polygon_neighbors.extend_from_slice(neighbors);
         }
         value.vertices.truncate(value.nvertices as usize);
+        value.regions.truncate(value.npolys);
         value.areas.truncate(value.npolys);
         PolygonNavmesh {
             vertices: value.vertices,
