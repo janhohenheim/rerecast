@@ -33,10 +33,6 @@ impl CompactHeightfield {
             for x in 0..self.width {
                 let cell = self.cell_at(x, z);
                 let max_index = cell.index() as usize + cell.count() as usize;
-                #[expect(
-                    clippy::needless_range_loop,
-                    reason = "lol the alternative suggestion is really unreadable"
-                )]
                 for i in cell.index() as usize..max_index {
                     let span = &self.spans[i];
                     let area = self.areas[i];

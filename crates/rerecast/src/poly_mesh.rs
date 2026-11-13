@@ -200,9 +200,28 @@ impl From<InternalPolygonNavmesh> for PolygonNavmesh {
 impl ContourSet {
     /// Builds a polygon mesh from the provided contours.
     pub fn into_polygon_mesh(
-        self,
+        mut self,
         max_vertices_per_polygon: u16,
     ) -> Result<PolygonNavmesh, PolygonNavmeshError> {
+        self.contours.retain(|contour| {
+            // Skip null contours.
+            if contour.vertices.len() < 3 {
+                return false;
+            }
+            // An unmerged hole must not be triangulated as walkable space.
+            // In particular, a triangle bypasses the ear-clipping checks.
+            let is_hole_merged = crate::contours::signed_area_xz(&contour.vertices) < 0;
+
+            if !is_hole_merged {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    "Failed to merge hole (region {:?}, {} vertices), ignoring it",
+                    contour.region,
+                    contour.vertices.len()
+                );
+            }
+            is_hole_merged
+        });
         let mut mesh = InternalPolygonNavmesh {
             aabb: self.aabb,
             cell_size: self.cell_size,
@@ -218,15 +237,6 @@ impl ContourSet {
         let mut max_tris = 0;
         let mut max_verts_per_cont = 0;
         for contour in &self.contours {
-            // Skip null contours.
-            if contour.vertices.len() < 3 {
-                continue;
-            }
-            // An unmerged hole must not be triangulated as walkable space.
-            // In particular, a triangle bypasses the ear-clipping checks.
-            if crate::contours::signed_area_xz(&contour.vertices) >= 0 {
-                return Err(PolygonNavmeshError::InvalidContour);
-            }
             max_vertices += contour.vertices.len();
             max_tris += contour.vertices.len() - 2;
             max_verts_per_cont = max_verts_per_cont.max(contour.vertices.len());
@@ -1357,12 +1367,26 @@ fn is_diagonal_internal_or_external_loose(
     true
 }
 
-#[derive(Error, Debug)]
+/// Errors that can happen when building polygons out of navmesh contours.
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum PolygonNavmeshError {
+    /// A generated polygon would hold too many vertices
     #[error("Too many vertices: {actual} > {max}")]
-    TooManyVertices { actual: usize, max: usize },
+    TooManyVertices {
+        /// What we got
+        actual: usize,
+        /// The max
+        max: usize,
+    },
+    /// The total number of generated polygons would be too many
     #[error("Too many polygons: {actual} > {max}")]
-    TooManyPolygons { actual: usize, max: usize },
+    TooManyPolygons {
+        /// What we got
+        actual: usize,
+        /// The max
+        max: usize,
+    },
+    /// A miscellaneous error occured
     #[error(
         "Invalid contour. This sometimes happens if the contour simplification is too aggressive."
     )]
