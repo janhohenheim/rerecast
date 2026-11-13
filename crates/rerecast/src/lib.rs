@@ -39,7 +39,7 @@ pub use detail_mesh::{DetailNavmesh, SubMesh};
 pub use heightfield::{Heightfield, HeightfieldBuilder, HeightfieldBuilderError};
 pub use mark_convex_poly_area::ConvexVolume;
 pub use math::{Aabb2d, Aabb3d};
-pub use poly_mesh::PolygonNavmesh;
+pub use poly_mesh::{PolygonNavmesh, PolygonNavmeshError};
 pub use region::RegionId;
 pub use span::{AreaType, Span, SpanKey, Spans};
 pub use trimesh::TriMesh;

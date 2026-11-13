@@ -1,5 +1,5 @@
 use super::*;
-use crate::{CompactCell, CompactSpan, PolygonNavmesh, poly_mesh::PolygonNavmeshError};
+use crate::{CompactCell, CompactSpan, PolygonNavmesh};
 use glam::Vec3;
 
 type Rect = [u16; 4];
@@ -126,7 +126,8 @@ fn outlines_without_holes_are_unchanged() {
 fn square_hole_preserves_obstacle_area_in_triangles_and_polygons() {
     let obstacle = [4, 4, 8, 8];
     let original = vec![rectangle([0, 0, 12, 12], false), rectangle(obstacle, true)];
-    assert!(set(original.clone()).into_polygon_mesh(6).is_err());
+    // Unmerged hole is skipped
+    assert_mesh(set(original.clone()), 6, 144, &[]);
     let cset = merged(original.clone());
     assert_eq!(cset.contours[0].vertices.len(), 10);
     assert!(cset.contours[1].vertices.is_empty());
@@ -361,7 +362,7 @@ fn high_coordinates_and_full_u16_range_use_wide_bridge_math() {
 }
 
 #[test]
-fn invalid_hole_groups_remain_intact_and_fail_closed() {
+fn invalid_hole_groups_remain_intact_and_are_skipped() {
     let outer = rectangle([0, 0, 20, 20], false);
     let hole = rectangle([4, 4, 8, 8], true);
     let triangle = contour(&[(4, 4), (8, 4), (6, 8)]);
@@ -392,23 +393,27 @@ fn invalid_hole_groups_remain_intact_and_fail_closed() {
             cset.contours, original,
             "failed merges must be transactional"
         );
-        assert!(matches!(
+
+        // Unmerged holes are skipped, leaving only the outlines behind
+        let outlines = original
+            .into_iter()
+            .filter(|c| signed_area_xz(&c.vertices) < 0)
+            .collect();
+
+        assert_eq!(
             cset.into_polygon_mesh(6),
-            Err(PolygonNavmeshError::InvalidContour)
-        ));
+            set(outlines).into_polygon_mesh(6)
+        );
     }
 }
 
 #[test]
-fn polygonizer_rejects_unmerged_triangular_holes_and_zero_area() {
+fn polygonizer_skips_unmerged_triangular_holes_and_zero_area() {
     for c in [
         contour(&[(2, 2), (8, 2), (4, 8)]),
         contour(&[(2, 2), (4, 4), (8, 8)]),
     ] {
-        assert!(matches!(
-            set(vec![c]).into_polygon_mesh(3),
-            Err(PolygonNavmeshError::InvalidContour)
-        ));
+        assert_mesh(set(vec![rectangle([0, 0, 12, 12], false), c]), 3, 144, &[]);
     }
 }
 
