@@ -13,7 +13,6 @@ readme = { workspace = true }
 [dependencies]
 slotmap = { workspace = true }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
 glam = { workspace = true }
 bitflags = { workspace = true }
 tracing = { workspace = true, optional = true }
@@ -42,7 +41,6 @@ std = [
     "slotmap/std",
     "bitflags/std",
     "tracing?/std",
-    "anyhow/std",
     "thiserror/std",
 ]
 # Note: tracing works on all no_std platforms that support atomics
