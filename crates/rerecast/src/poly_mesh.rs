@@ -276,8 +276,7 @@ impl ContourSet {
                 indices[j] = j;
             }
 
-            // Jan: we treat an invalid triangulation as an error instead of a warning.
-            let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris)?;
+            let ntris = triangulate(cont.vertices.len(), &cont.vertices, &mut indices, &mut tris);
             // Add and merge vertices.
             for j in 0..cont.vertices.len() {
                 let (v, region) = &cont.vertices[j];
@@ -381,7 +380,11 @@ impl ContourSet {
             }
         }
 
-        mesh.polygons.truncate(mesh.npolys * nvp * 2);
+        // Don't truncate `polygons` to `npolys` here: removing a border vertex
+        // can leave more polygons than before (Recast allocates `maxTris`), and
+        // `remove_vertex` would index past the end. The final conversion
+        // (`From<InternalPolygonNavmesh>`) truncates it.
+
         // Remove edge vertices.
         let mut i = 0;
         while i < mesh.nvertices as usize {
@@ -395,7 +398,10 @@ impl ContourSet {
                 // Note: nverts is already decremented inside removeVertex()!
                 // Fixup vertex flags
                 vflags.copy_within((i + 1)..=mesh.nvertices as usize, i);
-                i -= 1;
+
+                // retry vertex (same as doing i--)
+                // we `continue` instead of `i -= 1` because that would underflow!
+                continue;
             }
 
             i += 1;
@@ -577,7 +583,7 @@ impl InternalPolygonNavmesh {
                     continue;
                 }
                 // Collect edges which does not touch the removed vertex.
-                for (j, k) in (0..nv).zip(nv - 1..) {
+                for (j, k) in (0..nv).map(|j| (j, (j + nv - 1) % nv)) {
                     if p[j] != rem && p[k] != rem {
                         let e = &mut edges[nedges];
                         e.polygon1 = p[k];
@@ -651,20 +657,20 @@ impl InternalPolygonNavmesh {
                     push_front(r, &mut hreg, &mut nhreg);
                     push_front(a, &mut harea, &mut nharea);
                     add = true;
-                    i += 1;
                 } else if hole[nhole - 1] == ea {
                     // The segment matches the end of the hole boundary.
                     push_back(eb, &mut hole, &mut nhole);
                     push_back(r, &mut hreg, &mut nhreg);
                     push_back(a, &mut harea, &mut nharea);
                     add = true;
-                    i += 1;
                 }
                 if add {
-                    // The edge segment was added, remove it.
+                    // The edge segment was added, remove it
                     edges[i] = edges[nedges - 1].clone();
                     nedges -= 1;
                     match_ = true;
+                } else {
+                    i += 1;
                 }
             }
             if !match_ {
@@ -683,8 +689,7 @@ impl InternalPolygonNavmesh {
         }
 
         // Triangulate the hole.
-        // Jan: we treat errors here as a hard error instead of printing a warning.
-        let ntris = triangulate(nhole, &tverts, &mut thole, &mut tris)?;
+        let ntris = triangulate(nhole, &tverts, &mut thole, &mut tris);
 
         // Merge the hole triangles back to polygons.
         let mut polys = vec![0; (ntris + 1) * nvp];
@@ -840,7 +845,7 @@ impl InternalPolygonNavmesh {
             let nv = count_poly_verts(p, nvp);
 
             // Collect edges which touches the removed vertex.
-            for (j, k) in (0..nv).zip((nv - 1)..) {
+            for (j, k) in (0..nv).map(|j| (j, (j + nv - 1) % nv)) {
                 if !(p[j] == rem || p[k] == rem) {
                     continue;
                 }
@@ -872,7 +877,7 @@ impl InternalPolygonNavmesh {
         // There should be no more than 2 open edges.
         // This catches the case that two non-adjacent polygons
         // share the removed vertex. In that case, do not remove the vertex.
-        let num_open_edges = edges.iter().filter(|e| e[2] < 2).count();
+        let num_open_edges = edges.iter().take(nedges).filter(|e| e[2] < 2).count();
         num_open_edges <= 2
     }
 }
@@ -1055,7 +1060,7 @@ fn triangulate(
     verts: &[(U16Vec3, u32)],
     indices: &mut [usize],
     tris: &mut [U16Vec3],
-) -> Result<usize, PolygonNavmeshError> {
+) -> usize {
     let mut ntris = 0;
 
     // The last bit of the index is used to indicate if the vertex can be removed.
@@ -1076,7 +1081,7 @@ fn triangulate(
                 let p2 = verts[indices[next(i1, n)] & INDEX_MASK].0;
 
                 let d = p2.as_ivec3() - p0.as_ivec3();
-                let len = d.xz().length_squared() as u16;
+                let len = d.xz().length_squared() as u32;
                 if min_len.is_none_or(|min| len < min) {
                     min_len = Some(len);
                     mini = Some(i);
@@ -1100,7 +1105,7 @@ fn triangulate(
                     let p0 = verts[indices[i] & INDEX_MASK].0;
                     let p2 = verts[indices[next(i2, n)] & INDEX_MASK].0;
                     let d = p2.as_ivec3() - p0.as_ivec3();
-                    let len = d.xz().length_squared() as u16;
+                    let len = d.xz().length_squared() as u32;
                     if min_len.is_none_or(|min| len < min) {
                         min_len = Some(len);
                         mini = Some(i);
@@ -1110,9 +1115,11 @@ fn triangulate(
         }
 
         let Some(mini) = mini else {
-            // The contour is messed up. This sometimes happens
-            // if the contour simplification is too aggressive.
-            return Err(PolygonNavmeshError::InvalidContour);
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                "The contour is messed up. This sometimes happens if the contour simplification is too aggressive. Kept {ntris} good triangles from {n}-vertex contour."
+            );
+            return ntris;
         };
 
         let mut i = mini;
@@ -1153,7 +1160,7 @@ fn triangulate(
     tris[ntris].z = (indices[2] & INDEX_MASK) as u16;
     ntris += 1;
 
-    Ok(ntris)
+    ntris
 }
 
 const CAN_REMOVE: usize = 0x80000000;
