@@ -5858,7 +5858,6 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 name = "rerecast"
 version = "0.5.0"
 dependencies = [
- "anyhow",
  "bevy_reflect",
  "bitflags 2.11.0",
  "glam",

@@ -41,7 +41,6 @@ std = [
     "slotmap/std",
     "bitflags/std",
     "tracing?/std",
-    "anyhow/std",
     "thiserror/std",
 ]
 # Note: tracing works on all no_std platforms that support atomics
