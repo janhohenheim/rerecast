@@ -161,10 +161,12 @@ pub struct NavmeshSettings {
     /// If left at `None`, the AABB will be automatically computed based on the available navmesh obstacles.
     pub aabb: Option<Aabb3d>,
     /// Flags controlling the [`ContourSet`](crate::rerecast::ContourSet) generation process.
+    #[reflect(remote = crate::remote_reflect::RemoteBuildContoursFlags)]
     pub contour_flags: BuildContoursFlags,
     /// Whether the navmesh should be tiled or not.
     pub tiling: bool,
     /// Volumes that define areas with specific areas IDs.
+    #[reflect(remote = crate::remote_reflect::RemoteVec<crate::remote_reflect::RemoteConvexVolume>)]
     pub area_volumes: Vec<ConvexVolume>,
     /// An optional list of entities to consider as navmesh obstacles.
     /// If `Some`, the backend is expected to only consider the specified entities when generating a trimesh for the obstacles.

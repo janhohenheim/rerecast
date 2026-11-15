@@ -4,8 +4,6 @@ mod holes;
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "bevy_reflect")]
-use bevy_reflect::prelude::*;
 use glam::{U16Vec3, Vec3Swizzles};
 
 use crate::{
@@ -667,12 +665,7 @@ pub struct Contour {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
-pub struct BuildContoursFlags(u8);
+pub struct BuildContoursFlags(pub u8);
 
 bitflags::bitflags! {
     impl BuildContoursFlags: u8 {

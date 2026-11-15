@@ -1,7 +1,5 @@
 use crate::ops::*;
 use alloc::vec::Vec;
-#[cfg(feature = "bevy_reflect")]
-use bevy_reflect::prelude::*;
 
 use core::ops::{Deref, DerefMut};
 use glam::{U16Vec3, Vec2, Vec3, Vec3A, Vec3Swizzles as _, u16vec3};
@@ -24,11 +22,6 @@ use crate::{
 /// See the individual field definitions for details related to the structure the mesh.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct DetailNavmesh {
     /// The sub-mesh data.
     ///
@@ -116,11 +109,6 @@ pub struct DetailNavmesh {
 /// A sub-mesh in [`DetailNavmesh::meshes`]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct SubMesh {
     /// The index in [`DetailNavmesh::vertices`] that begins this sub-mesh.
     pub base_vertex_index: u32,

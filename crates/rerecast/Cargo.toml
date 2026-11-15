@@ -1,7 +1,7 @@
 [package]
 name = "rerecast"
 description = "Rust port of recastnavigation"
-version = "0.5.1"
+version = "1.0.0"
 authors = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
@@ -18,7 +18,6 @@ bitflags = { workspace = true }
 tracing = { workspace = true, optional = true }
 libm = { workspace = true, optional = true }
 
-bevy_reflect = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 [dev-dependencies]
@@ -37,7 +36,6 @@ libm = ["dep:libm", "glam/libm"]
 # use std
 std = [
     "glam/std",
-    "bevy_reflect?/std",
     "slotmap/std",
     "bitflags/std",
     "tracing?/std",
@@ -46,7 +44,6 @@ std = [
 # Note: tracing works on all no_std platforms that support atomics
 tracing = ["dep:tracing"]
 serialize = ["dep:serde", "glam/serde", "slotmap/serde", "bitflags/serde"]
-bevy_reflect = ["dep:bevy_reflect"]
 
 [lints]
 workspace = true
