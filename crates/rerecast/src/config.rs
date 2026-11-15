@@ -1,8 +1,6 @@
 use crate::ops::*;
 use crate::{Aabb3d, BuildContoursFlags, ConvexVolume};
 use alloc::vec::Vec;
-#[cfg(feature = "bevy_reflect")]
-use bevy_reflect::prelude::*;
 
 /// Specifies a configuration to use when performing Recast builds. Usually built using [`ConfigBuilder`].
 ///
@@ -26,11 +24,6 @@ use bevy_reflect::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct Config {
     /// The width of the field along the x-axis. `[Limit: >= 0] [Units: vx]`
     pub width: u16,
@@ -217,11 +210,6 @@ pub struct Config {
 /// The default values are chosen to be reasonable for an agent resembling and adult human.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct ConfigBuilder {
     /// How many cells should fit in the [`Self::agent_radius`] on the xz-plane to use for fields. `[Limit: > 0]`.
     ///

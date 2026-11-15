@@ -1,6 +1,4 @@
 use alloc::vec::Vec;
-#[cfg(feature = "bevy_reflect")]
-use bevy_reflect::prelude::*;
 use glam::{IVec3, Vec2};
 
 use crate::{Aabb2d, AreaType, CompactHeightfield};
@@ -93,11 +91,6 @@ fn point_in_poly(point: &Vec2, vertices: &[Vec2]) -> bool {
 ///
 #[derive(Debug, Default, PartialEq, Clone)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct ConvexVolume {
     /// The vertices of the convex volume. In 3D, these represent the X and Z coordinates of the vertices.
     pub vertices: Vec<Vec2>,

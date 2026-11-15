@@ -15,6 +15,7 @@ mod backend;
 pub mod debug;
 #[cfg(feature = "bevy_asset")]
 pub mod generator;
+mod remote_reflect;
 pub use backend::*;
 #[cfg(feature = "bevy_asset")]
 pub mod asset_loader;
@@ -67,6 +68,7 @@ pub struct Navmesh {
     /// stairs, ramps, or slopes.
     ///
     /// If you can spare the performance cost, you can also always use [`Navmesh::detail`] to pathfind instead.
+    #[reflect(remote = crate::remote_reflect::PolygonNavmesh)]
     pub polygon: PolygonNavmesh,
 
     /// The detail navmesh data. This is a more detailed representation of the navmesh that
@@ -74,6 +76,7 @@ pub struct Navmesh {
     /// the latter is more efficient for pathfinding. Use this navmesh to refine the path.
     ///
     /// If you can spare the performance cost, you can also always use this navmesh to pathfind instead.
+    #[reflect(remote = crate::remote_reflect::RemoteDetailNavmesh)]
     pub detail: DetailNavmesh,
 
     /// The configuration that was used to generate this navmesh.

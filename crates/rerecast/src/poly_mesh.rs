@@ -4,8 +4,6 @@ use crate::{
     math::{next, prev},
 };
 use alloc::vec::Vec;
-#[cfg(feature = "bevy_reflect")]
-use bevy_reflect::prelude::*;
 use glam::{U16Vec2, U16Vec3, Vec3Swizzles as _, u16vec3, uvec3};
 use thiserror::Error;
 
@@ -76,11 +74,6 @@ struct InternalPolygonNavmesh {
 /// ```
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "bevy_reflect", derive(Reflect))]
-#[cfg_attr(
-    all(feature = "serialize", feature = "bevy_reflect"),
-    reflect(Serialize, Deserialize)
-)]
 pub struct PolygonNavmesh {
     /// The mesh vertices.
     ///
